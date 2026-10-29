@@ -1,0 +1,13 @@
+# Android Studio and Gradle local state
+.gradle/
+.idea/
+local.properties
+**/build/
+
+# Machine-specific files and credentials
+.DS_Store
+Thumbs.db
+.env
+.env.*
+*.jks
+*.keystore
