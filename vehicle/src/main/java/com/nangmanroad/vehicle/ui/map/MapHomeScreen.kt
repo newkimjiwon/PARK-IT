@@ -111,7 +111,7 @@ fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
                         modifier = Modifier
                             .align(Alignment.BottomStart)
                             .padding(Dimens.Gutter)
-                            .widthIn(max = 760.dp),
+                            .widthIn(max = 820.dp),
                     )
                 }
             }
@@ -217,17 +217,20 @@ private fun PreviewCard(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(spot.category.label, style = MaterialTheme.typography.labelMedium, color = Palette.Peach)
             Text(spot.title, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(spot.region, style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary, maxLines = 1)
             Text(
-                "${spot.region} · ${distanceLabel(state, spot)}",
+                distanceLabel(state, spot),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Palette.TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Stat(Icons.Outlined.FavoriteBorder, state.likeCount(spot).toString())
                 Stat(Icons.Outlined.TipsAndUpdates, "꿀팁 ${spot.tips.size}", highlight = true)
             }
         }
-        Column(Modifier.width(300.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.width(280.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             ActionButton("길 안내", Icons.Outlined.Directions, onRoute, primary = true, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ActionButton(

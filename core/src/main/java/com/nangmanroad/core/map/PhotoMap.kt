@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -114,6 +115,8 @@ fun PhotoMap(
 
     Box(
         modifier = modifier
+            // The base map and markers extend past the view while panning; keep them inside it.
+            .clipToBounds()
             .onSizeChanged { viewSize = it.toSize() }
             .pointerInput(Unit) {
                 detectTransformGestures { centroid, pan, zoom, _ ->
