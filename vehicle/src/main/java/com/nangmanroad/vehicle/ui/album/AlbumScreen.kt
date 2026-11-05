@@ -1,0 +1,92 @@
+package com.nangmanroad.vehicle.ui.album
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.PersonAddAlt
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.nangmanroad.vehicle.AppUiState
+import com.nangmanroad.vehicle.AppViewModel
+import com.nangmanroad.vehicle.data.AlbumTab
+import com.nangmanroad.vehicle.data.SpotQueries
+import com.nangmanroad.vehicle.ui.components.EmptyState
+import com.nangmanroad.vehicle.ui.components.Pill
+import com.nangmanroad.vehicle.ui.components.SectionLabel
+import com.nangmanroad.vehicle.ui.feed.SpotCard
+import com.nangmanroad.vehicle.ui.theme.Palette
+
+private val aspects = listOf(0.78f, 1.0f, 0.68f, 1.2f, 0.9f)
+
+@Composable
+fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
+    val spots = SpotQueries.album(state.spots, state.albumTab, state.saved, state.liked, state.following, state.here)
+    LazyVerticalStaggeredGrid(
+        columns = StaggeredGridCells.Adaptive(320.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(40.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        verticalItemSpacing = 22.dp,
+    ) {
+        item(span = StaggeredGridItemSpan.FullLine) {
+            Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.Bottom) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    SectionLabel("PHOTO ALBUM")
+                    Text(
+                        if (state.albumTab == AlbumTab.RECOMMENDED) "당신이 좋아할 낭만" else "사진으로 발견하는 낭만",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = Palette.TextPrimary,
+                    )
+                    if (state.albumTab == AlbumTab.RECOMMENDED) {
+                        Text(
+                            "좋아요·저장한 풍경, 팔로우한 사람, 거리와 최신순을 함께 봤어요",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Palette.TextSecondary,
+                        )
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AlbumTab.entries.forEach { tab ->
+                        Pill(
+                            text = tab.label,
+                            selected = state.albumTab == tab,
+                            onClick = { actions.setAlbumTab(tab) },
+                            trailing = if (tab == AlbumTab.SAVED) state.saved.size.toString() else null,
+                        )
+                    }
+                }
+            }
+        }
+        if (spots.isEmpty()) {
+            item(span = StaggeredGridItemSpan.FullLine) {
+                when (state.albumTab) {
+                    AlbumTab.SAVED -> EmptyState(Icons.Outlined.BookmarkBorder, "저장한 장소가 없어요", "마음에 드는 사진의 책갈피를 눌러 저장해 보세요.")
+                    else -> EmptyState(Icons.Outlined.PersonAddAlt, "팔로잉한 사람이 없어요", "장소 상세에서 작성자를 팔로우해 보세요.")
+                }
+            }
+        }
+        items(spots, key = { it.id }) { spot ->
+            SpotCard(
+                spot = spot,
+                likeCount = state.likeCount(spot),
+                saved = spot.id in state.saved,
+                photoAspect = aspects[(spot.id.hashCode() and 0x7fffffff) % aspects.size],
+                onOpen = { actions.openSpot(spot.id) },
+                onToggleSave = { actions.toggleSave(spot.id) },
+            )
+        }
+    }
+}

@@ -1,5 +1,6 @@
 # Android Studio and Gradle local state
 .gradle/
+.kotlin/
 .idea/
 local.properties
 **/build/
