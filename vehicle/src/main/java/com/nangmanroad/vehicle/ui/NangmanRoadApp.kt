@@ -41,13 +41,13 @@ import androidx.compose.ui.unit.dp
 import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
 import com.nangmanroad.vehicle.Screen
-import com.nangmanroad.vehicle.data.AlbumTab
+import com.nangmanroad.core.data.AlbumTab
 import com.nangmanroad.vehicle.ui.album.AlbumScreen
 import com.nangmanroad.vehicle.ui.detail.SpotDetailScreen
 import com.nangmanroad.vehicle.ui.driving.DrivingScreen
 import com.nangmanroad.vehicle.ui.map.MapHomeScreen
 import com.nangmanroad.vehicle.ui.theme.Dimens
-import com.nangmanroad.vehicle.ui.theme.Palette
+import com.nangmanroad.core.ui.Palette
 import kotlinx.coroutines.delay
 
 @Composable

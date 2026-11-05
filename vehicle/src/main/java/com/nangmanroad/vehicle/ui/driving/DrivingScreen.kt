@@ -23,15 +23,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.vehicle.AppUiState
-import com.nangmanroad.vehicle.data.TipStatus
-import com.nangmanroad.vehicle.data.formatDuration
-import com.nangmanroad.vehicle.data.formatMeters
+import com.nangmanroad.core.data.TipStatus
+import com.nangmanroad.core.data.formatDuration
+import com.nangmanroad.core.data.formatMeters
 import com.nangmanroad.vehicle.pleos.DrivingState
 import com.nangmanroad.vehicle.ui.components.ActionButton
-import com.nangmanroad.vehicle.ui.detail.byImportance
-import com.nangmanroad.vehicle.ui.detail.color
-import com.nangmanroad.vehicle.ui.detail.icon
-import com.nangmanroad.vehicle.ui.theme.Palette
+import com.nangmanroad.core.ui.byImportance
+import com.nangmanroad.core.ui.color
+import com.nangmanroad.core.ui.icon
+import com.nangmanroad.core.ui.Palette
 
 /**
  * While the car can move: no photos, feeds or scrolling, just the destination and at most three

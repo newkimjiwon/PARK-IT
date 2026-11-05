@@ -41,6 +41,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core"))
     implementation(libs.pleos.vehicle)
     implementation(libs.pleos.navihelper)
 

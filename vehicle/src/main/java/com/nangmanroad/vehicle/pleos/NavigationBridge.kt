@@ -10,8 +10,8 @@ import ai.pleos.playground.navi.helper.NaviHelper
 import ai.pleos.playground.navi.helper.listener.NaviHelperEventListener
 import android.content.Context
 import android.util.Log
-import com.nangmanroad.vehicle.data.LatLng
-import com.nangmanroad.vehicle.data.Spot
+import com.nangmanroad.core.data.LatLng
+import com.nangmanroad.core.data.Spot
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow

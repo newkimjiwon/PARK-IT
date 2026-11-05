@@ -4,32 +4,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
+import com.nangmanroad.core.ui.Palette
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-/** Design tokens from the Figma Make prompt: charcoal surfaces with a sunset coral accent. */
-object Palette {
-    val Background = Color(0xFF111318)
-    val BackgroundRaised = Color(0xFF1C2028)
-    val Surface = Color(0xFF282D36)
-    val SurfaceHigh = Color(0xFF323844)
-    val TextPrimary = Color(0xFFF9FAFB)
-    val TextSecondary = Color(0xFFA3A9B5)
-    val TextTertiary = Color(0xFF6E7582)
-    val Coral = Color(0xFFFF957C)
-    val Peach = Color(0xFFFFC5AC)
-    val Success = Color(0xFF54B899)
-    val Warning = Color(0xFFF0B46B)
-    val Scrim = Color(0xCC111318)
-
-    val MapSea = Color(0xFF14171D)
-    val MapLand = Color(0xFF1F232B)
-    val MapRoad = Color(0xFF353B47)
-    val MapLabel = Color(0xFF7A818E)
-}
 
 /** Sizes for a head unit viewed from arm's length (Pleos minimum: 18px text, large targets). */
 object Dimens {

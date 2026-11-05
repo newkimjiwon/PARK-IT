@@ -1,8 +1,8 @@
 # 차량용 앱 — 낭만로드
 
-[Figma 프로토타입](figma-prototype-review.md)의 차량 디스플레이 화면을 Pleos Connect용 Android Automotive 앱으로 옮긴 것입니다. 코드는 `vehicle/` 모듈에 있습니다. 스마트폰 앱과 계정·서버 동기화는 아직 없습니다.
+[Figma 프로토타입](figma-prototype-review.md)의 차량 디스플레이 화면을 Pleos Connect용 Android Automotive 앱으로 옮긴 것입니다. 코드는 `vehicle/` 모듈에 있고, 데이터 모델과 사진 지도는 [스마트폰 앱](phone-app.md)과 함께 쓰는 `core/` 모듈에 있습니다. 계정·서버 동기화는 아직 없습니다.
 
-> 확인 범위: 2026-11-05 Apple Silicon Mac의 Pleos Connect Emulator 2.1.0(2560×1440, 앱 창 2:1)에서 빌드·설치·실행했습니다. 지도, 장소 상세, 앨범 화면을 확인했습니다. NaviHelper 길 안내와 Virtual Console의 P↔D 전환에 따른 주행 화면도 직접 확인했습니다. 단위 테스트 8개가 통과했습니다. 세로 창과 1:1 창 배치, 실제 차량은 확인하지 않았습니다.
+> 확인 범위: 2026-11-05 Apple Silicon Mac의 Pleos Connect Emulator 2.1.0(2560×1440, 앱 창 2:1)에서 빌드·설치·실행했습니다. 지도, 장소 상세, 앨범 화면을 확인했습니다. NaviHelper 길 안내와 Virtual Console의 P↔D 전환에 따른 주행 화면도 직접 확인했습니다. 세로 창과 1:1 창 배치, 실제 차량은 확인하지 않았습니다. 같은 날 공용 코드를 `core/`로 옮긴 뒤에는 빌드만 확인했고, Pleos 에뮬레이터에서 다시 실행하지는 않았습니다.
 
 ## 빌드와 실행
 
@@ -70,21 +70,24 @@ curl -s -X PUT "http://127.0.0.1:8088/vehicle/gear?gear=Park"
 ## 코드 구조
 
 ```
+core/src/main/java/com/nangmanroad/core/        차량·휴대폰 앱 공용
+├── data/    모델, 샘플 장소 9곳, 목록·추천 로직, 꿀팁 충돌 표시, 사용자 저장소
+├── map/     사진 지도(투영, 묶음 표시, 기본 지도 그리기)
+└── ui/      색상 토큰, 사진·아바타, 꿀팁 아이콘·색
+
 vehicle/src/main/java/com/nangmanroad/vehicle/
 ├── MainActivity.kt, AppViewModel.kt   화면 상태, 사용자 동작, SDK 연결
-├── data/                              모델, 샘플 장소 9곳, 목록·추천 로직, 사용자 저장소
 ├── pleos/                             Vehicle SDK·NaviHelper 래퍼
-└── ui/                                지도, 상세, 앨범, 주행 화면, 공통 컴포넌트, 테마
+└── ui/                                지도 홈, 상세, 앨범, 주행 화면, 차량용 컴포넌트, 테마
 ```
 
 - 지도는 지도 SDK 없이 Compose Canvas로 그립니다. 한반도 윤곽, 주요 고속도로, 도시 이름을 단순화해 표시하므로 API 키가 필요 없습니다. 실제 도로 지도가 필요하면 지도 SDK로 교체해야 합니다.
 - 추천은 좋아요·저장한 풍경 분류, 팔로우한 작성자, 인기, 최신성, 거리를 더한 규칙 기반 점수입니다(`SpotQueries.recommended`).
-- 색상과 글자 크기는 Figma 프롬프트의 디자인 토큰과 Pleos 최소 글자 크기(18px)를 기준으로 `ui/theme/Theme.kt`에 모았습니다.
+- 색상은 Figma 프롬프트의 디자인 토큰으로 `core`의 `ui/Palette.kt`에 모았습니다. 차량용 글자 크기는 Pleos 최소 글자 크기(18px)를 기준으로 `vehicle`의 `ui/theme/Theme.kt`에 정했습니다.
 
 ## 아직 없는 것
 
-- 스마트폰 앱. 장소 공유, 꿀팁 제보, 댓글 작성, 상품 구매 화면이 여기에 해당합니다.
-- 계정과 서버. 지금은 샘플 데이터와 기기 안 저장만 있습니다. '휴대폰으로 보내기'도 보낼 항목을 기기에 쌓아 두기만 하고 실제로 전송하지 않습니다.
+- 계정과 서버. 지금은 샘플 데이터와 기기 안 저장만 있습니다. '휴대폰으로 보내기'도 보낼 항목을 기기에 쌓아 두기만 하고, 스마트폰 앱으로 실제로 전송하지 않습니다.
 - 실제 지도 타일과 위치 검색
 - 음성 안내. TextToSpeech, SpeechToText SDK는 2026-11-05 기준 '준비 중' 상태입니다.
 - 샘플 사진은 Unsplash 이미지를 장소와 무관하게 배정한 것입니다. 예를 들어 단양 게시물에 김포공항 표지판 사진이 나옵니다.

@@ -18,16 +18,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.ThumbUp
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.ElectricalServices
-import androidx.compose.material.icons.outlined.LocalParking
-import androidx.compose.material.icons.outlined.NightsStay
 import androidx.compose.material.icons.outlined.PhoneAndroid
-import androidx.compose.material.icons.outlined.ReportProblem
-import androidx.compose.material.icons.outlined.SignalCellularAlt
-import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.ThumbUp
-import androidx.compose.material.icons.outlined.Wc
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,47 +36,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.nangmanroad.vehicle.data.Comment
-import com.nangmanroad.vehicle.data.HoneyTip
-import com.nangmanroad.vehicle.data.Product
-import com.nangmanroad.vehicle.data.Spot
-import com.nangmanroad.vehicle.data.TipKind
-import com.nangmanroad.vehicle.data.TipStatus
+import com.nangmanroad.core.data.Comment
+import com.nangmanroad.core.data.HoneyTip
+import com.nangmanroad.core.data.Product
+import com.nangmanroad.core.data.Spot
 import com.nangmanroad.vehicle.ui.components.ActionButton
-import com.nangmanroad.vehicle.ui.components.Avatar
+import com.nangmanroad.core.ui.Avatar
 import com.nangmanroad.vehicle.ui.components.Badge
 import com.nangmanroad.vehicle.ui.components.SectionLabel
-import com.nangmanroad.vehicle.ui.components.SpotPhoto
-import com.nangmanroad.vehicle.ui.theme.Palette
+import com.nangmanroad.core.ui.SpotPhoto
+import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.byImportance
+import com.nangmanroad.core.ui.color
+import com.nangmanroad.core.ui.icon
+import com.nangmanroad.core.ui.label
 import java.text.NumberFormat
 import java.util.Locale
-
-fun TipKind.icon(): ImageVector = when (this) {
-    TipKind.TOILET -> Icons.Outlined.Wc
-    TipKind.PARKING -> Icons.Outlined.LocalParking
-    TipKind.POWER -> Icons.Outlined.ElectricalServices
-    TipKind.SIGNAL -> Icons.Outlined.SignalCellularAlt
-    TipKind.NIGHT -> Icons.Outlined.NightsStay
-    TipKind.STORE -> Icons.Outlined.Storefront
-    TipKind.ACCESS -> Icons.Outlined.DirectionsCar
-    TipKind.CAUTION -> Icons.Outlined.ReportProblem
-}
-
-fun TipStatus.color(): Color = when (this) {
-    TipStatus.GOOD -> Palette.Success
-    TipStatus.PREPARE -> Palette.Warning
-    TipStatus.NEEDS_CHECK -> Palette.Coral
-}
-
-private fun TipStatus.label(): String = when (this) {
-    TipStatus.GOOD -> "괜찮아요"
-    TipStatus.PREPARE -> "준비하세요"
-    TipStatus.NEEDS_CHECK -> "확인 필요"
-}
-
-/** Problems first, then things to prepare, then the reassuring ones. */
-fun List<HoneyTip>.byImportance(): List<HoneyTip> =
-    sortedWith(compareBy<HoneyTip> { it.status != TipStatus.NEEDS_CHECK }.thenBy { it.status != TipStatus.PREPARE }.thenByDescending { it.helpfulCount })
 
 @Composable
 fun HoneyTipSection(

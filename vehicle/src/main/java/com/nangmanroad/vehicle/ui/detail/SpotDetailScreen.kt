@@ -52,14 +52,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
-import com.nangmanroad.vehicle.data.Spot
+import com.nangmanroad.core.data.Spot
 import com.nangmanroad.vehicle.ui.components.ActionButton
-import com.nangmanroad.vehicle.ui.components.Avatar
+import com.nangmanroad.core.ui.Avatar
 import com.nangmanroad.vehicle.ui.components.Pill
-import com.nangmanroad.vehicle.ui.components.SpotPhoto
+import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.vehicle.ui.map.distanceLabel
 import com.nangmanroad.vehicle.ui.theme.Dimens
-import com.nangmanroad.vehicle.ui.theme.Palette
+import com.nangmanroad.core.ui.Palette
 
 private enum class DetailTab(val label: String) { TIPS("방문 꿀팁"), ITEMS("이 낭만을 만든 아이템"), COMMENTS("댓글") }
 

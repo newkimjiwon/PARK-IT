@@ -21,13 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
-import com.nangmanroad.vehicle.data.AlbumTab
-import com.nangmanroad.vehicle.data.SpotQueries
+import com.nangmanroad.core.data.AlbumTab
+import com.nangmanroad.core.data.SpotQueries
 import com.nangmanroad.vehicle.ui.components.EmptyState
 import com.nangmanroad.vehicle.ui.components.Pill
 import com.nangmanroad.vehicle.ui.components.SectionLabel
 import com.nangmanroad.vehicle.ui.feed.SpotCard
-import com.nangmanroad.vehicle.ui.theme.Palette
+import com.nangmanroad.core.ui.Palette
 
 private val aspects = listOf(0.78f, 1.0f, 0.68f, 1.2f, 0.9f)
 

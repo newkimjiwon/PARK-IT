@@ -22,4 +22,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "NangmanRoad"
+include(":core")
 include(":vehicle")
+include(":phone")

@@ -31,11 +31,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.nangmanroad.vehicle.data.Spot
-import com.nangmanroad.vehicle.ui.components.Avatar
-import com.nangmanroad.vehicle.ui.components.SpotPhoto
+import com.nangmanroad.core.data.Spot
+import com.nangmanroad.core.ui.Avatar
+import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.vehicle.ui.theme.Dimens
-import com.nangmanroad.vehicle.ui.theme.Palette
+import com.nangmanroad.core.ui.Palette
 
 /** Photo-first post card used by the map feed and the album grid. */
 @Composable

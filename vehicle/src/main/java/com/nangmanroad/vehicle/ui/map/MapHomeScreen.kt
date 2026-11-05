@@ -51,23 +51,24 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.nangmanroad.core.map.PhotoMap
 import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
-import com.nangmanroad.vehicle.data.Category
-import com.nangmanroad.vehicle.data.FeedSort
-import com.nangmanroad.vehicle.data.Spot
-import com.nangmanroad.vehicle.data.SpotQueries
-import com.nangmanroad.vehicle.data.distanceKm
-import com.nangmanroad.vehicle.data.formatKm
+import com.nangmanroad.core.data.Category
+import com.nangmanroad.core.data.FeedSort
+import com.nangmanroad.core.data.Spot
+import com.nangmanroad.core.data.SpotQueries
+import com.nangmanroad.core.data.distanceKm
+import com.nangmanroad.core.data.formatKm
 import com.nangmanroad.vehicle.ui.components.ActionButton
 import com.nangmanroad.vehicle.ui.components.EmptyState
 import com.nangmanroad.vehicle.ui.components.Pill
 import com.nangmanroad.vehicle.ui.components.SectionLabel
-import com.nangmanroad.vehicle.ui.components.SpotPhoto
+import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.vehicle.ui.feed.SpotCard
 import com.nangmanroad.vehicle.ui.feed.Stat
 import com.nangmanroad.vehicle.ui.theme.Dimens
-import com.nangmanroad.vehicle.ui.theme.Palette
+import com.nangmanroad.core.ui.Palette
 
 @Composable
 fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
