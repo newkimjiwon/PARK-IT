@@ -144,3 +144,39 @@ adb -s emulator-5554 install -r phone/build/outputs/apk/debug/phone-debug.apk
 - **휴대폰 에뮬레이터 입력:** `adb shell input text`로는 영문만 입력할 수 있습니다. 처음 입력하면 키보드의 스타일러스 안내 창이 뜰 수 있는데, 'Cancel'로 닫으면 됩니다.
 - **디스크 공간:** `downloads/`에는 Android Studio, JDK, 명령줄 도구, Pleos 이미지 설치 파일이 남아 있습니다(약 6.1GB). 다시 설치할 일이 없다면 지워서 공간을 확보할 수 있습니다.
 - **공식 샘플:** `samples/pleos-sample-vehicle-app/`은 `vehicleSdk`를 2.3.2로 바꾼 상태입니다. 바뀐 내용은 그 폴더에서 `git diff`로 확인합니다.
+
+## README 스크린샷
+
+README의 화면 이미지는 `docs/images/`에 있고, 앱 화면이 바뀌면 같은 이름으로 다시 찍어 바꿉니다. 이미지는 `scripts/capture-screenshot.sh`로 찍습니다. 이 스크립트는 macOS의 `sips`를 쓰므로 이 Mac에서만 동작합니다.
+
+```zsh
+source /Volumes/MacAPFS/PleosDev/env.sh
+scripts/capture-screenshot.sh emulator-5554 car-map car
+scripts/capture-screenshot.sh emulator-5556 phone-home phone
+```
+
+| 종류 | 처리 | 결과 |
+| --- | --- | --- |
+| `car` | 2560×1440 화면에서 앱 창(x 854~2534, y 91~1298)만 자름 | 가로 1280px JPEG |
+| `car-full` | 헤드유닛 전체 | 가로 1600px JPEG |
+| `phone` | 휴대폰 전체 | 가로 540px JPEG |
+
+| 파일 | 화면 |
+| --- | --- |
+| `car-headunit` | 지도 홈이 열린 헤드유닛 전체(`car-full`) |
+| `car-map` | 지도 홈, 강릉 장소 선택 |
+| `car-detail-tips`, `car-detail-items` | 강릉 장소 상세의 방문 꿀팁, 아이템 탭 |
+| `car-album` | 앨범 추천 탭 |
+| `car-from-phone` | 앨범 '휴대폰에서 보냄' 탭 |
+| `car-driving` | 길 안내 후 주행 화면 |
+| `car-pairing`, `car-account` | 계정 연결 코드, 연결된 상태 |
+| `phone-signin`, `phone-home`, `phone-map`, `phone-detail`, `phone-tips` | 로그인, 홈, 지도(강릉 선택), 강릉 상세 위·아래 |
+| `phone-share-photo`, `phone-share-place` | 장소 공유 1·2단계 |
+| `phone-car`, `phone-profile`, `phone-notifications` | 내 차량, 마이, 알림 |
+
+찍을 때 알아둘 점:
+
+- 동기화 서버를 켜고 두 앱을 `윤슬을따라` 계정에 연결한 상태에서 찍습니다. 테스트로 올린 게시물이 화면에 나오지 않도록, 필요하면 서버를 끄고 `server/data/state.json`에서 지운 뒤 다시 켭니다.
+- 에뮬레이터 두 대는 한 대가 완전히 부팅된 뒤에 다음 대를 켭니다. 부팅 중에 겹치면 GPU 오류로 차량 화면이 검게 찍힙니다.
+- 휴대폰 상태 표시줄의 시간은 그대로 찍힙니다.
+- 2026-11-07에 찍었습니다. `car-driving`만 그 화면 코드가 바뀌지 않아 2026-11-05에 찍은 화면을 썼습니다.
