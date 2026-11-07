@@ -1,7 +1,11 @@
 package com.nangmanroad.core.data
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class LatLng(val latitude: Double, val longitude: Double)
 
+@Serializable
 enum class Category(val label: String) {
     SEA_SUNSET("바다와 노을"),
     STARS("별이 보이는 곳"),
@@ -11,12 +15,14 @@ enum class Category(val label: String) {
     QUIET("조용히 쉬기 좋은 곳"),
 }
 
+@Serializable
 data class Author(
     val id: String,
     val name: String,
     val bio: String,
 )
 
+@Serializable
 enum class TipKind(val label: String) {
     TOILET("화장실"),
     PARKING("주차"),
@@ -29,8 +35,10 @@ enum class TipKind(val label: String) {
 }
 
 /** How a tip should read at a glance: fine, worth preparing for, or reports that disagree. */
+@Serializable
 enum class TipStatus { GOOD, PREPARE, NEEDS_CHECK }
 
+@Serializable
 data class HoneyTip(
     val id: String,
     val kind: TipKind,
@@ -42,6 +50,7 @@ data class HoneyTip(
     val reporter: String,
 )
 
+@Serializable
 data class Product(
     val id: String,
     val name: String,
@@ -52,6 +61,7 @@ data class Product(
     val imageUrl: String,
 )
 
+@Serializable
 data class Comment(
     val id: String,
     val author: String,
@@ -61,12 +71,14 @@ data class Comment(
     val replies: List<Comment> = emptyList(),
 )
 
+@Serializable
 enum class Visibility(val label: String) {
     PUBLIC("전체 공개"),
     FOLLOWERS("팔로워 공개"),
     PRIVATE("나만 보기"),
 }
 
+@Serializable
 data class Spot(
     val id: String,
     val title: String,

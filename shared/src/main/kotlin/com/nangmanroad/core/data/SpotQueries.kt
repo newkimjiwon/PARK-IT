@@ -11,6 +11,7 @@ enum class AlbumTab(val label: String) {
     FOLLOWING("팔로잉"),
     LATEST("최신"),
     SAVED("저장한 장소"),
+    FROM_PHONE("휴대폰에서 보냄"),
 }
 
 /** Pure list logic shared by the map feed and the album, kept apart from Compose for tests. */
@@ -46,11 +47,14 @@ object SpotQueries {
         liked: Set<String>,
         following: Set<String>,
         here: LatLng,
+        /** Spot ids the phone sent to the car, newest first. */
+        fromPhone: List<String> = emptyList(),
     ): List<Spot> = when (tab) {
         AlbumTab.RECOMMENDED -> recommended(spots, saved, liked, following, here)
         AlbumTab.FOLLOWING -> spots.filter { it.author.id in following }.sortedBy { it.postedDaysAgo }
         AlbumTab.LATEST -> spots.sortedBy { it.postedDaysAgo }
         AlbumTab.SAVED -> spots.filter { it.id in saved }
+        AlbumTab.FROM_PHONE -> fromPhone.mapNotNull { id -> spots.firstOrNull { it.id == id } }
     }
 
     /**

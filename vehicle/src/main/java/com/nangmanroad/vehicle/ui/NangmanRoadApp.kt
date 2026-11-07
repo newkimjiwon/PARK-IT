@@ -21,10 +21,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -42,6 +45,7 @@ import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
 import com.nangmanroad.vehicle.Screen
 import com.nangmanroad.core.data.AlbumTab
+import com.nangmanroad.vehicle.ui.account.AccountScreen
 import com.nangmanroad.vehicle.ui.album.AlbumScreen
 import com.nangmanroad.vehicle.ui.detail.SpotDetailScreen
 import com.nangmanroad.vehicle.ui.driving.DrivingScreen
@@ -67,6 +71,7 @@ fun NangmanRoadApp(state: AppUiState, actions: AppViewModel) {
                         when (val screen = state.screen) {
                             Screen.Map -> screens.SaveableStateProvider("map") { MapHomeScreen(state, actions) }
                             Screen.Album -> screens.SaveableStateProvider("album") { AlbumScreen(state, actions) }
+                            Screen.Account -> AccountScreen(state, actions)
                             is Screen.Detail -> {
                                 val spot = state.spot(screen.spotId)
                                 if (spot != null) {
@@ -105,31 +110,56 @@ private fun SideRail(state: AppUiState, actions: AppViewModel) {
             Box(Modifier.size(18.dp).clip(CircleShape).background(Palette.Background))
         }
         Spacer(Modifier.size(18.dp))
-        RailButton(Icons.Outlined.Map, "지도", state.screen == Screen.Map, actions::showMap)
-        RailButton(Icons.Outlined.PhotoLibrary, "앨범", onAlbum && state.albumTab != AlbumTab.SAVED) {
-            actions.showAlbum(if (state.albumTab == AlbumTab.SAVED) AlbumTab.RECOMMENDED else null)
+        RailButton(Icons.Outlined.Map, "지도", state.screen == Screen.Map, onClick = actions::showMap)
+        val shortcutTabs = setOf(AlbumTab.SAVED, AlbumTab.FROM_PHONE)
+        RailButton(Icons.Outlined.PhotoLibrary, "앨범", onAlbum && state.albumTab !in shortcutTabs) {
+            actions.showAlbum(if (state.albumTab in shortcutTabs) AlbumTab.RECOMMENDED else null)
         }
         RailButton(Icons.Outlined.BookmarkBorder, "저장", onAlbum && state.albumTab == AlbumTab.SAVED) {
             actions.showAlbum(AlbumTab.SAVED)
         }
+        RailButton(Icons.Outlined.PhoneAndroid, "휴대폰", onAlbum && state.albumTab == AlbumTab.FROM_PHONE, badge = state.fromPhone.size) {
+            actions.showAlbum(AlbumTab.FROM_PHONE)
+        }
         Spacer(Modifier.weight(1f))
+        RailButton(
+            icon = if (state.session != null) Icons.Outlined.AccountCircle else Icons.Outlined.Link,
+            label = if (state.session != null) "계정" else "계정 연결",
+            selected = state.screen == Screen.Account,
+            onClick = actions::openAccount,
+        )
         RailButton(Icons.Outlined.DirectionsCar, "주행 화면", false) { actions.setDrivingPreview(true) }
     }
 }
 
 @Composable
-private fun RailButton(icon: ImageVector, label: String, selected: Boolean, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .size(width = 88.dp, height = 88.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) Palette.Surface else Palette.Background)
-            .clickable(role = Role.Tab, onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Icon(icon, contentDescription = null, tint = if (selected) Palette.Coral else Palette.TextSecondary, modifier = Modifier.size(32.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium, color = if (selected) Palette.TextPrimary else Palette.TextSecondary)
+private fun RailButton(icon: ImageVector, label: String, selected: Boolean, badge: Int = 0, onClick: () -> Unit) {
+    Box {
+        Column(
+            modifier = Modifier
+                .size(width = 88.dp, height = 88.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(if (selected) Palette.Surface else Palette.Background)
+                .clickable(role = Role.Tab, onClick = onClick),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = if (selected) Palette.Coral else Palette.TextSecondary, modifier = Modifier.size(32.dp))
+            Text(label, style = MaterialTheme.typography.labelMedium, color = if (selected) Palette.TextPrimary else Palette.TextSecondary)
+        }
+        if (badge > 0) {
+            Text(
+                badge.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                color = Palette.Background,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp)
+                    .clip(CircleShape)
+                    .background(Palette.Coral)
+                    .padding(horizontal = 8.dp, vertical = 1.dp),
+            )
+        }
     }
 }
 

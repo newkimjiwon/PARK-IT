@@ -1,8 +1,8 @@
-package com.nangmanroad.phone
+package com.nangmanroad.core
 
 import com.nangmanroad.core.data.Comment
-import com.nangmanroad.phone.data.LocalComment
-import com.nangmanroad.phone.data.mergeComments
+import com.nangmanroad.core.data.LocalComment
+import com.nangmanroad.core.data.mergeComments
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

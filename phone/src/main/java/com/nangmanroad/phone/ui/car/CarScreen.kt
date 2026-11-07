@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.Thermostat
@@ -32,6 +33,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +57,9 @@ import com.nangmanroad.phone.data.CarCommand
 import com.nangmanroad.phone.data.CarDemoState
 import com.nangmanroad.phone.ui.components.SectionHeader
 import com.nangmanroad.phone.ui.components.Tag
+import com.nangmanroad.phone.ui.components.PrimaryButton
+import com.nangmanroad.phone.ui.components.SecondaryButton
+import com.nangmanroad.phone.ui.detail.LabeledField
 
 @Composable
 fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
@@ -60,6 +69,7 @@ fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
             Text("PLEOS CONNECT · 콘셉트", style = MaterialTheme.typography.labelSmall, color = Palette.Coral)
             Text("내 차량", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
         }
+        item { CarLinkCard(state, actions) }
         item { ConceptNotice() }
         item { CarHero(car) }
         item { BatteryCard(car) }
@@ -120,7 +130,15 @@ fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
                     SpotPhoto(spot.photos.first(), null, Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)))
                     Column(Modifier.weight(1f)) {
                         Text(spot.title, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
-                        Text("${spot.region} · 계정 연결 후 차량에 전송돼요", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+                        Text(
+                            "${spot.region} · " + when {
+                                state.account.session == null -> "로그인하면 차량에 전송돼요"
+                                state.user.linkedCars == 0 -> "차량을 연결하면 바로 보여요"
+                                else -> "차량 화면의 '휴대폰에서 보냄'에 있어요"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Palette.TextSecondary,
+                        )
                     }
                     Icon(Icons.Outlined.Close, "목록에서 빼기", tint = Palette.TextSecondary, modifier = Modifier.size(36.dp).clip(CircleShape).clickable { actions.removeFromCar(spot.id) }.padding(6.dp))
                 }
@@ -283,5 +301,44 @@ private fun Stepper(label: String, onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Text(label, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary)
+    }
+}
+
+/** Links the head unit to this account: the car shows a 6-digit code, the phone types it here. */
+@Composable
+private fun CarLinkCard(state: PhoneUiState, actions: PhoneViewModel) {
+    var code by rememberSaveable { mutableStateOf("") }
+    // A successful link raises the count; clear the used code.
+    LaunchedEffect(state.user.linkedCars) { code = "" }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Palette.BackgroundRaised).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Outlined.Link, null, tint = Palette.Coral)
+            Text("차량 연결", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, modifier = Modifier.weight(1f))
+            if (state.user.linkedCars > 0) Tag("연결된 차량 ${state.user.linkedCars}대", Palette.Success)
+        }
+        if (state.account.session == null) {
+            Text("차량 연결은 서버에 로그인한 뒤에 할 수 있어요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+            SecondaryButton("로그인하러 가기", actions::signOut, Modifier.fillMaxWidth(), container = Palette.Surface)
+        } else {
+            Text(
+                "차량 화면 왼쪽 아래 '계정 연결'을 누르면 6자리 코드가 나와요. 그 코드를 입력하면 차량이 ${state.me.name} 계정에 연결돼요.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Palette.TextSecondary,
+            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.weight(1f)) {
+                    LabeledField("연결 코드", code, "예: 482913") { code = it.filter(Char::isDigit).take(6) }
+                }
+                PrimaryButton(
+                    if (state.claimingCar) "연결 중…" else "연결",
+                    { actions.claimCar(code) },
+                    Modifier.padding(top = 22.dp),
+                    enabled = code.length == 6 && !state.claimingCar,
+                )
+            }
+        }
     }
 }

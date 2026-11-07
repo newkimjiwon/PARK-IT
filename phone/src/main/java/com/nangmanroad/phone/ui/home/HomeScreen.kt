@@ -89,7 +89,7 @@ fun HomeScreen(state: PhoneUiState, actions: PhoneViewModel) {
                     )
                     Text("오늘의 낭만", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
                 }
-                IconCircle(Icons.Outlined.Notifications, "알림", actions::openNotifications, badge = true)
+                IconCircle(Icons.Outlined.Notifications, "알림", actions::openNotifications, badge = state.fromCar.isNotEmpty())
             }
         }
         item {

@@ -46,6 +46,7 @@ import com.nangmanroad.phone.PhoneRoute
 import com.nangmanroad.phone.PhoneTab
 import com.nangmanroad.phone.PhoneUiState
 import com.nangmanroad.phone.PhoneViewModel
+import com.nangmanroad.phone.ui.account.SignInScreen
 import com.nangmanroad.phone.ui.car.CarScreen
 import com.nangmanroad.phone.ui.detail.PostDetailScreen
 import com.nangmanroad.phone.ui.home.HomeScreen
@@ -69,6 +70,11 @@ fun PhoneApp(state: PhoneUiState, actions: PhoneViewModel) {
     }
 
     Box(Modifier.fillMaxSize().background(Palette.Background)) {
+        if (state.account.needsSignIn) {
+            Box(Modifier.fillMaxSize().statusBarsPadding()) { SignInScreen(state.account, actions) }
+            Toast(state, actions, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 40.dp))
+            return@Box
+        }
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             Box(Modifier.weight(1f)) {
                 when (route) {

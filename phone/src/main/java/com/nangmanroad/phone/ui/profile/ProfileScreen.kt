@@ -73,6 +73,20 @@ fun ProfileScreen(state: PhoneUiState, actions: PhoneViewModel) {
                 Avatar(state.me.name, size = 76.dp)
                 Text(state.me.name, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary)
                 Text(state.me.bio, style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+                Text(
+                    if (state.account.session != null) "서버에 동기화 중 · ${state.account.serverUrl}" else "이 휴대폰에만 저장 중 (서버 없이 둘러보기)",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (state.account.session != null) Palette.Success else Palette.Warning,
+                )
+                Text(
+                    if (state.account.session != null) "로그아웃" else "서버에 로그인",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Palette.Coral,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable(role = Role.Button, onClick = actions::signOut)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
             }
         }
         item(span = { GridItemSpan(2) }) {

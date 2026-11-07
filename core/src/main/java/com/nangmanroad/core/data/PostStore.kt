@@ -1,16 +1,6 @@
-package com.nangmanroad.phone.data
+package com.nangmanroad.core.data
 
 import android.content.Context
-import com.nangmanroad.core.data.Author
-import com.nangmanroad.core.data.Category
-import com.nangmanroad.core.data.Comment
-import com.nangmanroad.core.data.HoneyTip
-import com.nangmanroad.core.data.LatLng
-import com.nangmanroad.core.data.Product
-import com.nangmanroad.core.data.Spot
-import com.nangmanroad.core.data.TipKind
-import com.nangmanroad.core.data.TipStatus
-import com.nangmanroad.core.data.Visibility
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
@@ -29,8 +19,9 @@ data class LocalComment(
 data class LocalTip(val spotId: String, val tip: HoneyTip)
 
 /**
- * Everything the user created on this phone: their own posts, comments and suggested tips.
- * Stored as JSON until the account backend exists; photos live in the app's files directory.
+ * What the user created while not signed in to the sync server: their own posts, comments and
+ * suggested tips, plus a few lists the server otherwise keeps. Stored as JSON in preferences;
+ * photos live in the app's files directory.
  */
 class PostStore(context: Context) {
 

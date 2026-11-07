@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.PersonAddAlt
+import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,7 +34,7 @@ private val aspects = listOf(0.78f, 1.0f, 0.68f, 1.2f, 0.9f)
 
 @Composable
 fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
-    val spots = SpotQueries.album(state.spots, state.albumTab, state.saved, state.liked, state.following, state.here)
+    val spots = SpotQueries.album(state.spots, state.albumTab, state.saved, state.liked, state.following, state.here, state.fromPhone)
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Adaptive(320.dp),
         modifier = Modifier.fillMaxSize(),
@@ -64,7 +65,11 @@ fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
                             text = tab.label,
                             selected = state.albumTab == tab,
                             onClick = { actions.setAlbumTab(tab) },
-                            trailing = if (tab == AlbumTab.SAVED) state.saved.size.toString() else null,
+                            trailing = when (tab) {
+                                AlbumTab.SAVED -> state.saved.size.toString()
+                                AlbumTab.FROM_PHONE -> state.fromPhone.size.toString()
+                                else -> null
+                            },
                         )
                     }
                 }
@@ -74,6 +79,12 @@ fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
             item(span = StaggeredGridItemSpan.FullLine) {
                 when (state.albumTab) {
                     AlbumTab.SAVED -> EmptyState(Icons.Outlined.BookmarkBorder, "저장한 장소가 없어요", "마음에 드는 사진의 책갈피를 눌러 저장해 보세요.")
+                    AlbumTab.FROM_PHONE -> EmptyState(
+                        Icons.Outlined.PhoneAndroid,
+                        "휴대폰에서 보낸 장소가 없어요",
+                        if (state.session == null) "왼쪽 아래 '계정'에서 휴대폰과 연결하면 휴대폰에서 고른 장소가 여기에 와요."
+                        else "휴대폰 낭만로드 앱의 장소 상세에서 '차량으로 보내기'를 눌러 보세요.",
+                    )
                     else -> EmptyState(Icons.Outlined.PersonAddAlt, "팔로잉한 사람이 없어요", "장소 상세에서 작성자를 팔로우해 보세요.")
                 }
             }

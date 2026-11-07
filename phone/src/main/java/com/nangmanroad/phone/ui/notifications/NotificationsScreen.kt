@@ -18,6 +18,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material.icons.outlined.QuestionAnswer
 import androidx.compose.material.icons.outlined.ThumbUp
@@ -57,6 +59,35 @@ fun NotificationsScreen(state: PhoneUiState, actions: PhoneViewModel) {
                 Text("알림", style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
             }
         }
+        if (state.fromCar.isNotEmpty()) {
+            item { Text("차량에서 보낸 항목", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary) }
+            items(state.fromCar, key = { "car-${it.id}" }) { item ->
+                val spot = state.spot(item.spotId)
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Palette.Coral.copy(alpha = 0.12f))
+                        .clickable(enabled = spot != null, role = Role.Button) { spot?.let { actions.openSpot(it.id) } }
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(40.dp).clip(CircleShape).background(Palette.Coral.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Outlined.DirectionsCar, null, tint = Palette.Coral, modifier = Modifier.size(20.dp))
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(item.label, style = MaterialTheme.typography.bodyMedium, color = Palette.TextPrimary)
+                        Text(if (spot != null) "눌러서 장소 보기" else "차량 화면에서 보낸 항목", style = MaterialTheme.typography.bodySmall, color = Palette.TextTertiary)
+                    }
+                    Icon(
+                        Icons.Outlined.Close, "목록에서 지우기", tint = Palette.TextSecondary,
+                        modifier = Modifier.size(36.dp).clip(CircleShape).clickable { actions.dismissFromCar(item.id) }.padding(6.dp),
+                    )
+                }
+            }
+            item { Text("활동 알림", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary) }
+        }
         items(samples) { notice ->
             Row(
                 Modifier
@@ -78,7 +109,7 @@ fun NotificationsScreen(state: PhoneUiState, actions: PhoneViewModel) {
             }
         }
         item {
-            Text("알림은 예시예요. 계정 서버가 생기면 실제 활동으로 바뀌어요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextTertiary)
+            Text("활동 알림은 아직 예시예요. 차량에서 보낸 항목은 실제로 동기화돼요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextTertiary)
         }
     }
 }

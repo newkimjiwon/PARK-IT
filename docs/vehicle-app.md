@@ -70,15 +70,20 @@ curl -s -X PUT "http://127.0.0.1:8088/vehicle/gear?gear=Park"
 ## 코드 구조
 
 ```
-core/src/main/java/com/nangmanroad/core/        차량·휴대폰 앱 공용
-├── data/    모델, 샘플 장소 9곳, 목록·추천 로직, 꿀팁 충돌 표시, 사용자 저장소
+shared/src/main/kotlin/com/nangmanroad/core/   서버·차량·휴대폰 공용 (순수 Kotlin)
+├── data/    모델, 샘플 장소 9곳, 목록·추천 로직, 꿀팁 충돌 표시
+└── sync/    동기화 API 계약
+
+core/src/main/java/com/nangmanroad/core/        차량·휴대폰 앱 공용 (Android)
+├── data/    기기 안 저장소(로그인하지 않았을 때)
+├── sync/    서버 클라이언트, 로그인 세션, 서버/기기 저장소를 고르는 SpotRepository
 ├── map/     사진 지도(투영, 묶음 표시, 기본 지도 그리기)
 └── ui/      색상 토큰, 사진·아바타, 꿀팁 아이콘·색
 
 vehicle/src/main/java/com/nangmanroad/vehicle/
-├── MainActivity.kt, AppViewModel.kt   화면 상태, 사용자 동작, SDK 연결
+├── MainActivity.kt, AppViewModel.kt   화면 상태, 사용자 동작, SDK·서버 연결
 ├── pleos/                             Vehicle SDK·NaviHelper 래퍼
-└── ui/                                지도 홈, 상세, 앨범, 주행 화면, 차량용 컴포넌트, 테마
+└── ui/                                지도 홈, 상세, 앨범, 계정 연결, 주행 화면, 차량용 컴포넌트, 테마
 ```
 
 - 지도는 지도 SDK 없이 Compose Canvas로 그립니다. 한반도 윤곽, 주요 고속도로, 도시 이름을 단순화해 표시하므로 API 키가 필요 없습니다. 실제 도로 지도가 필요하면 지도 SDK로 교체해야 합니다.
@@ -87,7 +92,7 @@ vehicle/src/main/java/com/nangmanroad/vehicle/
 
 ## 아직 없는 것
 
-- 계정과 서버. 지금은 샘플 데이터와 기기 안 저장만 있습니다. '휴대폰으로 보내기'도 보낼 항목을 기기에 쌓아 두기만 하고, 스마트폰 앱으로 실제로 전송하지 않습니다.
+- 실제 인증과 운영 서버. 휴대폰 계정 연결, 저장 동기화, '휴대폰으로 보내기'는 [동기화 서버](sync-server.md)로 동작하지만 개발용입니다. 계정을 연결하지 않으면 예전처럼 기기 안에만 저장합니다.
 - 실제 지도 타일과 위치 검색
 - 음성 안내. TextToSpeech, SpeechToText SDK는 2026-11-05 기준 '준비 중' 상태입니다.
 - 샘플 사진은 Unsplash 이미지를 장소와 무관하게 배정한 것입니다. 예를 들어 단양 게시물에 김포공항 표지판 사진이 나옵니다.

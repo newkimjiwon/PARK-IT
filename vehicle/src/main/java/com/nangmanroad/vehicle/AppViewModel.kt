@@ -4,35 +4,62 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nangmanroad.core.data.AlbumTab
+import com.nangmanroad.core.data.Author
 import com.nangmanroad.core.data.Category
 import com.nangmanroad.core.data.DefaultLocation
 import com.nangmanroad.core.data.FeedSort
 import com.nangmanroad.core.data.LatLng
+import com.nangmanroad.core.data.Product
 import com.nangmanroad.core.data.SampleSpots
 import com.nangmanroad.core.data.Spot
-import com.nangmanroad.core.data.UserStore
+import com.nangmanroad.core.sync.PairingCode
+import com.nangmanroad.core.sync.PairingState
+import com.nangmanroad.core.sync.Session
+import com.nangmanroad.core.sync.SpotRepository
+import com.nangmanroad.core.sync.UserList
+import com.nangmanroad.core.sync.UserState
+import com.nangmanroad.core.sync.list
 import com.nangmanroad.vehicle.pleos.ActiveDestination
 import com.nangmanroad.vehicle.pleos.DrivingState
 import com.nangmanroad.vehicle.pleos.DrivingStateMonitor
 import com.nangmanroad.vehicle.pleos.NaviEvent
 import com.nangmanroad.vehicle.pleos.NavigationBridge
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 sealed interface Screen {
     data object Map : Screen
     data object Album : Screen
+    data object Account : Screen
     data class Detail(val spotId: String, val returnTo: Screen) : Screen
 }
 
 data class ToastMessage(val text: String, val id: Long = System.nanoTime())
 
+/** What the car hands to the phone, and how it is named on both screens. */
+enum class PhoneHandoff(val label: String, val toastObject: String) {
+    SPOT("장소", "이 장소를"),
+    PRODUCT("상품", "상품 링크를"),
+    TIP("꿀팁 제보", "꿀팁 제보 화면을"),
+    COMMENTS("댓글 쓰기", "댓글을"),
+}
+
+/** The 6-digit code shown while the car waits to be linked to a phone account. */
+data class PairingUi(val code: PairingCode? = null, val error: String? = null)
+
 data class AppUiState(
+    val user: UserState,
     val spots: List<Spot> = SampleSpots.all,
+    val session: Session? = null,
+    val online: Boolean? = null,
+    val serverUrl: String = "",
+    val pairing: PairingUi? = null,
     val screen: Screen = Screen.Map,
     val selectedSpotId: String? = SampleSpots.all.first().id,
     val category: Category? = null,
@@ -40,11 +67,6 @@ data class AppUiState(
     val feedSort: FeedSort = FeedSort.POPULAR,
     val albumTab: AlbumTab = AlbumTab.RECOMMENDED,
     val visibleSpotIds: Set<String>? = null,
-    val saved: Set<String> = emptySet(),
-    val liked: Set<String> = emptySet(),
-    val following: Set<String> = emptySet(),
-    val helpfulTips: Set<String> = emptySet(),
-    val phoneOutbox: Set<String> = emptySet(),
     val here: LatLng = DefaultLocation,
     val hereFromNavigation: Boolean = false,
     val drivingState: DrivingState = DrivingState.UNKNOWN,
@@ -54,6 +76,14 @@ data class AppUiState(
     val routedSpotId: String? = null,
     val toast: ToastMessage? = null,
 ) {
+    val saved: Set<String> get() = user.saved
+    val liked: Set<String> get() = user.liked
+    val following: Set<String> get() = user.following
+    val helpfulTips: Set<String> get() = user.helpfulTips
+
+    /** Spot ids the phone sent to this car, newest first. */
+    val fromPhone: List<String> get() = user.carQueue.mapNotNull { it.spotId }.distinct()
+
     /** Driving hides photos, feeds and long text; the preview lets us demo it while parked. */
     val showDrivingView: Boolean get() = drivingState == DrivingState.DRIVING || drivingPreview
 
@@ -66,22 +96,26 @@ data class AppUiState(
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val store = UserStore(application)
+    private val repository = SpotRepository(application, localUser = Author("u-this-car", "이 차량", ""))
     private val driving = DrivingStateMonitor(application, viewModelScope)
     private val navigation = NavigationBridge(application)
+    private var pairingJob: Job? = null
 
     private val _state = MutableStateFlow(
         AppUiState(
-            saved = store.savedSpots,
-            liked = store.likedSpots,
-            following = store.followedAuthors,
-            helpfulTips = store.helpfulTips,
-            phoneOutbox = store.phoneOutbox,
+            user = repository.state.value,
+            spots = repository.spots.value,
+            session = repository.session.value,
+            serverUrl = repository.serverUrl,
         ),
     )
     val state: StateFlow<AppUiState> = _state.asStateFlow()
 
     init {
+        viewModelScope.launch { repository.state.collect { user -> _state.update { it.copy(user = user) } } }
+        viewModelScope.launch { repository.spots.collect { spots -> _state.update { it.copy(spots = spots) } } }
+        viewModelScope.launch { repository.session.collect { session -> _state.update { it.copy(session = session) } } }
+        viewModelScope.launch { repository.online.collect { online -> _state.update { it.copy(online = online) } } }
         viewModelScope.launch {
             driving.state.collect { drivingState -> _state.update { it.copy(drivingState = drivingState) } }
         }
@@ -113,6 +147,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if (current.showDrivingView && current.destination != null) navigation.refresh()
             }
         }
+        viewModelScope.launch {
+            // Pick up what the phone saved or sent while parked; driving shows no feed to update.
+            repository.refresh()
+            while (true) {
+                delay(SYNC_REFRESH_MS)
+                val current = _state.value
+                if (current.session != null && !current.showDrivingView) {
+                    val before = current.fromPhone
+                    repository.refresh()
+                    val arrived = _state.value.fromPhone.firstOrNull { it !in before }
+                    arrived?.let { id -> _state.value.spot(id)?.let { toast("휴대폰에서 '${it.title}'을(를) 보냈어요") } }
+                }
+            }
+        }
         driving.start()
         navigation.start()
     }
@@ -123,13 +171,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun selectSpot(spotId: String) = _state.update { it.copy(selectedSpotId = spotId) }
 
-    fun showMap() = _state.update { it.copy(screen = Screen.Map) }
+    fun showMap() = leaveAccount { it.copy(screen = Screen.Map) }
 
-    fun showAlbum(tab: AlbumTab? = null) = _state.update {
+    fun showAlbum(tab: AlbumTab? = null) = leaveAccount {
         it.copy(screen = Screen.Album, albumTab = tab ?: it.albumTab)
     }
 
-    fun back() = _state.update { current ->
+    fun back() = leaveAccount { current ->
         val screen = current.screen
         current.copy(screen = if (screen is Screen.Detail) screen.returnTo else Screen.Map)
     }
@@ -146,35 +194,94 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         if (it.visibleSpotIds == ids) it else it.copy(visibleSpotIds = ids)
     }
 
-    fun toggleSave(spotId: String) {
-        val nowSaved = spotId !in _state.value.saved
-        _state.update { it.copy(saved = it.saved.toggle(spotId)) }
-        store.savedSpots = _state.value.saved
-        toast(if (nowSaved) "저장한 장소에 담았어요" else "저장을 취소했어요")
+    // Account and pairing
+
+    fun openAccount() {
+        _state.update { it.copy(screen = Screen.Account) }
+        if (_state.value.session == null) startPairing()
     }
 
-    fun toggleLike(spotId: String) {
-        _state.update { it.copy(liked = it.liked.toggle(spotId)) }
-        store.likedSpots = _state.value.liked
+    /** Shows a fresh code and waits for the phone to claim it; a code that expires is replaced. */
+    fun startPairing() {
+        pairingJob?.cancel()
+        pairingJob = viewModelScope.launch {
+            _state.update { it.copy(pairing = PairingUi()) }
+            val code = repository.startPairing().getOrElse { error ->
+                _state.update { it.copy(pairing = PairingUi(error = error.message)) }
+                return@launch
+            }
+            _state.update { it.copy(pairing = PairingUi(code)) }
+            while (isActive) {
+                delay(PAIRING_POLL_MS)
+                val status = repository.pairingStatus(code.pairingId).getOrNull() ?: continue
+                when (status.state) {
+                    PairingState.LINKED -> {
+                        _state.update { it.copy(pairing = null) }
+                        toast("${status.session?.user?.name} 계정에 연결했어요")
+                        return@launch
+                    }
+                    PairingState.EXPIRED -> {
+                        startPairing()
+                        return@launch
+                    }
+                    PairingState.WAITING -> Unit
+                }
+            }
+        }
     }
 
-    fun toggleFollow(authorId: String) {
-        val nowFollowing = authorId !in _state.value.following
-        _state.update { it.copy(following = it.following.toggle(authorId)) }
-        store.followedAuthors = _state.value.following
-        toast(if (nowFollowing) "팔로우했어요" else "팔로우를 취소했어요")
+    fun unlinkAccount() {
+        viewModelScope.launch {
+            repository.signOut()
+            toast("계정 연결을 해제했어요")
+            startPairing()
+        }
     }
 
-    fun toggleHelpful(tipId: String) {
-        _state.update { it.copy(helpfulTips = it.helpfulTips.toggle(tipId)) }
-        store.helpfulTips = _state.value.helpfulTips
+    private fun leaveAccount(transform: (AppUiState) -> AppUiState) {
+        if (_state.value.screen == Screen.Account) {
+            pairingJob?.cancel()
+            _state.update { it.copy(pairing = null) }
+        }
+        _state.update(transform)
     }
 
-    /** Queues an item for the phone app; the queue is synced once accounts exist. */
-    fun sendToPhone(itemId: String, what: String) {
-        _state.update { it.copy(phoneOutbox = it.phoneOutbox + itemId) }
-        store.phoneOutbox = _state.value.phoneOutbox
-        toast("$what 휴대폰에서 볼 수 있게 담아 두었어요")
+    // Lists
+
+    fun toggleSave(spotId: String) = toggle(UserList.SAVED, spotId, "저장한 장소에 담았어요", "저장을 취소했어요")
+
+    fun toggleLike(spotId: String) = toggle(UserList.LIKED, spotId)
+
+    fun toggleFollow(authorId: String) = toggle(UserList.FOLLOWING, authorId, "팔로우했어요", "팔로우를 취소했어요")
+
+    fun toggleHelpful(tipId: String) = toggle(UserList.HELPFUL_TIPS, tipId)
+
+    private fun toggle(list: UserList, id: String, onMessage: String? = null, offMessage: String? = null) {
+        val on = id !in _state.value.user.list(list)
+        viewModelScope.launch {
+            repository.toggle(list, id, on)
+                .onSuccess { (if (on) onMessage else offMessage)?.let(::toast) }
+                .onFailure { toast(it.message ?: "요청을 처리하지 못했어요") }
+        }
+    }
+
+    /** Hands a spot, product or follow-up action to the phone app on the same account. */
+    fun sendToPhone(kind: PhoneHandoff, spot: Spot, product: Product? = null) {
+        val label = when (kind) {
+            PhoneHandoff.SPOT -> spot.title
+            PhoneHandoff.PRODUCT -> "${product?.name} · ${spot.title}"
+            else -> "${kind.label} · ${spot.title}"
+        }
+        viewModelScope.launch {
+            repository.sendToPhone("${kind.name.lowercase()}:${product?.id ?: spot.id}", label, spot.id)
+                .onSuccess {
+                    toast(
+                        if (_state.value.session != null) "${kind.toastObject} 휴대폰으로 보냈어요"
+                        else "${kind.toastObject} 담아 두었어요. 계정을 연결하면 휴대폰으로 보낼 수 있어요",
+                    )
+                }
+                .onFailure { toast(it.message ?: "휴대폰으로 보내지 못했어요") }
+        }
     }
 
     fun startRoute(spotId: String) {
@@ -196,11 +303,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         navigation.stop()
     }
 
-    private fun Screen.base(): Screen = if (this is Screen.Detail) returnTo else this
-
-    private fun Set<String>.toggle(id: String) = if (id in this) this - id else this + id
+    private fun Screen.base(): Screen = when (this) {
+        is Screen.Detail -> returnTo
+        Screen.Account -> Screen.Map
+        else -> this
+    }
 
     private companion object {
         const val DESTINATION_REFRESH_MS = 15_000L
+        const val SYNC_REFRESH_MS = 10_000L
+        const val PAIRING_POLL_MS = 2_000L
     }
 }

@@ -23,4 +23,14 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onStart() {
+        super.onStart()
+        viewModel.setForeground(true)
+    }
+
+    override fun onStop() {
+        viewModel.setForeground(false)
+        super.onStop()
+    }
 }

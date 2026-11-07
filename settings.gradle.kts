@@ -22,6 +22,8 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "NangmanRoad"
+include(":shared")
+include(":server")
 include(":core")
 include(":vehicle")
 include(":phone")

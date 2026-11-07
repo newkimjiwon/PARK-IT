@@ -1,6 +1,7 @@
 package com.nangmanroad.phone
 
 import android.app.Application
+import android.content.Context
 import android.media.ExifInterface
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
@@ -8,29 +9,31 @@ import androidx.lifecycle.viewModelScope
 import com.nangmanroad.core.data.Author
 import com.nangmanroad.core.data.Category
 import com.nangmanroad.core.data.DefaultLocation
-import com.nangmanroad.core.data.HoneyTip
 import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.Product
 import com.nangmanroad.core.data.SampleSpots
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
-import com.nangmanroad.core.data.UserStore
 import com.nangmanroad.core.data.Visibility
-import com.nangmanroad.core.data.withConflictsFlagged
+import com.nangmanroad.core.sync.NewPost
+import com.nangmanroad.core.sync.NewTip
+import com.nangmanroad.core.sync.SentItem
+import com.nangmanroad.core.sync.Session
+import com.nangmanroad.core.sync.SpotRepository
+import com.nangmanroad.core.sync.UserList
+import com.nangmanroad.core.sync.UserState
+import com.nangmanroad.core.sync.list
 import com.nangmanroad.phone.data.CarCommand
 import com.nangmanroad.phone.data.CarDemoState
-import com.nangmanroad.phone.data.LocalComment
-import com.nangmanroad.phone.data.LocalTip
-import com.nangmanroad.phone.data.PostStore
 import com.nangmanroad.phone.data.Region
 import com.nangmanroad.phone.data.Regions
-import com.nangmanroad.phone.data.mergeComments
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -56,6 +59,7 @@ data class ShareDraft(
     val step: Int = 0,
     val photos: List<String> = emptyList(),
     val importing: Boolean = false,
+    val publishing: Boolean = false,
     val photoLocation: LatLng? = null,
     val region: Region? = null,
     val pin: LatLng? = null,
@@ -72,6 +76,7 @@ data class ShareDraft(
         1 -> region != null
         2 -> title.isNotBlank() && category != null
         3 -> tips.isNotEmpty() && tips.values.all { it.summary.isNotBlank() }
+        STEP_COUNT - 1 -> !publishing
         else -> true
     }
 
@@ -82,27 +87,44 @@ data class ShareDraft(
 
 data class ToastMessage(val text: String, val id: Long = System.nanoTime())
 
+/** Sign-in screen state; [offline] means the user chose to try the app without the server. */
+data class AccountUi(
+    val session: Session? = null,
+    val offline: Boolean = false,
+    val busy: Boolean = false,
+    val error: String? = null,
+    val serverUrl: String = "",
+    val online: Boolean? = null,
+) {
+    val needsSignIn: Boolean get() = session == null && !offline
+}
+
 data class PhoneUiState(
-    val me: Author,
+    val user: UserState,
     val spots: List<Spot>,
+    val account: AccountUi = AccountUi(),
     val tab: PhoneTab = PhoneTab.HOME,
     val stack: List<PhoneRoute> = emptyList(),
     val homeTab: HomeTab = HomeTab.FOR_YOU,
     val mapCategory: Category? = null,
     val mapSelectedId: String? = null,
     val profileTab: ProfileTab = ProfileTab.SHARED,
-    val saved: Set<String> = emptySet(),
-    val liked: Set<String> = emptySet(),
-    val following: Set<String> = emptySet(),
-    val helpfulTips: Set<String> = emptySet(),
-    val visited: Set<String> = emptySet(),
-    val savedProducts: Set<String> = emptySet(),
-    val carQueue: Set<String> = emptySet(),
     val car: CarDemoState = CarDemoState(),
+    val claimingCar: Boolean = false,
     val draft: ShareDraft? = null,
     val toast: ToastMessage? = null,
     val here: LatLng = DefaultLocation,
 ) {
+    val me: Author get() = user.user
+    val saved: Set<String> get() = user.saved
+    val liked: Set<String> get() = user.liked
+    val following: Set<String> get() = user.following
+    val helpfulTips: Set<String> get() = user.helpfulTips
+    val visited: Set<String> get() = user.visited
+    val savedProducts: Set<String> get() = user.savedProducts
+    val carQueue: Set<String> get() = user.carQueue.mapNotNull { it.spotId }.toSet()
+    val fromCar: List<SentItem> get() = user.phoneInbox
+
     val route: PhoneRoute? get() = stack.lastOrNull()
 
     val myPosts: List<Spot> get() = spots.filter { it.author.id == me.id }
@@ -116,25 +138,75 @@ data class PhoneUiState(
 
 class PhoneViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val users = UserStore(application)
-    private val posts = PostStore(application)
+    private val repository = SpotRepository(application, localUser = SampleSpots.authors.first { it.id == DEMO_USER_ID })
+    private val prefs = application.getSharedPreferences("phone_ui", Context.MODE_PRIVATE)
     private val photoDir = File(application.filesDir, "posts").apply { mkdirs() }
-    private val me = SampleSpots.authors.first { it.id == ME_ID }
+    private var foreground = false
 
     private val _state = MutableStateFlow(
         PhoneUiState(
-            me = me,
-            spots = assembleSpots(),
-            saved = users.savedSpots,
-            liked = users.likedSpots,
-            following = users.followedAuthors,
-            helpfulTips = users.helpfulTips,
-            visited = posts.visited,
-            savedProducts = posts.savedProducts,
-            carQueue = posts.carQueue,
+            user = repository.state.value,
+            spots = repository.spots.value,
+            account = AccountUi(
+                session = repository.session.value,
+                offline = prefs.getBoolean(KEY_OFFLINE, false),
+                serverUrl = repository.serverUrl,
+            ),
         ),
     )
     val state: StateFlow<PhoneUiState> = _state.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            combine(repository.state, repository.spots, repository.session, repository.online) { user, spots, session, online ->
+                Triple(user, spots, session to online)
+            }.collect { (user, spots, sessionAndOnline) ->
+                val (session, online) = sessionAndOnline
+                _state.update { it.copy(user = user, spots = spots, account = it.account.copy(session = session, online = online)) }
+            }
+        }
+        viewModelScope.launch {
+            // Pick up changes made on the car (saves, items sent to the phone) while the app is open.
+            while (true) {
+                if (foreground && repository.session.value != null) repository.refresh()
+                delay(REFRESH_MS)
+            }
+        }
+    }
+
+    fun setForeground(visible: Boolean) {
+        foreground = visible
+        if (visible) viewModelScope.launch { repository.refresh() }
+    }
+
+    // Account
+
+    fun signIn(nickname: String) {
+        _state.update { it.copy(account = it.account.copy(busy = true, error = null)) }
+        viewModelScope.launch {
+            repository.signIn(nickname)
+                .onSuccess { session ->
+                    prefs.edit().putBoolean(KEY_OFFLINE, false).apply()
+                    _state.update { it.copy(account = it.account.copy(busy = false, offline = false)) }
+                    toast("${session.user.name} 계정으로 시작했어요")
+                }
+                .onFailure { error -> _state.update { it.copy(account = it.account.copy(busy = false, error = error.message)) } }
+        }
+    }
+
+    fun continueOffline() {
+        prefs.edit().putBoolean(KEY_OFFLINE, true).apply()
+        _state.update { it.copy(account = it.account.copy(offline = true, error = null)) }
+    }
+
+    /** Signs out of the server (or leaves offline mode) and shows the sign-in screen again. */
+    fun signOut() {
+        prefs.edit().putBoolean(KEY_OFFLINE, false).apply()
+        viewModelScope.launch {
+            repository.signOut()
+            _state.update { it.copy(account = it.account.copy(offline = false), tab = PhoneTab.HOME, stack = emptyList()) }
+        }
+    }
 
     // Navigation
 
@@ -164,77 +236,74 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
 
     // Social actions
 
-    fun toggleSave(spotId: String) {
-        val nowSaved = spotId !in _state.value.saved
-        _state.update { it.copy(saved = it.saved.toggle(spotId)) }
-        users.savedSpots = _state.value.saved
-        toast(if (nowSaved) "저장한 장소에 담았어요. 차량 화면에도 함께 보여요" else "저장을 취소했어요")
-    }
+    fun toggleSave(spotId: String) = toggle(UserList.SAVED, spotId, onMessage = "저장한 장소에 담았어요. 차량 화면에도 함께 보여요", offMessage = "저장을 취소했어요")
 
-    fun toggleLike(spotId: String) {
-        _state.update { it.copy(liked = it.liked.toggle(spotId)) }
-        users.likedSpots = _state.value.liked
-    }
+    fun toggleLike(spotId: String) = toggle(UserList.LIKED, spotId)
 
-    fun toggleFollow(authorId: String) {
-        val now = authorId !in _state.value.following
-        _state.update { it.copy(following = it.following.toggle(authorId)) }
-        users.followedAuthors = _state.value.following
-        toast(if (now) "팔로우했어요" else "팔로우를 취소했어요")
-    }
+    fun toggleFollow(authorId: String) = toggle(UserList.FOLLOWING, authorId, onMessage = "팔로우했어요", offMessage = "팔로우를 취소했어요")
 
-    fun toggleHelpful(tipId: String) {
-        _state.update { it.copy(helpfulTips = it.helpfulTips.toggle(tipId)) }
-        users.helpfulTips = _state.value.helpfulTips
-    }
+    fun toggleHelpful(tipId: String) = toggle(UserList.HELPFUL_TIPS, tipId)
 
-    fun toggleVisited(spotId: String) {
-        val now = spotId !in _state.value.visited
-        _state.update { it.copy(visited = it.visited.toggle(spotId)) }
-        posts.visited = _state.value.visited
-        if (now) toast("방문 완료로 표시했어요. 꿀팁을 남겨 주시면 다음 방문자에게 큰 도움이 돼요")
-    }
+    fun toggleVisited(spotId: String) =
+        toggle(UserList.VISITED, spotId, onMessage = "방문 완료로 표시했어요. 꿀팁을 남겨 주시면 다음 방문자에게 큰 도움이 돼요")
 
-    fun toggleProduct(productId: String) {
-        val now = productId !in _state.value.savedProducts
-        _state.update { it.copy(savedProducts = it.savedProducts.toggle(productId)) }
-        posts.savedProducts = _state.value.savedProducts
-        toast(if (now) "관심 상품에 담았어요" else "관심 상품에서 뺐어요")
+    fun toggleProduct(productId: String) = toggle(UserList.SAVED_PRODUCTS, productId, onMessage = "관심 상품에 담았어요", offMessage = "관심 상품에서 뺐어요")
+
+    private fun toggle(list: UserList, id: String, onMessage: String? = null, offMessage: String? = null) {
+        val on = id !in _state.value.user.list(list)
+        viewModelScope.launch {
+            repository.toggle(list, id, on)
+                .onSuccess { (if (on) onMessage else offMessage)?.let(::toast) }
+                .onFailure(::showError)
+        }
     }
 
     fun sendToCar(spotId: String) {
-        _state.update { it.copy(carQueue = it.carQueue + spotId) }
-        posts.carQueue = _state.value.carQueue
-        toast("차량으로 보낼 목록에 담았어요")
+        val spot = _state.value.spot(spotId) ?: return
+        viewModelScope.launch {
+            repository.sendToCar(spot)
+                .onSuccess { toast(if (_state.value.account.session != null) "차량으로 보냈어요" else "차량으로 보낼 목록에 담았어요") }
+                .onFailure(::showError)
+        }
     }
 
     fun removeFromCar(spotId: String) {
-        _state.update { it.copy(carQueue = it.carQueue - spotId) }
-        posts.carQueue = _state.value.carQueue
+        viewModelScope.launch { repository.removeFromCar(spotId).onFailure(::showError) }
+    }
+
+    fun dismissFromCar(itemId: String) {
+        viewModelScope.launch { repository.removeFromPhone(itemId).onFailure(::showError) }
     }
 
     fun addComment(spotId: String, text: String, isQuestion: Boolean, parentId: String?) {
         if (text.isBlank()) return
-        posts.addComment(LocalComment(UUID.randomUUID().toString(), spotId, parentId, text.trim(), isQuestion, System.currentTimeMillis()))
-        reloadSpots()
-        toast(if (parentId != null) "답글을 남겼어요" else if (isQuestion) "질문을 남겼어요" else "댓글을 남겼어요")
+        viewModelScope.launch {
+            repository.addComment(spotId, text, isQuestion, parentId)
+                .onSuccess { toast(if (parentId != null) "답글을 남겼어요" else if (isQuestion) "질문을 남겼어요" else "댓글을 남겼어요") }
+                .onFailure(::showError)
+        }
     }
 
     fun suggestTip(spotId: String, kind: TipKind, status: TipStatus, summary: String, detail: String) {
         if (summary.isBlank()) return
-        val tip = HoneyTip(
-            id = "tip-${UUID.randomUUID()}",
-            kind = kind,
-            summary = summary.trim(),
-            detail = detail.trim().ifEmpty { summary.trim() },
-            status = status,
-            helpfulCount = 0,
-            confirmedDaysAgo = 0,
-            reporter = me.name,
-        )
-        posts.addTip(LocalTip(spotId, tip))
-        reloadSpots()
-        toast("꿀팁을 제보했어요. 고마워요!")
+        viewModelScope.launch {
+            repository.addTip(spotId, kind, status, summary, detail)
+                .onSuccess { toast("꿀팁을 제보했어요. 고마워요!") }
+                .onFailure(::showError)
+        }
+    }
+
+    /** Links the car whose screen shows [code] to this account. */
+    fun claimCar(code: String) {
+        val digits = code.filter(Char::isDigit)
+        if (digits.length != 6) return toast("차량 화면의 6자리 숫자를 입력해 주세요")
+        _state.update { it.copy(claimingCar = true) }
+        viewModelScope.launch {
+            repository.claimPairing(digits)
+                .onSuccess { toast("차량을 연결했어요. 잠시 후 차량 화면에 계정이 표시돼요") }
+                .onFailure(::showError)
+            _state.update { it.copy(claimingCar = false) }
+        }
     }
 
     // Share flow
@@ -296,32 +365,31 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         val draft = _state.value.draft ?: return
         val region = draft.region ?: return
         val category = draft.category ?: return
-        val id = "my-${System.currentTimeMillis()}"
-        val post = Spot(
-            id = id,
+        val post = NewPost(
             title = draft.title.trim(),
             region = region.short,
             address = region.address,
             location = if (draft.approximate) region.center else draft.pin ?: region.center,
             category = category,
-            author = me,
             story = draft.story.trim(),
             photos = draft.photos,
-            likeCount = 0,
-            saveCount = 0,
-            postedDaysAgo = 0,
-            tips = draft.tips.map { (kind, tip) ->
-                HoneyTip("$id-${kind.name}", kind, tip.summary.trim(), tip.summary.trim(), tip.status, 0, 0, me.name)
-            },
+            tips = draft.tips.map { (kind, tip) -> NewTip(kind, tip.status, tip.summary.trim(), tip.summary.trim()) },
             products = draft.products,
-            comments = emptyList(),
             visibility = draft.visibility,
             approximateLocation = draft.approximate,
         )
-        posts.addPost(post)
-        reloadSpots()
-        _state.update { it.copy(draft = null, tab = PhoneTab.HOME, stack = listOf(PhoneRoute.Detail(id)), mapSelectedId = id) }
-        toast(if (draft.visibility == Visibility.PRIVATE) "나만 볼 수 있게 저장했어요" else "새로운 낭만이 지도와 피드에 공개됐어요")
+        updateDraft { it.copy(publishing = true) }
+        viewModelScope.launch {
+            repository.publish(post)
+                .onSuccess { spot ->
+                    _state.update { it.copy(draft = null, tab = PhoneTab.HOME, stack = listOf(PhoneRoute.Detail(spot.id)), mapSelectedId = spot.id) }
+                    toast(if (draft.visibility == Visibility.PRIVATE) "나만 볼 수 있게 저장했어요" else "새로운 낭만이 지도와 피드에 공개됐어요")
+                }
+                .onFailure { error ->
+                    updateDraft { it.copy(publishing = false) }
+                    showError(error)
+                }
+        }
     }
 
     // Car (simulated)
@@ -346,24 +414,12 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
 
     fun consumeToast(id: Long) = _state.update { if (it.toast?.id == id) it.copy(toast = null) else it }
 
-    private fun reloadSpots() = _state.update { it.copy(spots = assembleSpots()) }
-
-    private fun assembleSpots(): List<Spot> {
-        val comments = posts.loadComments().groupBy { it.spotId }
-        val tips = posts.loadTips().groupBy({ it.spotId }, { it.tip })
-        val mine = posts.loadPosts(me).sortedBy { it.postedDaysAgo }
-        return (mine + SampleSpots.all).map { spot ->
-            spot.copy(
-                comments = mergeComments(spot.comments, comments[spot.id].orEmpty(), me.name),
-                tips = (spot.tips + tips[spot.id].orEmpty()).withConflictsFlagged(),
-            )
-        }
-    }
-
-    private fun Set<String>.toggle(id: String) = if (id in this) this - id else this + id
+    private fun showError(error: Throwable) = toast(error.message ?: "요청을 처리하지 못했어요")
 
     private companion object {
-        /** The demo account; matches a sample author so their posts show up as "mine". */
-        const val ME_ID = "u-yunseul"
+        /** The demo account used offline; matches a sample author so their posts show up as "mine". */
+        const val DEMO_USER_ID = "u-yunseul"
+        const val KEY_OFFLINE = "offline"
+        const val REFRESH_MS = 10_000L
     }
 }

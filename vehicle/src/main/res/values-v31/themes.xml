@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ draws its own launch screen; keep it dark like the app instead of white. -->
+    <style name="Theme.NangmanRoad" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#FF111318</item>
+        <item name="android:statusBarColor">#FF111318</item>
+        <item name="android:navigationBarColor">#FF111318</item>
+        <item name="android:windowSplashScreenBackground">#FF111318</item>
+    </style>
+</resources>

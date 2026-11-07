@@ -52,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
+import com.nangmanroad.vehicle.PhoneHandoff
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.vehicle.ui.components.ActionButton
 import com.nangmanroad.core.ui.Avatar
@@ -112,9 +113,9 @@ private fun LazyListScope.detailBody(
         }
     }
     when (tab) {
-        DetailTab.TIPS -> item { HoneyTipSection(spot, state.helpfulTips, actions::toggleHelpful, onSuggest = { actions.sendToPhone("tip:${spot.id}", "꿀팁 제보 화면을") }, modifier = pad) }
-        DetailTab.ITEMS -> item { ProductSection(spot, onOpenOnPhone = { product -> actions.sendToPhone("product:${product.id}", "상품 링크를") }, modifier = pad) }
-        DetailTab.COMMENTS -> item { CommentSection(spot, onReplyOnPhone = { actions.sendToPhone("comments:${spot.id}", "댓글을") }, modifier = pad) }
+        DetailTab.TIPS -> item { HoneyTipSection(spot, state.helpfulTips, actions::toggleHelpful, onSuggest = { actions.sendToPhone(PhoneHandoff.TIP, spot) }, modifier = pad) }
+        DetailTab.ITEMS -> item { ProductSection(spot, onOpenOnPhone = { product -> actions.sendToPhone(PhoneHandoff.PRODUCT, spot, product) }, modifier = pad) }
+        DetailTab.COMMENTS -> item { CommentSection(spot, onReplyOnPhone = { actions.sendToPhone(PhoneHandoff.COMMENTS, spot) }, modifier = pad) }
     }
 }
 
@@ -206,7 +207,7 @@ private fun AuthorRow(spot: Spot, state: AppUiState, actions: AppViewModel, modi
             { actions.toggleSave(spot.id) },
             active = saved,
         )
-        ActionButton("휴대폰", Icons.Outlined.PhoneAndroid, { actions.sendToPhone("spot:${spot.id}", "이 장소를") })
+        ActionButton("휴대폰", Icons.Outlined.PhoneAndroid, { actions.sendToPhone(PhoneHandoff.SPOT, spot) })
     }
 }
 

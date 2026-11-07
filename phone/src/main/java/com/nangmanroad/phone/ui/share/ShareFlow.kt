@@ -117,6 +117,7 @@ fun ShareFlow(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewModel) {
         val last = draft.step == ShareDraft.STEP_COUNT - 1
         PrimaryButton(
             text = when {
+                last && draft.publishing -> "올리는 중…"
                 last -> "낭만 공유하기"
                 draft.step == 4 && draft.products.isEmpty() -> "건너뛰기"
                 else -> "다음 단계"
