@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -104,7 +105,8 @@ fun FacilityStrip(tips: List<HoneyTip>, modifier: Modifier = Modifier, iconSize:
  * Toggle chips for "only places that have …": one per facility, selected ones drawn light on dark
  * so they read as a pressed key. Camping apps filter on toilets and power at the list; here the
  * answer comes from visitors' tips, so a chip only keeps places someone actually confirmed.
- * [height] sets the touch target: 56.dp for the head unit, 36.dp for the phone.
+ * [height] sets the touch target: 56.dp for the head unit, 36.dp for the phone. [trailing] adds
+ * chips of the same look after the facilities, e.g. the car's battery filter.
  */
 @Composable
 fun FacilityFilterRow(
@@ -114,6 +116,7 @@ fun FacilityFilterRow(
     height: Dp = 56.dp,
     iconSize: Dp = 24.dp,
     gap: Dp = 8.dp,
+    trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier.horizontalScroll(rememberScrollState()),
@@ -121,26 +124,37 @@ fun FacilityFilterRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FacilityKinds.forEach { kind ->
-            val on = kind in selected
-            val textStyle = if (height >= 48.dp) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge
-            Row(
-                modifier = Modifier
-                    .heightIn(min = height)
-                    .clip(RoundedCornerShape(height / 2))
-                    .background(if (on) Palette.TextPrimary else Palette.Surface)
-                    .clickable(role = Role.Checkbox, onClickLabel = "${kind.label} 있는 곳만") { onToggle(kind) }
-                    .padding(horizontal = height / 3),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(gap),
-            ) {
-                Icon(
-                    kind.icon(),
-                    contentDescription = null,
-                    tint = if (on) Palette.Background else Palette.TextSecondary,
-                    modifier = Modifier.size(iconSize),
-                )
-                Text(kind.label, style = textStyle, color = if (on) Palette.Background else Palette.TextSecondary)
-            }
+            ToggleChip(kind.icon(), kind.label, kind in selected, { onToggle(kind) }, height = height, iconSize = iconSize, gap = gap, onClickLabel = "${kind.label} 있는 곳만")
         }
+        trailing?.invoke(this)
+    }
+}
+
+/** One filter chip: light on dark when pressed, surface-coloured otherwise. */
+@Composable
+fun ToggleChip(
+    icon: ImageVector,
+    label: String,
+    on: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    height: Dp = 56.dp,
+    iconSize: Dp = 24.dp,
+    gap: Dp = 8.dp,
+    onClickLabel: String = label,
+) {
+    val textStyle = if (height >= 48.dp) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge
+    Row(
+        modifier = modifier
+            .heightIn(min = height)
+            .clip(RoundedCornerShape(height / 2))
+            .background(if (on) Palette.TextPrimary else Palette.Surface)
+            .clickable(role = Role.Checkbox, onClickLabel = onClickLabel, onClick = onToggle)
+            .padding(horizontal = height / 3),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(gap),
+    ) {
+        Icon(icon, contentDescription = null, tint = if (on) Palette.Background else Palette.TextSecondary, modifier = Modifier.size(iconSize))
+        Text(label, style = textStyle, color = if (on) Palette.Background else Palette.TextSecondary)
     }
 }

@@ -34,3 +34,7 @@ fun reach(straightKm: Double, usableRangeKm: Double): Reach {
 
 /** "배터리 68% · 약 260km": the number the verdict rests on, rounded to something a glance can hold. */
 fun rangeLabel(percent: Int, usableRangeKm: Double): String = "배터리 $percent% · 약 ${(usableRangeKm / 10).roundToInt() * 10}km"
+
+/** Only the places the pack can reach and come back from, when the pack is known; everything otherwise. */
+fun List<Spot>.withinRoundTrip(here: LatLng, usableRangeKm: Double?): List<Spot> =
+    if (usableRangeKm == null) this else filter { reach(distanceKm(here, it.location), usableRangeKm) == Reach.ROUND_TRIP }

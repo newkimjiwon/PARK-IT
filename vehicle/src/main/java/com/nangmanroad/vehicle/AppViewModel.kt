@@ -79,6 +79,8 @@ data class AppUiState(
     val category: Category? = null,
     /** Facilities a place must have (visitor-confirmed) to show on the map and feed. */
     val facilities: Set<TipKind> = emptySet(),
+    /** Keep only places the current battery can reach and return from; ignored when the pack is unknown. */
+    val onlyRoundTrip: Boolean = false,
     val query: String = "",
     val feedSort: FeedSort = FeedSort.POPULAR,
     val albumTab: AlbumTab = AlbumTab.RECOMMENDED,
@@ -219,6 +221,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setCategory(category: Category?) = _state.update { it.copy(category = category) }
+
+    fun toggleOnlyRoundTrip() = _state.update { it.copy(onlyRoundTrip = !it.onlyRoundTrip) }
 
     fun toggleFacility(kind: TipKind) = _state.update {
         it.copy(facilities = if (kind in it.facilities) it.facilities - kind else it.facilities + kind)

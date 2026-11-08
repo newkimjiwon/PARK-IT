@@ -20,6 +20,7 @@ import com.nangmanroad.core.data.Reach
 import com.nangmanroad.core.data.rangeLabel
 import com.nangmanroad.core.data.reach
 import com.nangmanroad.core.data.usableRangeKm
+import com.nangmanroad.core.data.withinRoundTrip
 import com.nangmanroad.core.data.KoreaZone
 import com.nangmanroad.core.data.formatClock
 import com.nangmanroad.core.data.sunPlan
@@ -178,6 +179,10 @@ class SpotLogicTest {
         assertEquals(Reach.ONE_WAY, reach(164.0, full))      // 강릉: 213 km there, not back
         assertEquals(Reach.SHORT, reach(164.0, usableRangeKm(40, 77.4)))
         assertEquals("배터리 40% · 약 130km", rangeLabel(40, usableRangeKm(40, 77.4)))
+        // From Seoul with a full pack: 양평 (30 km) is a round trip, 강릉 (164 km) is not; no pack, no filter.
+        val reachable = spots.withinRoundTrip(DefaultLocation, full).map { it.id }
+        assertTrue("s-yangpyeong" in reachable && "s-gangneung" !in reachable)
+        assertEquals(spots.size, spots.withinRoundTrip(DefaultLocation, null).size)
     }
 
     @Test
