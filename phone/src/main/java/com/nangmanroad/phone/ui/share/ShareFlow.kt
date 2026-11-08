@@ -321,6 +321,7 @@ private fun placeholderFor(kind: TipKind) = when (kind) {
     TipKind.TOILET -> "예: 주변에 화장실이 없어요"
     TipKind.PARKING -> "예: 차 5대 정도 세울 수 있어요"
     TipKind.POWER -> "예: 외부 전원이 없어요"
+    TipKind.CHARGING -> "예: 10분 거리 주유소 옆에 급속 충전기가 있어요"
     TipKind.SIGNAL -> "예: 해변 끝에서는 데이터가 끊겨요"
     TipKind.NIGHT -> "예: 가로등이 없어 아주 어두워요"
     TipKind.STORE -> "예: 편의점까지 차로 10분"

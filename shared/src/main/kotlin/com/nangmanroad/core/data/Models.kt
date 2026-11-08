@@ -27,6 +27,8 @@ enum class TipKind(val label: String) {
     TOILET("화장실"),
     PARKING("주차"),
     POWER("전기"),
+    /** EV charging nearby: the first thing a Pleos driver asks before a night away from home. */
+    CHARGING("충전"),
     SIGNAL("통신"),
     NIGHT("야간"),
     STORE("편의점"),
@@ -35,7 +37,7 @@ enum class TipKind(val label: String) {
 }
 
 /** The facilities a card answers at a glance, in the order a 차박 visitor asks about them. */
-val FacilityKinds: List<TipKind> = listOf(TipKind.TOILET, TipKind.POWER, TipKind.SIGNAL, TipKind.STORE, TipKind.PARKING)
+val FacilityKinds: List<TipKind> = listOf(TipKind.TOILET, TipKind.POWER, TipKind.CHARGING, TipKind.SIGNAL, TipKind.STORE, TipKind.PARKING)
 
 /** "오늘 확인", "어제 확인", "12일 전 확인": how fresh a car-camping status is. */
 fun carCampingCheckedLabel(daysAgo: Int): String = when (daysAgo) {

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.ElectricalServices
+import androidx.compose.material.icons.outlined.EvStation
 import androidx.compose.material.icons.outlined.LocalParking
 import androidx.compose.material.icons.outlined.NightsStay
 import androidx.compose.material.icons.outlined.ReportProblem
@@ -43,6 +44,7 @@ fun TipKind.icon(): ImageVector = when (this) {
     TipKind.TOILET -> Icons.Outlined.Wc
     TipKind.PARKING -> Icons.Outlined.LocalParking
     TipKind.POWER -> Icons.Outlined.ElectricalServices
+    TipKind.CHARGING -> Icons.Outlined.EvStation
     TipKind.SIGNAL -> Icons.Outlined.SignalCellularAlt
     TipKind.NIGHT -> Icons.Outlined.NightsStay
     TipKind.STORE -> Icons.Outlined.Storefront

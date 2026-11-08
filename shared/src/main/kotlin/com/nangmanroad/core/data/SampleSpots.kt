@@ -88,6 +88,7 @@ object SampleSpots {
                 HoneyTip("t-gn-parking", TipKind.PARKING, "공간이 협소해요", "차 5~6대가 들어가면 꽉 차요. 주말 오후에는 일찍 도착하세요.", TipStatus.PREPARE, 41, 3, "낭만을찾아서"),
                 HoneyTip("t-gn-toilet", TipKind.TOILET, "확인이 필요해요", "주변에 화장실이 없다는 제보와 임시 화장실이 생겼다는 제보가 함께 있어요.", TipStatus.NEEDS_CHECK, 28, 3, "방문자 2명"),
                 HoneyTip("t-gn-signal", TipKind.SIGNAL, "일부 구간 약해요", "해변 끝 쪽에서는 데이터가 자주 끊겨요. 지도를 미리 받아 두세요.", TipStatus.PREPARE, 17, 6, "주말의기록"),
+                HoneyTip("t-gn-charging", TipKind.CHARGING, "10분 거리에 급속 2대", "사천 방면 주유소 옆에 급속 충전기 2대가 있어요. 밤에는 비어 있었어요.", TipStatus.GOOD, 22, 3, "낭만을찾아서"),
                 HoneyTip("t-gn-night", TipKind.NIGHT, "조명이 부족해요", "해가 지면 주차 공간이 거의 보이지 않아요. 랜턴을 챙기세요.", TipStatus.PREPARE, 22, 3, "낭만을찾아서"),
                 HoneyTip("t-gn-access", TipKind.ACCESS, "비 오면 미끄러워요", "비 오는 날에는 마지막 진입로가 미끄러울 수 있어요.", TipStatus.PREPARE, 28, 5, "오후다섯시"),
                 HoneyTip("t-gn-store", TipKind.STORE, "차로 10분 거리", "가장 가까운 편의점은 사천면 시내에 있어요.", TipStatus.GOOD, 9, 12, "낭만을찾아서"),
@@ -127,6 +128,7 @@ object SampleSpots {
                 HoneyTip("t-jc-night", TipKind.NIGHT, "주변이 아주 어두워요", "별 보기에는 좋지만 발밑이 보이지 않아요. 적색광 랜턴을 추천해요.", TipStatus.PREPARE, 33, 4, "밤하늘수집가"),
                 HoneyTip("t-jc-toilet", TipKind.TOILET, "전망대에 있어요", "호숫가 전망대 화장실은 밤에도 열려 있었어요.", TipStatus.GOOD, 19, 4, "밤하늘수집가"),
                 HoneyTip("t-jc-signal", TipKind.SIGNAL, "잘 터져요", "통화와 데이터 모두 문제없었어요.", TipStatus.GOOD, 6, 10, "주말의기록"),
+                HoneyTip("t-jc-charging", TipKind.CHARGING, "읍내까지 나가야 해요", "호숫가에는 충전기가 없어요. 청풍 읍내 공영주차장에 완속만 있어요. 넉넉히 충전하고 오세요.", TipStatus.PREPARE, 12, 4, "밤하늘수집가"),
                 HoneyTip("t-jc-caution", TipKind.CAUTION, "밤에 차량 통행", "호숫가 도로로 밤에도 차가 지나가요. 비상등을 켜 두세요.", TipStatus.PREPARE, 14, 4, "밤하늘수집가"),
                 HoneyTip("t-jc-store", TipKind.STORE, "미리 사 오세요", "근처 가게는 저녁 8시면 문을 닫아요.", TipStatus.PREPARE, 12, 8, "오후다섯시"),
             ),
@@ -156,6 +158,7 @@ object SampleSpots {
             tips = listOf(
                 HoneyTip("t-yp-parking", TipKind.PARKING, "공영주차장 이용", "강변 공영주차장을 이용했어요. 이른 새벽에는 여유가 있어요.", TipStatus.GOOD, 21, 2, "주말의기록"),
                 HoneyTip("t-yp-toilet", TipKind.TOILET, "주차장 옆에 있어요", "주차장 옆 공중화장실을 쓸 수 있었어요.", TipStatus.GOOD, 15, 2, "주말의기록"),
+                HoneyTip("t-yp-charging", TipKind.CHARGING, "주차장에 완속 2대", "두물머리 주차장에 완속 충전기 2대가 있어요. 새벽에는 늘 비어 있어요.", TipStatus.GOOD, 9, 2, "주말의기록"),
                 HoneyTip("t-yp-caution", TipKind.CAUTION, "주말엔 붐벼요", "해 뜬 뒤에는 사진 찍는 사람이 많아져요.", TipStatus.PREPARE, 18, 2, "윤슬을따라"),
                 HoneyTip("t-yp-night", TipKind.NIGHT, "새벽엔 추워요", "강가라 봄가을에도 새벽 기온이 많이 내려가요.", TipStatus.PREPARE, 10, 9, "오후다섯시"),
             ),

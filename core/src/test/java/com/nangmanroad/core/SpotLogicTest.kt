@@ -50,6 +50,9 @@ class SpotLogicTest {
         assertTrue(withToilet.none { it.id == "s-gangneung" })
         val toiletAndPower = SpotQueries.matching(spots, null, "", setOf(TipKind.TOILET, TipKind.POWER))
         assertEquals(listOf("s-goseong"), toiletAndPower.map { it.id })
+        // EV charging is its own facility: 강릉 and 양평 have confirmed chargers nearby, 고성 says nothing.
+        val charging = SpotQueries.matching(spots, null, "", setOf(TipKind.CHARGING)).map { it.id }
+        assertTrue(charging.containsAll(listOf("s-gangneung", "s-yangpyeong")) && "s-goseong" !in charging)
     }
 
     @Test
