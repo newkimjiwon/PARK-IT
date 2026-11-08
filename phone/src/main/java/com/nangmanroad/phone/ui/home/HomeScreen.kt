@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -196,6 +197,7 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                     iconSize = 16.dp,
                     gap = 8.dp,
                 )
+                if (spot.bestTime.isNotBlank()) PhotoChip(spot.bestTime, icon = Icons.Outlined.Schedule)
                 Text(spot.title, style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
             }
         }
@@ -273,14 +275,17 @@ private fun NearbyCard(spot: Spot, state: PhoneUiState, onClick: () -> Unit) {
 
 /** A small translucent label that sits on a photo; [accent] gives it the coral used for tips. */
 @Composable
-private fun PhotoChip(text: String, modifier: Modifier = Modifier, accent: Boolean = false) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelMedium.tabular(),
-        color = if (accent) Palette.OnCoral else Palette.TextPrimary,
+private fun PhotoChip(text: String, modifier: Modifier = Modifier, accent: Boolean = false, icon: ImageVector? = null) {
+    val color = if (accent) Palette.OnCoral else Palette.TextPrimary
+    Row(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(if (accent) Palette.Coral.copy(alpha = 0.92f) else Palette.Scrim)
             .padding(horizontal = 8.dp, vertical = 4.dp),
-    )
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        if (icon != null) Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
+        Text(text, style = MaterialTheme.typography.labelMedium.tabular(), color = color)
+    }
 }

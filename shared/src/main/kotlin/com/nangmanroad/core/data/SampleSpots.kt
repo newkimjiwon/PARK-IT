@@ -107,6 +107,7 @@ object SampleSpots {
             ),
             carCamping = CarCamping.BANNED,
             carCampingNote = "강릉시가 2026년 5월부터 해변·관광지 공영주차장의 밤샘 주차와 차박을 단속해요. 노을만 보고 이동하세요.",
+            bestTime = "맑은 날 일몰 30분 전부터",
         ),
         Spot(
             id = "s-jecheon",
@@ -135,6 +136,7 @@ object SampleSpots {
             ),
             carCamping = CarCamping.ALLOWED,
             carCampingNote = "전망대 주차장은 밤샘 주차를 막지 않는다는 제보가 두 건이에요. 취사는 금지예요.",
+            bestTime = "달 없는 밤 10시 이후",
         ),
         Spot(
             id = "s-yangpyeong",
@@ -162,6 +164,7 @@ object SampleSpots {
             ),
             carCamping = CarCamping.CHECK,
             carCampingNote = "공영주차장이라 밤샘 주차 제한 안내문이 붙을 수 있어요. 입구 표지판을 확인하세요.",
+            bestTime = "가을 새벽 5~7시 물안개",
         ),
         Spot(
             id = "s-goseong",
@@ -211,6 +214,7 @@ object SampleSpots {
             ),
             carCamping = CarCamping.ALLOWED,
             carCampingNote = "해변 입구 주차장에서 밤을 보낸 제보가 여러 건이에요. 성수기에는 안내문이 바뀔 수 있어요.",
+            bestTime = "겨울 일몰, 간조 무렵",
         ),
         Spot(
             id = "s-yeongwol",
@@ -295,6 +299,7 @@ object SampleSpots {
             comments = emptyList(),
             carCamping = CarCamping.ALLOWED,
             carCampingNote = "강변 쉼터 주차장에서 하룻밤 머문 제보가 있어요. 비 예보가 있으면 피하세요.",
+            bestTime = "4월 초 벚꽃 철 이른 아침",
         ),
     )
 

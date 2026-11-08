@@ -132,6 +132,7 @@ data class NewPost(
     /** Whether the author says the night can be spent here; defaults keep older phones publishing. */
     val carCamping: CarCamping = CarCamping.CHECK,
     val carCampingNote: String = "",
+    val bestTime: String = "",
 )
 
 /** [path] is relative to the server, e.g. "/photos/3f2a.jpg". */

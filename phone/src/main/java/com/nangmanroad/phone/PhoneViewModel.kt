@@ -74,6 +74,8 @@ data class ShareDraft(
     /** The author's answer to "can the night be spent here?", asked next to the category. */
     val carCamping: CarCamping = CarCamping.CHECK,
     val carCampingNote: String = "",
+    /** "언제 가면 좋아요?" in the author's words; optional. */
+    val bestTime: String = "",
     /** Set when the car's 파킷 started this draft; that inbox item is cleared once the post is up. */
     val parkitId: String? = null,
 ) {
@@ -404,6 +406,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
             approximateLocation = draft.approximate,
             carCamping = draft.carCamping,
             carCampingNote = draft.carCampingNote.trim(),
+            bestTime = draft.bestTime.trim(),
         )
         updateDraft { it.copy(publishing = true) }
         viewModelScope.launch {

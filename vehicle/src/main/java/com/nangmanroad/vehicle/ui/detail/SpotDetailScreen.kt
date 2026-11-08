@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Directions
@@ -233,6 +234,12 @@ private fun RouteRow(spot: Spot, state: AppUiState, actions: AppViewModel, modif
                 CarCampingBadge(spot.carCamping, iconSize = 20.dp)
             }
             Text(distanceLabel(state, spot), style = MaterialTheme.typography.bodyMedium.tabular(), color = Palette.TextSecondary)
+            if (spot.bestTime.isNotBlank()) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Outlined.Schedule, contentDescription = "가기 좋은 때", tint = Palette.TextSecondary, modifier = Modifier.size(20.dp))
+                    Text(spot.bestTime, style = MaterialTheme.typography.bodyMedium, color = Palette.TextPrimary)
+                }
+            }
             if (spot.carCampingNote.isNotBlank()) {
                 Text(
                     spot.carCampingNote,

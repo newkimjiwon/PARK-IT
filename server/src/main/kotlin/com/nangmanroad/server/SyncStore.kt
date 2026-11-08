@@ -247,6 +247,7 @@ class SyncStore(
             approximateLocation = post.approximateLocation,
             carCamping = post.carCamping,
             carCampingNote = post.carCampingNote.trim(),
+            bestTime = post.bestTime.trim(),
         )
         update { it.copy(posts = it.posts + StoredPost(spot, now)) }
         return decorate(spot, userId)

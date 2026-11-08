@@ -249,6 +249,9 @@ private fun StoryStep(draft: ShareDraft, actions: PhoneViewModel) {
             }
         }
         CarCampingQuestion(draft, actions)
+        LabeledField("언제 가면 좋아요? (선택)", draft.bestTime, "예: 맑은 날 일몰 30분 전부터, 가을 새벽 물안개") { bestTime ->
+            actions.updateDraft { it.copy(bestTime = bestTime) }
+        }
     }
 }
 

@@ -115,6 +115,8 @@ data class Spot(
     val carCamping: CarCamping = CarCamping.CHECK,
     /** Why, in the reporter's words: a council notice, a sign at the lot, a ranger's warning. */
     val carCampingNote: String = "",
+    /** When the place is at its best, in the author's words: "맑은 날 일몰 30분 전", "가을 새벽 물안개". */
+    val bestTime: String = "",
 ) {
     /** First word of the region, e.g. "강원" for "강원 강릉시". */
     val province: String get() = region.substringBefore(' ')
