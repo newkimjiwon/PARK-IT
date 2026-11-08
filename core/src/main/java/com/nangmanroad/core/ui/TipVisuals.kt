@@ -29,7 +29,7 @@ fun TipKind.icon(): ImageVector = when (this) {
 fun TipStatus.color(): Color = when (this) {
     TipStatus.GOOD -> Palette.Success
     TipStatus.PREPARE -> Palette.Warning
-    TipStatus.NEEDS_CHECK -> Palette.Coral
+    TipStatus.NEEDS_CHECK -> Palette.Alert
 }
 
 fun TipStatus.label(): String = when (this) {

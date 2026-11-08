@@ -1,6 +1,7 @@
 package com.nangmanroad.phone.ui.detail
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,22 +45,22 @@ fun TipSuggestionForm(onCancel: () -> Unit, onSubmit: (TipKind, TipStatus, Strin
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(Palette.Surface)
+            .clip(RoundedCornerShape(10.dp))
+            .border(1.dp, Palette.Hairline, RoundedCornerShape(10.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text("어떤 정보를 알려 주실 건가요?", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TipKind.entries.forEach { Chip(it.label, kind == it, { kind = it }, icon = it.icon(), idleColor = Palette.SurfaceHigh) }
+            TipKind.entries.forEach { Chip(it.label, kind == it, { kind = it }, icon = it.icon()) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(TipStatus.GOOD, TipStatus.PREPARE).forEach { Chip(it.label(), status == it, { status = it }, idleColor = Palette.SurfaceHigh) }
+            listOf(TipStatus.GOOD, TipStatus.PREPARE).forEach { Chip(it.label(), status == it, { status = it }) }
         }
         LabeledField("한 줄 요약", summary, "예: 화장실이 없어요") { summary = it }
         LabeledField("자세히 (선택)", detail, "예: 가장 가까운 화장실은 차로 5분 거리 휴게소에 있어요") { detail = it }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SecondaryButton("취소", onCancel, Modifier.weight(1f), container = Palette.SurfaceHigh)
+            SecondaryButton("취소", onCancel, Modifier.weight(1f))
             PrimaryButton("제보하기", { onSubmit(kind, status, summary, detail) }, Modifier.weight(1f), enabled = summary.isNotBlank())
         }
     }
@@ -73,8 +74,8 @@ fun LabeledField(label: String, value: String, placeholder: String, minHeight: I
             Modifier
                 .fillMaxWidth()
                 .heightIn(min = minHeight.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(Palette.BackgroundRaised)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Palette.Surface)
                 .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
             if (value.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyMedium, color = Palette.TextTertiary)
@@ -82,7 +83,7 @@ fun LabeledField(label: String, value: String, placeholder: String, minHeight: I
                 value = value,
                 onValueChange = onChange,
                 textStyle = MaterialTheme.typography.bodyMedium.copy(color = Palette.TextPrimary),
-                cursorBrush = SolidColor(Palette.Coral),
+                cursorBrush = SolidColor(Palette.TextPrimary),
                 modifier = Modifier.fillMaxWidth(),
             )
         }

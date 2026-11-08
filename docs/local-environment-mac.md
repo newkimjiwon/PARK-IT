@@ -165,7 +165,7 @@ scripts/capture-screenshot.sh emulator-5556 phone-home phone
 | --- | --- |
 | `car-headunit` | 지도 홈이 열린 헤드유닛 전체(`car-full`) |
 | `car-map` | 지도 홈, 강릉 장소 선택 |
-| `car-detail-tips`, `car-detail-items` | 강릉 장소 상세의 방문 꿀팁, 아이템 탭 |
+| `car-detail-tips`, `car-detail-items` | 강릉 장소 상세의 방문 꿀팁, 준비물 탭 |
 | `car-album` | 앨범 추천 탭 |
 | `car-from-phone` | 앨범 '휴대폰에서 보냄' 탭 |
 | `car-driving` | 길 안내 후 주행 화면 |
@@ -179,4 +179,5 @@ scripts/capture-screenshot.sh emulator-5556 phone-home phone
 - 동기화 서버를 켜고 두 앱을 `윤슬을따라` 계정에 연결한 상태에서 찍습니다. 테스트로 올린 게시물이 화면에 나오지 않도록, 필요하면 서버를 끄고 `server/data/state.json`에서 지운 뒤 다시 켭니다.
 - 에뮬레이터 두 대는 한 대가 완전히 부팅된 뒤에 다음 대를 켭니다. 부팅 중에 겹치면 GPU 오류로 차량 화면이 검게 찍힙니다.
 - 휴대폰 상태 표시줄의 시간은 그대로 찍힙니다.
-- 2026-11-07에 찍었습니다. `car-driving`만 그 화면 코드가 바뀌지 않아 2026-11-05에 찍은 화면을 썼습니다.
+- 2026-11-08에 디자인을 바꾼 뒤 19장을 모두 다시 찍었습니다. 이날 Pleos 에뮬레이터의 시스템 UI는 밝은 테마로 떠서 `car-headunit`의 상태 표시줄과 클러스터가 흰색입니다.
+- `car-driving`은 길 안내를 시작한 뒤 레일의 '주행 화면'으로 연 미리보기입니다. 남은 거리와 시간은 내비게이션이 경로를 계산한 뒤(10초쯤) 나타납니다.

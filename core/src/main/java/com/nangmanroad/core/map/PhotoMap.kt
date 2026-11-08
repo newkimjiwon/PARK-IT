@@ -162,8 +162,8 @@ fun PhotoMap(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(style.controlsPadding)
-                .clip(RoundedCornerShape(18.dp))
-                .background(Palette.BackgroundRaised.copy(alpha = 0.92f)),
+                .clip(RoundedCornerShape(10.dp))
+                .background(Palette.BackgroundRaised.copy(alpha = 0.94f)),
         ) {
             MapButton(Icons.Outlined.Add, "확대", style.buttonSize) {
                 camera = camera.zoomBy(1.6f, Offset(viewSize.width / 2, viewSize.height / 2), viewSize)
@@ -190,7 +190,7 @@ private fun PhotoMarker(
     onClick: () -> Unit,
 ) {
     val size by animateDpAsState(if (selected) style.selectedMarkerSize else style.markerSize, label = "markerSize")
-    val corner = RoundedCornerShape(size * 0.24f)
+    val corner = RoundedCornerShape(size * 0.12f)
     val half = with(LocalDensity.current) { (size / 2).toPx() }
     Box(
         modifier = Modifier
@@ -204,7 +204,7 @@ private fun PhotoMarker(
             contentDescription = null,
             modifier = Modifier
                 .fillMaxSize()
-                .shadow(12.dp, corner)
+                .shadow(8.dp, corner)
                 .clip(corner)
                 .border(if (selected) 5.dp else 3.dp, if (selected) Palette.Coral else tint ?: Color.White, corner),
         )
@@ -217,7 +217,7 @@ private fun PhotoMarker(
                     .align(Alignment.TopEnd)
                     .offset(x = 12.dp, y = (-12).dp)
                     .clip(CircleShape)
-                    .background(Palette.Coral)
+                    .background(Palette.TextPrimary)
                     .padding(horizontal = 12.dp, vertical = 2.dp),
             )
         }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -101,10 +102,11 @@ fun PhoneApp(state: PhoneUiState, actions: PhoneViewModel) {
 
 @Composable
 private fun BottomBar(state: PhoneUiState, actions: PhoneViewModel) {
+    Box(Modifier.fillMaxWidth().height(1.dp).background(Palette.Hairline))
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Palette.BackgroundRaised)
+            .background(Palette.Background)
             .navigationBarsPadding()
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -114,19 +116,20 @@ private fun BottomBar(state: PhoneUiState, actions: PhoneViewModel) {
         Column(
             modifier = Modifier
                 .weight(1f)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(10.dp))
                 .clickable(role = Role.Tab) { actions.selectTab(PhoneTab.SHARE) }
                 .padding(vertical = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(
                 Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(Palette.Coral),
+                    .padding(vertical = 2.dp)
+                    .size(width = 48.dp, height = 34.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Palette.TextPrimary),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Outlined.Add, contentDescription = null, tint = Palette.Background, modifier = Modifier.size(26.dp))
+                Icon(Icons.Outlined.Add, contentDescription = null, tint = Palette.Background, modifier = Modifier.size(24.dp))
             }
             Text("장소 공유", style = MaterialTheme.typography.labelMedium, color = Palette.TextSecondary)
         }
@@ -140,13 +143,13 @@ private fun androidx.compose.foundation.layout.RowScope.NavItem(icon: ImageVecto
     Column(
         modifier = Modifier
             .weight(1f)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(10.dp))
             .clickable(role = Role.Tab, onClick = onClick)
             .padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Icon(icon, contentDescription = null, tint = if (selected) Palette.Coral else Palette.TextSecondary, modifier = Modifier.size(26.dp))
+        Icon(icon, contentDescription = null, tint = if (selected) Palette.TextPrimary else Palette.TextTertiary, modifier = Modifier.size(26.dp))
         Text(label, style = MaterialTheme.typography.labelMedium, color = if (selected) Palette.TextPrimary else Palette.TextSecondary)
     }
 }
@@ -165,7 +168,7 @@ private fun Toast(state: PhoneUiState, actions: PhoneViewModel, modifier: Modifi
     AnimatedVisibility(visible = toast != null, enter = fadeIn(), exit = fadeOut(), modifier = modifier.padding(horizontal = 20.dp)) {
         Row(
             modifier = Modifier
-                .clip(RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(10.dp))
                 .background(Palette.SurfaceHigh)
                 .padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,

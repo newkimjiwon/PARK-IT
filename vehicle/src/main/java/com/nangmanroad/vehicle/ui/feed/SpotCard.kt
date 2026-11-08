@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
@@ -32,10 +30,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.data.Spot
-import com.nangmanroad.core.ui.Avatar
 import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.vehicle.ui.theme.Dimens
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.tabular
 
 /** Photo-first post card used by the map feed and the album grid. */
 @Composable
@@ -50,7 +48,7 @@ fun SpotCard(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(Dimens.CardRadius))
+            .clip(RoundedCornerShape(Dimens.PhotoRadius))
             .clickable(role = Role.Button, onClickLabel = "${spot.title} 보기", onClick = onOpen),
     ) {
         Box {
@@ -60,14 +58,14 @@ fun SpotCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(photoAspect)
-                    .clip(RoundedCornerShape(Dimens.CardRadius)),
+                    .clip(RoundedCornerShape(Dimens.PhotoRadius)),
             )
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(10.dp)
+                    .padding(8.dp)
                     .size(56.dp)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(Dimens.ControlRadius))
                     .background(Palette.Scrim)
                     .clickable(role = Role.Button, onClickLabel = if (saved) "저장 취소" else "저장", onClick = onToggleSave),
                 contentAlignment = Alignment.Center,
@@ -75,40 +73,34 @@ fun SpotCard(
                 Icon(
                     imageVector = if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
                     contentDescription = if (saved) "저장됨" else "저장",
-                    tint = if (saved) Palette.Coral else Palette.TextPrimary,
+                    tint = Palette.TextPrimary,
                     modifier = Modifier.size(28.dp),
                 )
             }
         }
-        Column(Modifier.padding(horizontal = 4.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.padding(horizontal = 2.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(spot.title, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(spot.region, style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
-            Spacer(Modifier.size(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Avatar(spot.author.name, size = 32.dp)
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    spot.author.name,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Palette.TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "${spot.region} · ${spot.author.name}",
+                style = MaterialTheme.typography.bodySmall,
+                color = Palette.TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.size(2.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Stat(Icons.Outlined.FavoriteBorder, likeCount.toString())
                 Stat(Icons.Outlined.ChatBubbleOutline, spot.commentCount.toString())
-                Stat(Icons.Outlined.TipsAndUpdates, "꿀팁 ${spot.tips.size}", highlight = true)
+                Stat(Icons.Outlined.TipsAndUpdates, "꿀팁 ${spot.tips.size}")
             }
         }
     }
 }
 
 @Composable
-fun Stat(icon: ImageVector, text: String, highlight: Boolean = false) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Icon(icon, contentDescription = null, tint = if (highlight) Palette.Peach else Palette.TextSecondary, modifier = Modifier.size(22.dp))
-        Text(text, style = MaterialTheme.typography.labelMedium, color = if (highlight) Palette.Peach else Palette.TextSecondary)
+fun Stat(icon: ImageVector, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Icon(icon, contentDescription = null, tint = Palette.TextTertiary, modifier = Modifier.size(22.dp))
+        Text(text, style = MaterialTheme.typography.labelMedium.tabular(), color = Palette.TextSecondary)
     }
 }

@@ -52,18 +52,17 @@ import com.nangmanroad.core.data.Visibility
 import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.ui.Avatar
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.phone.HomeTab
 import com.nangmanroad.phone.PhoneUiState
 import com.nangmanroad.phone.PhoneViewModel
-import com.nangmanroad.phone.ui.components.Chip
 import com.nangmanroad.phone.ui.components.IconCircle
+import com.nangmanroad.phone.ui.components.TabRow
+import com.nangmanroad.phone.ui.components.TextTab
 import com.nangmanroad.phone.ui.components.SectionHeader
 import com.nangmanroad.phone.ui.components.Tag
 import com.nangmanroad.phone.ui.components.distanceFromHere
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 fun HomeScreen(state: PhoneUiState, actions: PhoneViewModel) {
@@ -80,21 +79,14 @@ fun HomeScreen(state: PhoneUiState, actions: PhoneViewModel) {
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         item {
-            Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        LocalDate.now().format(DateTimeFormatter.ofPattern("M월 d일, EEEE", Locale.KOREAN)),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Palette.TextSecondary,
-                    )
-                    Text("오늘의 낭만", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
+            Column {
+                Row(Modifier.padding(start = 20.dp, end = 10.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("낭만로드", style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary, modifier = Modifier.weight(1f))
+                    IconCircle(Icons.Outlined.Notifications, "알림", actions::openNotifications, badge = state.fromCar.isNotEmpty())
                 }
-                IconCircle(Icons.Outlined.Notifications, "알림", actions::openNotifications, badge = state.fromCar.isNotEmpty())
-            }
-        }
-        item {
-            LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(HomeTab.entries) { tab -> Chip(tab.label, state.homeTab == tab, { actions.setHomeTab(tab) }) }
+                TabRow {
+                    HomeTab.entries.forEach { tab -> TextTab(tab.label, state.homeTab == tab, { actions.setHomeTab(tab) }) }
+                }
             }
         }
         if (feed.isEmpty()) {
@@ -109,12 +101,12 @@ fun HomeScreen(state: PhoneUiState, actions: PhoneViewModel) {
         }
         feed.forEachIndexed { index, spot ->
             item(key = spot.id) {
-                PostCard(spot, state, actions, highlight = index == 0 && state.homeTab == HomeTab.FOR_YOU)
+                PostCard(spot, state, actions)
             }
             if (index == 0) {
                 item(key = "nearby") {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SectionHeader("NEAR YOU", "이번 주말, 가까운 곳", Modifier.padding(horizontal = 20.dp))
+                        SectionHeader("가까운 곳", Modifier.padding(horizontal = 20.dp))
                         LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             items(nearby, key = { "near-${it.id}" }) { NearbyCard(it, state) { actions.openSpot(it.id) } }
                         }
@@ -127,7 +119,7 @@ fun HomeScreen(state: PhoneUiState, actions: PhoneViewModel) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel, highlight: Boolean = false) {
+fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
     val liked = spot.id in state.liked
     val saved = spot.id in state.saved
     val isMine = spot.author.id == state.me.id
@@ -143,7 +135,7 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel, highlight
                 spot.author.id !in state.following -> Text(
                     "팔로우",
                     style = MaterialTheme.typography.labelLarge,
-                    color = Palette.Coral,
+                    color = Palette.TextPrimary,
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
                         .clickable(role = Role.Button) { actions.toggleFollow(spot.author.id) }
@@ -154,21 +146,20 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel, highlight
         val pager = rememberPagerState(pageCount = { spot.photos.size })
         Box(
             Modifier
-                .padding(horizontal = 12.dp)
+                .padding(horizontal = 16.dp)
                 .fillMaxWidth()
                 .aspectRatio(0.86f)
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .clickable(role = Role.Button, onClickLabel = "${spot.title} 보기") { actions.openSpot(spot.id) },
         ) {
             HorizontalPager(pager, Modifier.fillMaxSize()) { page ->
                 SpotPhoto(spot.photos[page], "${spot.title} 사진 ${page + 1}", Modifier.fillMaxSize())
             }
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.55f to Color.Transparent, 1f to Palette.Background.copy(alpha = 0.85f))))
-            if (highlight) Tag("당신이 좋아할 낭만", Palette.Peach, Modifier.padding(16.dp).background(Palette.Background.copy(alpha = 0.6f), RoundedCornerShape(6.dp)))
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.6f to Color.Transparent, 1f to Palette.Background.copy(alpha = 0.8f))))
             if (spot.photos.size > 1) {
                 Text(
                     "${pager.currentPage + 1}/${spot.photos.size}",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelMedium.tabular(),
                     color = Palette.TextPrimary,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -179,17 +170,17 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel, highlight
                 )
             }
             Column(Modifier.align(Alignment.BottomStart).padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("${spot.province} · ${spot.category.label}", style = MaterialTheme.typography.labelLarge, color = Palette.Peach)
+                Text("${spot.province} · ${spot.category.label}", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
                 Text(spot.title, style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
             }
         }
         Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Action(if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, state.likeCount(spot).toString(), if (liked) Palette.Coral else Palette.TextPrimary) { actions.toggleLike(spot.id) }
+            Action(if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, state.likeCount(spot).toString()) { actions.toggleLike(spot.id) }
             Action(Icons.Outlined.ChatBubbleOutline, spot.commentCount.toString()) { actions.openSpot(spot.id) }
             Action(Icons.Outlined.DirectionsCar, "차로 보내기") { actions.sendToCar(spot.id) }
             Spacer(Modifier.weight(1f))
-            Action(Icons.Outlined.TipsAndUpdates, "꿀팁 ${spot.tips.size}", Palette.Peach) { actions.openSpot(spot.id) }
-            Action(if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder, null, if (saved) Palette.Coral else Palette.TextPrimary) { actions.toggleSave(spot.id) }
+            Action(Icons.Outlined.TipsAndUpdates, "꿀팁 ${spot.tips.size}") { actions.openSpot(spot.id) }
+            Action(if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder, null) { actions.toggleSave(spot.id) }
         }
         if (spot.story.isNotBlank()) {
             Text(
@@ -205,24 +196,24 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel, highlight
 }
 
 @Composable
-private fun Action(icon: ImageVector, label: String?, tint: Color = Palette.TextPrimary, onClick: () -> Unit) {
+private fun Action(icon: ImageVector, label: String?, onClick: () -> Unit) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(10.dp))
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(24.dp))
-        if (label != null) Text(label, style = MaterialTheme.typography.labelLarge, color = if (tint == Palette.TextPrimary) Palette.TextSecondary else tint)
+        Icon(icon, contentDescription = label, tint = Palette.TextPrimary, modifier = Modifier.size(24.dp))
+        if (label != null) Text(label, style = MaterialTheme.typography.labelLarge.tabular(), color = Palette.TextSecondary)
     }
 }
 
 @Composable
 fun VisibilityTag(visibility: Visibility) {
     when (visibility) {
-        Visibility.PUBLIC -> Tag("내 게시물", Palette.Success)
+        Visibility.PUBLIC -> Tag("내 게시물", Palette.TextSecondary)
         Visibility.FOLLOWERS -> Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.PeopleOutline, null, tint = Palette.Warning, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(4.dp))
@@ -241,12 +232,12 @@ private fun NearbyCard(spot: Spot, state: PhoneUiState, onClick: () -> Unit) {
     Column(
         Modifier
             .width(150.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(10.dp))
             .clickable(role = Role.Button, onClick = onClick),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        SpotPhoto(spot.photos.first(), spot.title, Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(18.dp)))
+        SpotPhoto(spot.photos.first(), spot.title, Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(8.dp)))
         Text(spot.title, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(distanceFromHere(state.here, spot), style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+        Text(distanceFromHere(state.here, spot), style = MaterialTheme.typography.bodySmall.tabular(), color = Palette.TextSecondary)
     }
 }

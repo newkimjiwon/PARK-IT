@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Directions
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -56,13 +55,15 @@ import com.nangmanroad.vehicle.PhoneHandoff
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.vehicle.ui.components.ActionButton
 import com.nangmanroad.core.ui.Avatar
-import com.nangmanroad.vehicle.ui.components.Pill
+import com.nangmanroad.vehicle.ui.components.Hairline
+import com.nangmanroad.vehicle.ui.components.TextTab
 import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.vehicle.ui.map.distanceLabel
 import com.nangmanroad.vehicle.ui.theme.Dimens
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.tabular
 
-private enum class DetailTab(val label: String) { TIPS("방문 꿀팁"), ITEMS("이 낭만을 만든 아이템"), COMMENTS("댓글") }
+private enum class DetailTab(val label: String) { TIPS("방문 꿀팁"), ITEMS("준비물"), COMMENTS("댓글") }
 
 @Composable
 fun SpotDetailScreen(spot: Spot, state: AppUiState, actions: AppViewModel) {
@@ -75,8 +76,8 @@ fun SpotDetailScreen(spot: Spot, state: AppUiState, actions: AppViewModel) {
                 PhotoGallery(spot, onBack = actions::back, modifier = Modifier.weight(0.46f).fillMaxHeight())
                 LazyColumn(
                     modifier = Modifier.weight(0.54f).fillMaxHeight(),
-                    contentPadding = PaddingValues(horizontal = 40.dp, vertical = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                    contentPadding = PaddingValues(horizontal = 40.dp, vertical = 28.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
                     detailBody(spot, state, actions, tab) { tab = it }
                 }
@@ -103,13 +104,16 @@ private fun LazyListScope.detailBody(
     onTab: (DetailTab) -> Unit,
 ) {
     val pad = Modifier.padding(horizontal = horizontalPadding)
-    item { AuthorRow(spot, state, actions, pad) }
     item { RouteRow(spot, state, actions, pad) }
+    item { AuthorRow(spot, state, actions, pad) }
     item {
-        Row(pad, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Pill(DetailTab.TIPS.label, tab == DetailTab.TIPS, { onTab(DetailTab.TIPS) }, trailing = spot.tips.size.toString())
-            Pill(DetailTab.ITEMS.label, tab == DetailTab.ITEMS, { onTab(DetailTab.ITEMS) }, trailing = spot.products.size.toString())
-            Pill(DetailTab.COMMENTS.label, tab == DetailTab.COMMENTS, { onTab(DetailTab.COMMENTS) }, trailing = spot.commentCount.toString())
+        Column(pad) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextTab(DetailTab.TIPS.label, tab == DetailTab.TIPS, { onTab(DetailTab.TIPS) }, count = spot.tips.size)
+                TextTab(DetailTab.ITEMS.label, tab == DetailTab.ITEMS, { onTab(DetailTab.ITEMS) }, count = spot.products.size)
+                TextTab(DetailTab.COMMENTS.label, tab == DetailTab.COMMENTS, { onTab(DetailTab.COMMENTS) }, count = spot.commentCount)
+            }
+            Hairline()
         }
     }
     when (tab) {
@@ -137,7 +141,7 @@ private fun PhotoGallery(spot: Spot, onBack: () -> Unit, modifier: Modifier = Mo
                 .align(Alignment.TopStart)
                 .padding(24.dp)
                 .heightIn(min = Dimens.TouchTarget)
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(Dimens.ControlRadius))
                 .background(Palette.Scrim)
                 .clickable(role = Role.Button, onClick = onBack)
                 .padding(horizontal = 22.dp, vertical = 12.dp),
@@ -149,12 +153,12 @@ private fun PhotoGallery(spot: Spot, onBack: () -> Unit, modifier: Modifier = Mo
         }
         Text(
             "${pager.currentPage + 1} / ${spot.photos.size}",
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelLarge.tabular(),
             color = Palette.TextPrimary,
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(24.dp)
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(Dimens.ControlRadius))
                 .background(Palette.Scrim)
                 .padding(horizontal = 18.dp, vertical = 10.dp),
         )
@@ -164,7 +168,7 @@ private fun PhotoGallery(spot: Spot, onBack: () -> Unit, modifier: Modifier = Mo
                 .padding(36.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("${spot.province} · ${spot.category.label}", style = MaterialTheme.typography.labelLarge, color = Palette.Peach)
+            Text("${spot.province} · ${spot.category.label}", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
             Text(spot.title, style = MaterialTheme.typography.displaySmall, color = Palette.TextPrimary)
             Text("“${spot.story}”", style = MaterialTheme.typography.bodyLarge, color = Palette.TextPrimary.copy(alpha = 0.86f))
             if (spot.photos.size > 1) {
@@ -172,9 +176,9 @@ private fun PhotoGallery(spot: Spot, onBack: () -> Unit, modifier: Modifier = Mo
                     repeat(spot.photos.size) { index ->
                         Box(
                             Modifier
-                                .size(width = if (index == pager.currentPage) 28.dp else 10.dp, height = 10.dp)
+                                .size(width = 28.dp, height = 4.dp)
                                 .clip(CircleShape)
-                                .background(if (index == pager.currentPage) Palette.Coral else Palette.TextPrimary.copy(alpha = 0.4f)),
+                                .background(if (index == pager.currentPage) Palette.TextPrimary else Palette.TextPrimary.copy(alpha = 0.3f)),
                         )
                     }
                 }
@@ -188,13 +192,13 @@ private fun AuthorRow(spot: Spot, state: AppUiState, actions: AppViewModel, modi
     val following = spot.author.id in state.following
     val liked = spot.id in state.liked
     val saved = spot.id in state.saved
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Avatar(spot.author.name, size = 64.dp)
-        Column(Modifier.weight(1f)) {
-            Text(spot.author.name, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Avatar(spot.author.name, size = 56.dp)
+        Column(Modifier.weight(1f).padding(start = 4.dp)) {
+            Text(spot.author.name, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
             Text(spot.author.bio, style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        ActionButton(if (following) "팔로잉" else "팔로우", null, { actions.toggleFollow(spot.author.id) }, active = following, primary = !following)
+        ActionButton(if (following) "팔로잉" else "팔로우", null, { actions.toggleFollow(spot.author.id) }, active = following)
         ActionButton(
             state.likeCount(spot).toString(),
             if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
@@ -217,48 +221,21 @@ private fun RouteRow(spot: Spot, state: AppUiState, actions: AppViewModel, modif
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(Dimens.CardRadius))
-            .background(Palette.Surface)
-            .padding(20.dp),
+            .padding(bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(18.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Box(
-            Modifier
-                .size(60.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Palette.SurfaceHigh),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Outlined.Map, contentDescription = null, tint = Palette.Peach, modifier = Modifier.size(30.dp))
-        }
-        Column(Modifier.weight(1f)) {
-            Text(spot.address, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
-            Text(distanceLabel(state, spot), style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(spot.address, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
+            Text(distanceLabel(state, spot), style = MaterialTheme.typography.bodyMedium.tabular(), color = Palette.TextSecondary)
         }
         ActionButton(
-            text = if (routing) "안내 중" else "길 안내 시작",
+            text = if (routing) "안내 중" else "길 안내",
             icon = Icons.Outlined.Directions,
             onClick = { actions.startRoute(spot.id) },
             primary = !routing,
             active = routing,
             modifier = Modifier.width(240.dp),
         )
-    }
-}
-
-internal fun Modifier.card(): Modifier = this
-    .clip(RoundedCornerShape(Dimens.CardRadius))
-    .background(Palette.Surface)
-
-@Composable
-internal fun TwoColumnGrid(count: Int, cell: @Composable (Int) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        for (row in 0 until (count + 1) / 2) {
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Box(Modifier.weight(1f)) { cell(row * 2) }
-                Box(Modifier.weight(1f)) { if (row * 2 + 1 < count) cell(row * 2 + 1) else Spacer(Modifier.width(0.dp)) }
-            }
-        }
     }
 }

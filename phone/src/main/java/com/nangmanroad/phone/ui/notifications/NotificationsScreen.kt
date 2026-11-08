@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.phone.ui.components.Hairline
 import com.nangmanroad.phone.PhoneUiState
 import com.nangmanroad.phone.PhoneViewModel
 
@@ -49,7 +50,7 @@ private val samples = listOf(
 
 @Composable
 fun NotificationsScreen(state: PhoneUiState, actions: PhoneViewModel) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(
@@ -60,22 +61,18 @@ fun NotificationsScreen(state: PhoneUiState, actions: PhoneViewModel) {
             }
         }
         if (state.fromCar.isNotEmpty()) {
-            item { Text("차량에서 보낸 항목", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary) }
+            item { Text("차량에서 보낸 항목", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)) }
             items(state.fromCar, key = { "car-${it.id}" }) { item ->
                 val spot = state.spot(item.spotId)
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Palette.Coral.copy(alpha = 0.12f))
                         .clickable(enabled = spot != null, role = Role.Button) { spot?.let { actions.openSpot(it.id) } }
-                        .padding(14.dp),
+                        .padding(vertical = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(Modifier.size(40.dp).clip(CircleShape).background(Palette.Coral.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Outlined.DirectionsCar, null, tint = Palette.Coral, modifier = Modifier.size(20.dp))
-                    }
+                    Icon(Icons.Outlined.DirectionsCar, null, tint = Palette.TextSecondary, modifier = Modifier.size(22.dp))
                     Column(Modifier.weight(1f)) {
                         Text(item.label, style = MaterialTheme.typography.bodyMedium, color = Palette.TextPrimary)
                         Text(if (spot != null) "눌러서 장소 보기" else "차량 화면에서 보낸 항목", style = MaterialTheme.typography.bodySmall, color = Palette.TextTertiary)
@@ -85,31 +82,29 @@ fun NotificationsScreen(state: PhoneUiState, actions: PhoneViewModel) {
                         modifier = Modifier.size(36.dp).clip(CircleShape).clickable { actions.dismissFromCar(item.id) }.padding(6.dp),
                     )
                 }
+                Hairline()
             }
-            item { Text("활동 알림", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary) }
+            item { Text("활동 알림", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, modifier = Modifier.padding(top = 24.dp, bottom = 4.dp)) }
         }
         items(samples) { notice ->
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Palette.Surface)
                     .clickable(enabled = notice.spotId != null, role = Role.Button) { notice.spotId?.let(actions::openSpot) }
-                    .padding(14.dp),
+                    .padding(vertical = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.size(40.dp).clip(CircleShape).background(Palette.Coral.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
-                    Icon(notice.icon, null, tint = Palette.Coral, modifier = Modifier.size(20.dp))
-                }
+                Icon(notice.icon, null, tint = Palette.TextSecondary, modifier = Modifier.size(22.dp))
                 Column(Modifier.weight(1f)) {
                     Text(notice.text, style = MaterialTheme.typography.bodyMedium, color = Palette.TextPrimary)
                     Text(notice.time, style = MaterialTheme.typography.bodySmall, color = Palette.TextTertiary)
                 }
             }
+            Hairline()
         }
         item {
-            Text("활동 알림은 아직 예시예요. 차량에서 보낸 항목은 실제로 동기화돼요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextTertiary)
+            Text("활동 알림은 아직 예시예요. 차량에서 보낸 항목은 실제로 동기화돼요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextTertiary, modifier = Modifier.padding(top = 16.dp))
         }
     }
 }

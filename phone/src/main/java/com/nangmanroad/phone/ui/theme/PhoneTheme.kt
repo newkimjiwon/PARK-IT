@@ -8,20 +8,29 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.Pretendard
+
+private fun style(size: Int, line: Int, weight: FontWeight = FontWeight.Normal, tracking: Double = 0.0) = TextStyle(
+    fontFamily = Pretendard,
+    fontSize = size.sp,
+    lineHeight = line.sp,
+    fontWeight = weight,
+    letterSpacing = tracking.sp,
+)
 
 private val PhoneTypography = Typography(
-    headlineLarge = TextStyle(fontSize = 28.sp, lineHeight = 36.sp, fontWeight = FontWeight.Bold),
-    headlineMedium = TextStyle(fontSize = 24.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold),
-    headlineSmall = TextStyle(fontSize = 21.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold),
-    titleLarge = TextStyle(fontSize = 19.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold),
-    titleMedium = TextStyle(fontSize = 17.sp, lineHeight = 24.sp, fontWeight = FontWeight.SemiBold),
-    titleSmall = TextStyle(fontSize = 15.sp, lineHeight = 21.sp, fontWeight = FontWeight.SemiBold),
-    bodyLarge = TextStyle(fontSize = 16.sp, lineHeight = 24.sp),
-    bodyMedium = TextStyle(fontSize = 14.sp, lineHeight = 21.sp),
-    bodySmall = TextStyle(fontSize = 13.sp, lineHeight = 18.sp),
-    labelLarge = TextStyle(fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold),
-    labelMedium = TextStyle(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium),
-    labelSmall = TextStyle(fontSize = 11.sp, lineHeight = 14.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp),
+    headlineLarge = style(28, 36, FontWeight.SemiBold, -0.6),
+    headlineMedium = style(24, 32, FontWeight.SemiBold, -0.4),
+    headlineSmall = style(21, 28, FontWeight.SemiBold, -0.3),
+    titleLarge = style(19, 26, FontWeight.SemiBold, -0.2),
+    titleMedium = style(17, 24, FontWeight.SemiBold),
+    titleSmall = style(15, 21, FontWeight.Medium),
+    bodyLarge = style(16, 24),
+    bodyMedium = style(14, 21),
+    bodySmall = style(13, 18),
+    labelLarge = style(14, 20, FontWeight.Medium),
+    labelMedium = style(12, 16, FontWeight.Medium),
+    labelSmall = style(11, 14, FontWeight.Medium),
 )
 
 @Composable
@@ -29,8 +38,8 @@ fun PhoneTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = darkColorScheme(
             primary = Palette.Coral,
-            onPrimary = Palette.Background,
-            secondary = Palette.Peach,
+            onPrimary = Palette.OnCoral,
+            secondary = Palette.TextPrimary,
             background = Palette.Background,
             onBackground = Palette.TextPrimary,
             surface = Palette.BackgroundRaised,
@@ -38,7 +47,7 @@ fun PhoneTheme(content: @Composable () -> Unit) {
             surfaceVariant = Palette.Surface,
             onSurfaceVariant = Palette.TextSecondary,
             surfaceContainerHigh = Palette.Surface,
-            outline = Palette.SurfaceHigh,
+            outline = Palette.Hairline,
         ),
         typography = PhoneTypography,
         content = content,

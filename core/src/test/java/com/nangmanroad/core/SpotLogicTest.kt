@@ -58,8 +58,8 @@ class SpotLogicTest {
 
     @Test
     fun `region title names a single province`() {
-        assertEquals("강원의 낭만", SpotQueries.regionTitle(spots.filter { it.province == "강원" }))
-        assertEquals("이 지역의 낭만", SpotQueries.regionTitle(spots))
+        assertEquals("강원", SpotQueries.regionTitle(spots.filter { it.province == "강원" }))
+        assertEquals("지도에 보이는 곳", SpotQueries.regionTitle(spots))
     }
 
     @Test

@@ -32,6 +32,7 @@ import com.nangmanroad.core.ui.byImportance
 import com.nangmanroad.core.ui.color
 import com.nangmanroad.core.ui.icon
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.tabular
 
 /**
  * While the car can move: no photos, feeds or scrolling, just the destination and at most three
@@ -49,12 +50,12 @@ fun DrivingScreen(state: AppUiState, onExitPreview: () -> Unit) {
             modifier = Modifier.widthIn(max = 1100.dp).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(28.dp),
         ) {
-            Text("주행 중에는 간단한 정보만 보여드려요", style = MaterialTheme.typography.titleLarge, color = Palette.TextSecondary)
+            Text("주행 중", style = MaterialTheme.typography.titleMedium, color = Palette.TextSecondary)
             if (destination != null || routed != null) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(28.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(Palette.BackgroundRaised)
                         .padding(36.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -65,14 +66,14 @@ fun DrivingScreen(state: AppUiState, onExitPreview: () -> Unit) {
                         Text(destination?.name ?: routed?.title.orEmpty(), style = MaterialTheme.typography.displaySmall, color = Palette.TextPrimary)
                         Text(
                             if (destination != null) "${formatMeters(destination.remainMeters)} · ${formatDuration(destination.remainSeconds)} 남음" else "내비게이션 안내를 따라가세요",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = Palette.Peach,
+                            style = MaterialTheme.typography.headlineMedium.tabular(),
+                            color = Palette.TextPrimary,
                         )
                     }
                 }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    Icon(Icons.Outlined.PauseCircle, contentDescription = null, tint = Palette.Coral, modifier = Modifier.size(64.dp))
+                    Icon(Icons.Outlined.PauseCircle, contentDescription = null, tint = Palette.TextSecondary, modifier = Modifier.size(64.dp))
                     Text("정차하면 지도와 사진을 다시 볼 수 있어요", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
                 }
             }
@@ -83,8 +84,8 @@ fun DrivingScreen(state: AppUiState, onExitPreview: () -> Unit) {
                         Row(
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(22.dp))
-                                .background(Palette.Surface)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Palette.BackgroundRaised)
                                 .padding(24.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(16.dp),

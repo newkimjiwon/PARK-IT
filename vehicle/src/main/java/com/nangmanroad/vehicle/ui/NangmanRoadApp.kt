@@ -67,6 +67,7 @@ fun NangmanRoadApp(state: AppUiState, actions: AppViewModel) {
             } else {
                 Row(Modifier.fillMaxSize()) {
                     SideRail(state, actions)
+                    Box(Modifier.width(1.dp).fillMaxHeight().background(Palette.Hairline))
                     Box(Modifier.weight(1f).fillMaxHeight()) {
                         when (val screen = state.screen) {
                             Screen.Map -> screens.SaveableStateProvider("map") { MapHomeScreen(state, actions) }
@@ -98,18 +99,8 @@ private fun SideRail(state: AppUiState, actions: AppViewModel) {
             .background(Palette.Background)
             .padding(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Box(
-            Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Palette.Coral),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(Modifier.size(18.dp).clip(CircleShape).background(Palette.Background))
-        }
-        Spacer(Modifier.size(18.dp))
         RailButton(Icons.Outlined.Map, "지도", state.screen == Screen.Map, onClick = actions::showMap)
         val shortcutTabs = setOf(AlbumTab.SAVED, AlbumTab.FROM_PHONE)
         RailButton(Icons.Outlined.PhotoLibrary, "앨범", onAlbum && state.albumTab !in shortcutTabs) {
@@ -138,13 +129,13 @@ private fun RailButton(icon: ImageVector, label: String, selected: Boolean, badg
         Column(
             modifier = Modifier
                 .size(width = 88.dp, height = 88.dp)
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(Dimens.ControlRadius))
                 .background(if (selected) Palette.Surface else Palette.Background)
                 .clickable(role = Role.Tab, onClick = onClick),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Icon(icon, contentDescription = null, tint = if (selected) Palette.Coral else Palette.TextSecondary, modifier = Modifier.size(32.dp))
+            Icon(icon, contentDescription = null, tint = if (selected) Palette.TextPrimary else Palette.TextSecondary, modifier = Modifier.size(32.dp))
             Text(label, style = MaterialTheme.typography.labelMedium, color = if (selected) Palette.TextPrimary else Palette.TextSecondary)
         }
         if (badge > 0) {
@@ -156,7 +147,7 @@ private fun RailButton(icon: ImageVector, label: String, selected: Boolean, badg
                     .align(Alignment.TopEnd)
                     .padding(6.dp)
                     .clip(CircleShape)
-                    .background(Palette.Coral)
+                    .background(Palette.TextPrimary)
                     .padding(horizontal = 8.dp, vertical = 1.dp),
             )
         }
@@ -175,7 +166,7 @@ private fun Toast(state: AppUiState, actions: AppViewModel, modifier: Modifier =
     AnimatedVisibility(visible = toast != null, enter = fadeIn(), exit = fadeOut(), modifier = modifier) {
         Row(
             modifier = Modifier
-                .clip(RoundedCornerShape(32.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(Palette.SurfaceHigh)
                 .padding(horizontal = 32.dp, vertical = 20.dp),
             verticalAlignment = Alignment.CenterVertically,

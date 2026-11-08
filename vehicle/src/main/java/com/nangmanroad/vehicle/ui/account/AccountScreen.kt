@@ -14,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.LinkOff
-import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -34,10 +33,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nangmanroad.core.ui.Avatar
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
 import com.nangmanroad.vehicle.ui.components.ActionButton
-import com.nangmanroad.vehicle.ui.components.SectionLabel
 import kotlinx.coroutines.delay
 
 /** Links the head unit to the driver's phone account with a short-lived 6-digit code. */
@@ -48,12 +47,11 @@ fun AccountScreen(state: AppUiState, actions: AppViewModel) {
             modifier = Modifier.widthIn(max = 980.dp).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            SectionLabel("ACCOUNT")
             val session = state.session
             if (session != null) {
                 Text("휴대폰과 연결되어 있어요", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Palette.Surface).padding(28.dp),
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Palette.BackgroundRaised).padding(28.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
@@ -61,7 +59,7 @@ fun AccountScreen(state: AppUiState, actions: AppViewModel) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(session.user.name, style = MaterialTheme.typography.headlineSmall, color = Palette.TextPrimary)
                         Text(
-                            "저장한 장소, 좋아요, 팔로우가 휴대폰과 같아요. 휴대폰에서 '차량으로 보내기'한 장소는 '휴대폰' 메뉴에 모여요.",
+                            "저장, 좋아요, 팔로우가 휴대폰과 같아요. 휴대폰에서 '차량으로 보내기'한 장소는 왼쪽 '휴대폰' 메뉴에 모여요.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Palette.TextSecondary,
                         )
@@ -76,7 +74,7 @@ fun AccountScreen(state: AppUiState, actions: AppViewModel) {
             } else {
                 Text("휴대폰 계정과 연결하기", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
                 Text(
-                    "휴대폰 낭만로드 앱 > 차량 탭 > 차량 연결에 아래 코드를 입력하세요.",
+                    "휴대폰 낭만로드 앱의 차량 탭 > 차량 연결에 이 코드를 입력하세요.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = Palette.TextSecondary,
                 )
@@ -91,17 +89,12 @@ private fun PairingCodeCard(state: AppUiState, actions: AppViewModel) {
     val pairing = state.pairing
     val code = pairing?.code
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Palette.Surface).padding(36.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Palette.BackgroundRaised).padding(36.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(28.dp),
     ) {
-        Box(Modifier.size(88.dp).clip(RoundedCornerShape(24.dp)).background(Palette.SurfaceHigh), contentAlignment = Alignment.Center) {
-            Icon(
-                if (pairing?.error != null) Icons.Outlined.CloudOff else Icons.Outlined.PhoneAndroid,
-                contentDescription = null,
-                tint = if (pairing?.error != null) Palette.Warning else Palette.Coral,
-                modifier = Modifier.size(44.dp),
-            )
+        if (pairing?.error != null) {
+            Icon(Icons.Outlined.CloudOff, contentDescription = null, tint = Palette.Warning, modifier = Modifier.size(44.dp))
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             when {
@@ -114,14 +107,14 @@ private fun PairingCodeCard(state: AppUiState, actions: AppViewModel) {
                     )
                 }
                 code == null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    CircularProgressIndicator(Modifier.size(36.dp), color = Palette.Coral)
+                    CircularProgressIndicator(Modifier.size(36.dp), color = Palette.TextSecondary)
                     Text("코드를 받는 중이에요", style = MaterialTheme.typography.titleLarge, color = Palette.TextSecondary)
                 }
                 else -> {
                     Text(
                         code.code.chunked(3).joinToString("  "),
-                        style = MaterialTheme.typography.displaySmall.copy(fontSize = 72.sp, letterSpacing = 6.sp),
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.displaySmall.copy(fontSize = 72.sp, lineHeight = 84.sp, letterSpacing = 4.sp).tabular(),
+                        fontWeight = FontWeight.SemiBold,
                         color = Palette.TextPrimary,
                     )
                     RemainingTime(code.expiresAt)
@@ -146,7 +139,7 @@ private fun RemainingTime(expiresAt: Long) {
     val seconds = ((expiresAt - now) / 1000).coerceAtLeast(0)
     Text(
         "휴대폰에서 입력하기를 기다리는 중 · ${seconds / 60}분 ${seconds % 60}초 남음",
-        style = MaterialTheme.typography.bodyMedium,
+        style = MaterialTheme.typography.bodyMedium.tabular(),
         color = Palette.TextSecondary,
     )
 }

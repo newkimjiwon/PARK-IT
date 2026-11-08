@@ -58,7 +58,7 @@ object SpotQueries {
     }
 
     /**
-     * Rule-based "당신이 좋아할 낭만": favour the scenery types the user already liked or saved,
+     * Rule-based recommendations ("추천"): favour the scenery types the user already liked or saved,
      * creators they follow, popular and recent posts, and places within a day trip.
      */
     fun recommended(
@@ -79,9 +79,9 @@ object SpotQueries {
         }
     }
 
-    /** "강원의 낭만" when everything in view shares a province, otherwise a neutral title. */
+    /** "강원" when everything in view shares a province, otherwise "지도에 보이는 곳". */
     fun regionTitle(spots: List<Spot>): String {
         val provinces = spots.map { it.province }.distinct()
-        return if (provinces.size == 1) "${provinces.single()}의 낭만" else "이 지역의 낭만"
+        return if (provinces.size == 1) provinces.single() else "지도에 보이는 곳"
     }
 }

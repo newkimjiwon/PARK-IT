@@ -50,12 +50,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.phone.PhoneUiState
 import com.nangmanroad.phone.PhoneViewModel
 import com.nangmanroad.phone.data.CarCommand
 import com.nangmanroad.phone.data.CarDemoState
+import com.nangmanroad.phone.ui.components.Hairline
 import com.nangmanroad.phone.ui.components.SectionHeader
+import com.nangmanroad.phone.ui.components.StatusLabel
 import com.nangmanroad.phone.ui.components.Tag
 import com.nangmanroad.phone.ui.components.PrimaryButton
 import com.nangmanroad.phone.ui.components.SecondaryButton
@@ -66,8 +69,10 @@ fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
     val car = state.car
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
-            Text("PLEOS CONNECT · 콘셉트", style = MaterialTheme.typography.labelSmall, color = Palette.Coral)
-            Text("내 차량", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("내 차량", style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
+                Tag("콘셉트", Palette.Warning)
+            }
         }
         item { CarLinkCard(state, actions) }
         item { ConceptNotice() }
@@ -81,11 +86,11 @@ fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatusCard(Icons.Outlined.Thermostat, "실내 온도", "${car.cabinTemp}°C", Palette.Peach, Modifier.weight(1f))
+                StatusCard(Icons.Outlined.Thermostat, "실내 온도", "${car.cabinTemp}°C", Palette.TextSecondary, Modifier.weight(1f))
                 StatusCard(Icons.Outlined.AcUnit, "공조", if (car.climateOn) "${car.targetTemp}°C · 켜짐" else "꺼짐", if (car.climateOn) Palette.Success else Palette.TextSecondary, Modifier.weight(1f))
             }
         }
-        item { SectionHeader("REMOTE", "원격 제어", trailing = { Tag("데모", Palette.Warning) }) }
+        item { SectionHeader("원격 제어", Modifier.padding(top = 8.dp), trailing = { Tag("데모", Palette.Warning) }) }
         item {
             ControlRow(
                 icon = if (car.doorsLocked) Icons.Outlined.LockOpen else Icons.Outlined.Lock,
@@ -115,7 +120,7 @@ fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
                 enabled = car.moodLightSupported,
             ) {}
         }
-        item { SectionHeader("SYNC", "차량으로 보낸 장소") }
+        item { SectionHeader("차량으로 보낸 장소", Modifier.padding(top = 8.dp)) }
         val queued = state.spots.filter { it.id in state.carQueue }
         if (queued.isEmpty()) {
             item { Text("장소 상세에서 '차량으로 보내기'를 누르면 여기에 모여요.", style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary) }
@@ -123,11 +128,11 @@ fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
         queued.forEach { spot ->
             item(key = "queued-${spot.id}") {
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.Surface).clickable { actions.openSpot(spot.id) }.padding(10.dp),
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { actions.openSpot(spot.id) }.padding(vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    SpotPhoto(spot.photos.first(), null, Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)))
+                    SpotPhoto(spot.photos.first(), null, Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)))
                     Column(Modifier.weight(1f)) {
                         Text(spot.title, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
                         Text(
@@ -152,7 +157,7 @@ fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
             containerColor = Palette.BackgroundRaised,
             title = { Text(command.question, color = Palette.TextPrimary) },
             text = { Text(command.detail, color = Palette.TextSecondary) },
-            confirmButton = { TextButton(onClick = actions::confirmCarCommand) { Text(command.title, color = Palette.Coral) } },
+            confirmButton = { TextButton(onClick = actions::confirmCarCommand) { Text(command.title, color = Palette.TextPrimary) } },
             dismissButton = { TextButton(onClick = actions::cancelCarCommand) { Text("취소", color = Palette.TextSecondary) } },
         )
     }
@@ -161,7 +166,7 @@ fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
 @Composable
 private fun ConceptNotice() {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Palette.Warning.copy(alpha = 0.12f)).padding(14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Palette.Warning.copy(alpha = 0.12f)).padding(14.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Icon(Icons.Outlined.Info, null, tint = Palette.Warning)
@@ -176,17 +181,15 @@ private fun ConceptNotice() {
 @Composable
 private fun CarHero(car: CarDemoState) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Palette.BackgroundRaised).padding(18.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Palette.BackgroundRaised).padding(18.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Box(Modifier.size(72.dp).clip(RoundedCornerShape(20.dp)).background(Palette.Surface), contentAlignment = Alignment.Center) {
-            Icon(Icons.Outlined.DirectionsCar, null, tint = Palette.Peach, modifier = Modifier.size(40.dp))
-        }
+        Icon(Icons.Outlined.DirectionsCar, null, tint = Palette.TextSecondary, modifier = Modifier.size(40.dp))
         Column(Modifier.weight(1f)) {
             Text(car.model, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary)
             Text(car.nickname, style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
-            Text(if (car.parked) "주차 중 · 예시 데이터" else "주행 중", style = MaterialTheme.typography.bodySmall, color = Palette.Success)
+            Text(if (car.parked) "주차 중 · 예시 데이터" else "주행 중", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
         }
     }
 }
@@ -194,7 +197,7 @@ private fun CarHero(car: CarDemoState) {
 @Composable
 private fun BatteryCard(car: CarDemoState) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Palette.Surface).padding(18.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Palette.Surface).padding(18.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(18.dp),
     ) {
@@ -206,11 +209,11 @@ private fun BatteryCard(car: CarDemoState) {
                 drawArc(Palette.SurfaceHigh, -90f, 360f, false, topLeft, arcSize, style = Stroke(stroke))
                 drawArc(Palette.Success, -90f, 360f * car.batteryPercent / 100f, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
             }
-            Text("${car.batteryPercent}%", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
+            Text("${car.batteryPercent}%", style = MaterialTheme.typography.titleMedium.tabular(), color = Palette.TextPrimary)
         }
         Column {
             Text("주행 가능 거리", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
-            Text("${car.rangeKm} km", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
+            Text("${car.rangeKm} km", style = MaterialTheme.typography.headlineLarge.tabular(), color = Palette.TextPrimary)
             Text(if (car.charging) "충전 중" else "충전 케이블이 연결되지 않았어요", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
         }
     }
@@ -219,12 +222,14 @@ private fun BatteryCard(car: CarDemoState) {
 @Composable
 private fun StatusCard(icon: ImageVector, label: String, value: String, tone: Color, modifier: Modifier = Modifier) {
     Column(
-        modifier.clip(RoundedCornerShape(18.dp)).background(Palette.Surface).padding(14.dp),
+        modifier.clip(RoundedCornerShape(10.dp)).background(Palette.Surface).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Icon(icon, null, tint = tone)
-        Text(label, style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
-        Text(value, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(icon, null, tint = Palette.TextSecondary, modifier = Modifier.size(18.dp))
+            Text(label, style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+        }
+        StatusLabel(value, tone)
     }
 }
 
@@ -240,64 +245,54 @@ private fun ControlRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(Palette.Surface)
+            .clip(RoundedCornerShape(8.dp))
             .clickable(enabled = enabled && !busy, role = Role.Button, onClick = onClick)
-            .padding(16.dp),
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Palette.SurfaceHigh), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = if (enabled) Palette.Coral else Palette.TextTertiary)
-        }
+        Icon(icon, null, tint = if (enabled) Palette.TextSecondary else Palette.TextTertiary)
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall, color = if (enabled) Palette.TextPrimary else Palette.TextTertiary)
             Text(if (busy) "차량에 요청하는 중…" else subtitle, style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
         }
-        if (busy) CircularProgressIndicator(Modifier.size(24.dp), color = Palette.Coral, strokeWidth = 3.dp)
+        if (busy) CircularProgressIndicator(Modifier.size(24.dp), color = Palette.TextSecondary, strokeWidth = 3.dp)
     }
+    Hairline()
 }
 
 @Composable
 private fun ClimateRow(car: CarDemoState, actions: PhoneViewModel) {
     val busy = car.processing == CarCommand.CLIMATE_ON || car.processing == CarCommand.CLIMATE_OFF
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Palette.Surface).padding(16.dp),
+        Modifier.fillMaxWidth().padding(vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Palette.SurfaceHigh), contentAlignment = Alignment.Center) {
-                Icon(Icons.Outlined.AcUnit, null, tint = Palette.Coral)
-            }
+            Icon(Icons.Outlined.AcUnit, null, tint = Palette.TextSecondary)
             Column(Modifier.weight(1f)) {
                 Text(if (car.climateOn) "공조 끄기" else "공조 켜기", style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
                 Text(if (busy) "차량에 요청하는 중…" else "목표 온도 ${car.targetTemp}°C", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
             }
             if (busy) {
-                CircularProgressIndicator(Modifier.size(24.dp), color = Palette.Coral, strokeWidth = 3.dp)
+                CircularProgressIndicator(Modifier.size(24.dp), color = Palette.TextSecondary, strokeWidth = 3.dp)
             } else {
-                Text(
-                    if (car.climateOn) "끄기" else "켜기",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Palette.Background,
-                    modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Palette.Coral)
-                        .clickable(role = Role.Button) { actions.requestCarCommand(if (car.climateOn) CarCommand.CLIMATE_OFF else CarCommand.CLIMATE_ON) }
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                )
+                SecondaryButton(if (car.climateOn) "끄기" else "켜기", { actions.requestCarCommand(if (car.climateOn) CarCommand.CLIMATE_OFF else CarCommand.CLIMATE_ON) })
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.padding(start = 38.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Stepper("−") { actions.setTargetTemp(car.targetTemp - 1) }
-            Text("${car.targetTemp}°C", style = MaterialTheme.typography.headlineSmall, color = Palette.TextPrimary, modifier = Modifier.weight(1f))
+            Text("${car.targetTemp}°C", style = MaterialTheme.typography.headlineSmall.tabular(), color = Palette.TextPrimary, modifier = Modifier.weight(1f))
             Stepper("+") { actions.setTargetTemp(car.targetTemp + 1) }
         }
     }
+    Hairline()
 }
 
 @Composable
 private fun Stepper(label: String, onClick: () -> Unit) {
     Box(
-        Modifier.size(44.dp).clip(CircleShape).background(Palette.SurfaceHigh).clickable(role = Role.Button, onClick = onClick),
+        Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).background(Palette.Surface).clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(label, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary)
@@ -311,17 +306,17 @@ private fun CarLinkCard(state: PhoneUiState, actions: PhoneViewModel) {
     // A successful link raises the count; clear the used code.
     LaunchedEffect(state.user.linkedCars) { code = "" }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Palette.BackgroundRaised).padding(16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Palette.BackgroundRaised).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Link, null, tint = Palette.Coral)
+            Icon(Icons.Outlined.Link, null, tint = Palette.TextSecondary)
             Text("차량 연결", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, modifier = Modifier.weight(1f))
-            if (state.user.linkedCars > 0) Tag("연결된 차량 ${state.user.linkedCars}대", Palette.Success)
+            if (state.user.linkedCars > 0) StatusLabel("연결된 차량 ${state.user.linkedCars}대", Palette.Success)
         }
         if (state.account.session == null) {
             Text("차량 연결은 서버에 로그인한 뒤에 할 수 있어요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
-            SecondaryButton("로그인하러 가기", actions::signOut, Modifier.fillMaxWidth(), container = Palette.Surface)
+            SecondaryButton("로그인하러 가기", actions::signOut, Modifier.fillMaxWidth())
         } else {
             Text(
                 "차량 화면 왼쪽 아래 '계정 연결'을 누르면 6자리 코드가 나와요. 그 코드를 입력하면 차량이 ${state.me.name} 계정에 연결돼요.",

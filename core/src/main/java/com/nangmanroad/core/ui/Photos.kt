@@ -14,7 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -38,25 +37,26 @@ private fun PhotoPlaceholder() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Palette.SurfaceHigh, Palette.Surface))),
+            .background(Palette.Surface),
         contentAlignment = Alignment.Center,
     ) {
         Icon(Icons.Outlined.Landscape, contentDescription = null, tint = Palette.TextTertiary)
     }
 }
 
+/** The author's first letter on a plain circle; there are no profile photos yet. */
 @Composable
 fun Avatar(name: String, size: Dp = 44.dp) {
     Box(
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(Brush.linearGradient(listOf(Palette.Peach, Palette.Coral))),
+            .background(Palette.SurfaceHigh),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = name.take(1),
-            color = Palette.Background,
+            color = Palette.TextSecondary,
             style = if (size >= 56.dp) MaterialTheme.typography.titleLarge else MaterialTheme.typography.labelLarge,
         )
     }

@@ -383,7 +383,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
             repository.publish(post)
                 .onSuccess { spot ->
                     _state.update { it.copy(draft = null, tab = PhoneTab.HOME, stack = listOf(PhoneRoute.Detail(spot.id)), mapSelectedId = spot.id) }
-                    toast(if (draft.visibility == Visibility.PRIVATE) "나만 볼 수 있게 저장했어요" else "새로운 낭만이 지도와 피드에 공개됐어요")
+                    toast(if (draft.visibility == Visibility.PRIVATE) "나만 볼 수 있게 저장했어요" else "지도와 피드에 공개했어요")
                 }
                 .onFailure { error ->
                     updateDraft { it.copy(publishing = false) }

@@ -22,12 +22,12 @@ Pleos 헤드유닛에서는 왼쪽 클러스터 옆 창에 앱이 열립니다. 
     <td><b>장소 상세 · 방문 꿀팁</b> · 엇갈리는 정보는 '확인 필요'로 먼저 보여줌</td>
   </tr>
   <tr>
-    <td><img src="docs/images/car-detail-items.jpg" alt="장소 상세의 이 낭만을 만든 아이템 탭. 추천자, 가격, 광고·제휴 표시"></td>
-    <td><img src="docs/images/car-album.jpg" alt="당신이 좋아할 낭만 추천 앨범 그리드"></td>
+    <td><img src="docs/images/car-detail-items.jpg" alt="장소 상세의 준비물 탭. 가격, 추천한 사람, 광고·제휴 표시"></td>
+    <td><img src="docs/images/car-album.jpg" alt="앨범의 추천 탭 사진 그리드"></td>
   </tr>
   <tr>
-    <td><b>이 낭만을 만든 아이템</b> · 추천 이유와 가격, 광고·제휴 표시, 구매는 휴대폰으로</td>
-    <td><b>앨범</b> · '당신이 좋아할 낭만' 추천과 팔로잉·최신·저장·휴대폰에서 보냄 탭</td>
+    <td><b>준비물</b> · 방문자들이 챙겨 간 물건과 가격, 광고·제휴 표시, 구매는 휴대폰으로</td>
+    <td><b>앨범</b> · 추천, 팔로잉, 최신, 저장한 장소, 휴대폰에서 보냄 탭</td>
   </tr>
   <tr>
     <td><img src="docs/images/car-from-phone.jpg" alt="휴대폰에서 보낸 장소 탭과 레일의 배지"></td>
@@ -52,13 +52,13 @@ Pleos 헤드유닛에서는 왼쪽 클러스터 옆 창에 앱이 열립니다. 
 <table>
   <tr>
     <td width="25%"><img src="docs/images/phone-signin.jpg" alt="닉네임 로그인 화면"></td>
-    <td width="25%"><img src="docs/images/phone-home.jpg" alt="오늘의 낭만 홈 피드"></td>
-    <td width="25%"><img src="docs/images/phone-map.jpg" alt="낭만 지도와 선택한 장소 카드"></td>
+    <td width="25%"><img src="docs/images/phone-home.jpg" alt="홈 피드의 나를 위한 추천 탭"></td>
+    <td width="25%"><img src="docs/images/phone-map.jpg" alt="지도와 선택한 장소 카드"></td>
     <td width="25%"><img src="docs/images/phone-detail.jpg" alt="장소 상세 상단 사진 갤러리"></td>
   </tr>
   <tr>
     <td><b>로그인</b></td>
-    <td><b>홈</b> · 오늘의 낭만</td>
+    <td><b>홈</b> · 나를 위한 추천</td>
     <td><b>지도</b></td>
     <td><b>장소 상세</b></td>
   </tr>
@@ -75,13 +75,13 @@ Pleos 헤드유닛에서는 왼쪽 클러스터 옆 창에 앱이 열립니다. 
     <td><b>내 차량</b> · 차량 연결, 콘셉트 화면</td>
   </tr>
   <tr>
-    <td><img src="docs/images/phone-profile.jpg" alt="나의 낭만 프로필과 나의 낭만 지도"></td>
+    <td><img src="docs/images/phone-profile.jpg" alt="마이 화면의 프로필과 내 장소 지도"></td>
     <td><img src="docs/images/phone-notifications.jpg" alt="알림의 차량에서 보낸 항목"></td>
     <td></td>
     <td></td>
   </tr>
   <tr>
-    <td><b>마이</b> · 나의 낭만 지도</td>
+    <td><b>마이</b> · 내 장소 지도</td>
     <td><b>알림</b> · 차량에서 보낸 항목</td>
     <td></td>
     <td></td>

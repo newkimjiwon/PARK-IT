@@ -17,7 +17,6 @@ import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.vehicle.AppUiState
@@ -25,8 +24,8 @@ import com.nangmanroad.vehicle.AppViewModel
 import com.nangmanroad.core.data.AlbumTab
 import com.nangmanroad.core.data.SpotQueries
 import com.nangmanroad.vehicle.ui.components.EmptyState
-import com.nangmanroad.vehicle.ui.components.Pill
-import com.nangmanroad.vehicle.ui.components.SectionLabel
+import com.nangmanroad.vehicle.ui.components.Hairline
+import com.nangmanroad.vehicle.ui.components.TextTab
 import com.nangmanroad.vehicle.ui.feed.SpotCard
 import com.nangmanroad.core.ui.Palette
 
@@ -43,36 +42,23 @@ fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
         verticalItemSpacing = 22.dp,
     ) {
         item(span = StaggeredGridItemSpan.FullLine) {
-            Row(Modifier.padding(bottom = 8.dp), verticalAlignment = Alignment.Bottom) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    SectionLabel("PHOTO ALBUM")
-                    Text(
-                        if (state.albumTab == AlbumTab.RECOMMENDED) "당신이 좋아할 낭만" else "사진으로 발견하는 낭만",
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = Palette.TextPrimary,
-                    )
-                    if (state.albumTab == AlbumTab.RECOMMENDED) {
-                        Text(
-                            "좋아요·저장한 풍경, 팔로우한 사람, 거리와 최신순을 함께 봤어요",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Palette.TextSecondary,
-                        )
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.padding(bottom = 4.dp)) {
+                Text("앨범", style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
+                Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     AlbumTab.entries.forEach { tab ->
-                        Pill(
+                        TextTab(
                             text = tab.label,
                             selected = state.albumTab == tab,
                             onClick = { actions.setAlbumTab(tab) },
-                            trailing = when (tab) {
-                                AlbumTab.SAVED -> state.saved.size.toString()
-                                AlbumTab.FROM_PHONE -> state.fromPhone.size.toString()
+                            count = when (tab) {
+                                AlbumTab.SAVED -> state.saved.size
+                                AlbumTab.FROM_PHONE -> state.fromPhone.size
                                 else -> null
                             },
                         )
                     }
                 }
+                Hairline()
             }
         }
         if (spots.isEmpty()) {

@@ -42,9 +42,6 @@ fun SignInScreen(account: AccountUi, actions: PhoneViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Spacer(Modifier.weight(1f))
-        Box(Modifier.size(64.dp).clip(RoundedCornerShape(18.dp)).background(Palette.Coral), contentAlignment = Alignment.Center) {
-            Box(Modifier.size(20.dp).clip(CircleShape).background(Palette.Background))
-        }
         Text("낭만로드", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
         Text(
             "휴대폰과 차량이 같은 계정을 쓰면 저장한 장소, 내 게시물, 보낸 장소가 함께 보여요.",
@@ -61,7 +58,7 @@ fun SignInScreen(account: AccountUi, actions: PhoneViewModel) {
             Text(
                 "$error\n서버 주소: ${account.serverUrl}\n저장소 루트에서 sh gradlew :server:run 으로 서버를 켜 주세요.",
                 style = MaterialTheme.typography.bodySmall,
-                color = Palette.Coral,
+                color = Palette.Alert,
             )
         }
         PrimaryButton(

@@ -62,13 +62,14 @@ import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.data.formatKm
 import com.nangmanroad.vehicle.ui.components.ActionButton
 import com.nangmanroad.vehicle.ui.components.EmptyState
-import com.nangmanroad.vehicle.ui.components.Pill
-import com.nangmanroad.vehicle.ui.components.SectionLabel
+import com.nangmanroad.vehicle.ui.components.Hairline
+import com.nangmanroad.vehicle.ui.components.TextTab
 import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.vehicle.ui.feed.SpotCard
 import com.nangmanroad.vehicle.ui.feed.Stat
 import com.nangmanroad.vehicle.ui.theme.Dimens
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.tabular
 
 @Composable
 fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
@@ -78,41 +79,43 @@ fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= 1100.dp
         Row(Modifier.fillMaxSize()) {
-            Box(
+            Column(
                 modifier = Modifier
                     .weight(if (wide) 0.62f else 1f)
                     .fillMaxHeight(),
             ) {
-                PhotoMap(
-                    spots = matching,
-                    selectedId = selected?.id,
-                    here = state.here,
-                    onSelect = { actions.selectSpot(it.id) },
-                    onVisibleChange = actions::onVisibleSpotsChanged,
-                    modifier = Modifier.fillMaxSize(),
-                )
                 Column(
                     modifier = Modifier
-                        .align(Alignment.TopStart)
                         .fillMaxWidth()
-                        .padding(start = Dimens.Gutter, top = Dimens.Gutter, end = 120.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                        .padding(start = Dimens.Gutter, top = Dimens.Gutter, end = Dimens.Gutter),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     SearchField(query = state.query, onQueryChange = actions::setQuery)
                     CategoryFilters(selected = state.category, onSelect = actions::setCategory)
                 }
-                if (selected != null) {
-                    PreviewCard(
-                        spot = selected,
-                        state = state,
-                        onOpen = { actions.openSpot(selected.id) },
-                        onToggleSave = { actions.toggleSave(selected.id) },
-                        onRoute = { actions.startRoute(selected.id) },
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(Dimens.Gutter)
-                            .widthIn(max = 820.dp),
+                Hairline()
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    PhotoMap(
+                        spots = matching,
+                        selectedId = selected?.id,
+                        here = state.here,
+                        onSelect = { actions.selectSpot(it.id) },
+                        onVisibleChange = actions::onVisibleSpotsChanged,
+                        modifier = Modifier.fillMaxSize(),
                     )
+                    if (selected != null) {
+                        PreviewCard(
+                            spot = selected,
+                            state = state,
+                            onOpen = { actions.openSpot(selected.id) },
+                            onToggleSave = { actions.toggleSave(selected.id) },
+                            onRoute = { actions.startRoute(selected.id) },
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(Dimens.Gutter)
+                                .widthIn(max = 820.dp),
+                        )
+                    }
                 }
             }
             if (wide) {
@@ -136,25 +139,24 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .widthIn(max = 820.dp)
-            .heightIn(min = 72.dp)
-            .clip(RoundedCornerShape(36.dp))
-            .background(Palette.TextPrimary)
-            .padding(horizontal = 24.dp),
+            .heightIn(min = Dimens.TouchTarget)
+            .clip(RoundedCornerShape(Dimens.ControlRadius))
+            .background(Palette.Surface)
+            .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Icon(Icons.Outlined.Search, contentDescription = null, tint = Palette.Background, modifier = Modifier.size(30.dp))
+        Icon(Icons.Outlined.Search, contentDescription = null, tint = Palette.TextSecondary, modifier = Modifier.size(28.dp))
         Box(Modifier.weight(1f)) {
             if (query.isEmpty()) {
-                Text("어떤 낭만을 찾고 계신가요?", style = MaterialTheme.typography.bodyLarge, color = Palette.TextTertiary)
+                Text("장소, 지역, 작성자 검색", style = MaterialTheme.typography.bodyLarge, color = Palette.TextTertiary)
             }
             BasicTextField(
                 value = query,
                 onValueChange = onQueryChange,
                 singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = Palette.Background),
-                cursorBrush = SolidColor(Palette.Coral),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = Palette.TextPrimary),
+                cursorBrush = SolidColor(Palette.TextPrimary),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
                 modifier = Modifier.fillMaxWidth(),
@@ -164,10 +166,10 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
             Icon(
                 Icons.Outlined.Close,
                 contentDescription = "검색어 지우기",
-                tint = Palette.Background,
+                tint = Palette.TextSecondary,
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(Dimens.ControlRadius))
                     .clickable(role = Role.Button) { onQueryChange("") }
                     .padding(10.dp),
             )
@@ -179,11 +181,11 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
 private fun CategoryFilters(selected: Category?, onSelect: (Category?) -> Unit) {
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Pill("전체 장소", selected == null, onClick = { onSelect(null) })
+        TextTab("전체", selected == null, onClick = { onSelect(null) })
         Category.entries.forEach { category ->
-            Pill(category.label, selected == category, onClick = { onSelect(if (selected == category) null else category) })
+            TextTab(category.label, selected == category, onClick = { onSelect(if (selected == category) null else category) })
         }
     }
 }
@@ -200,8 +202,8 @@ private fun PreviewCard(
     val saved = spot.id in state.saved
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(Palette.BackgroundRaised.copy(alpha = 0.97f))
+            .clip(RoundedCornerShape(12.dp))
+            .background(Palette.BackgroundRaised)
             .clickable(role = Role.Button, onClickLabel = "자세히 보기", onClick = onOpen)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -212,22 +214,22 @@ private fun PreviewCard(
             contentDescription = spot.title,
             modifier = Modifier
                 .size(136.dp)
-                .clip(RoundedCornerShape(18.dp)),
+                .clip(RoundedCornerShape(Dimens.PhotoRadius)),
         )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(spot.category.label, style = MaterialTheme.typography.labelMedium, color = Palette.Peach)
+            Text(spot.category.label, style = MaterialTheme.typography.labelMedium, color = Palette.TextSecondary)
             Text(spot.title, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(spot.region, style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary, maxLines = 1)
             Text(
                 distanceLabel(state, spot),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium.tabular(),
                 color = Palette.TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Stat(Icons.Outlined.FavoriteBorder, state.likeCount(spot).toString())
-                Stat(Icons.Outlined.TipsAndUpdates, "꿀팁 ${spot.tips.size}", highlight = true)
+                Stat(Icons.Outlined.TipsAndUpdates, "꿀팁 ${spot.tips.size}")
             }
         }
         Column(Modifier.width(280.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -259,20 +261,26 @@ private fun FeedPanel(state: AppUiState, spots: List<Spot>, actions: AppViewMode
         columns = StaggeredGridCells.Fixed(2),
         modifier = modifier,
         contentPadding = PaddingValues(Dimens.Gutter),
-        horizontalArrangement = Arrangement.spacedBy(18.dp),
-        verticalItemSpacing = 18.dp,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalItemSpacing = 16.dp,
     ) {
         item(span = StaggeredGridItemSpan.FullLine) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SectionLabel("PHOTO DISCOVERY")
-                Text(SpotQueries.regionTitle(inView), style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
-                Text("지도를 움직이면 보이는 지역의 사진으로 바뀌어요", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
-                Spacer(Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column {
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(SpotQueries.regionTitle(inView), style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
+                    Text(
+                        "${spots.size}곳",
+                        style = MaterialTheme.typography.titleSmall.tabular(),
+                        color = Palette.TextSecondary,
+                        modifier = Modifier.padding(bottom = 6.dp),
+                    )
+                }
+                Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     FeedSort.entries.forEach { sort ->
-                        Pill(sort.label, state.feedSort == sort, onClick = { actions.setFeedSort(sort) })
+                        TextTab(sort.label, state.feedSort == sort, onClick = { actions.setFeedSort(sort) })
                     }
                 }
+                Hairline()
             }
         }
         if (spots.isEmpty()) {
