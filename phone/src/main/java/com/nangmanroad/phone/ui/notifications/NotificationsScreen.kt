@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.PersonAddAlt
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.QuestionAnswer
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Icon
@@ -33,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.nangmanroad.core.sync.isParkit
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.phone.ui.components.Hairline
 import com.nangmanroad.phone.PhoneUiState
@@ -64,18 +66,31 @@ fun NotificationsScreen(state: PhoneUiState, actions: PhoneViewModel) {
             item { Text("차량에서 보낸 항목", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)) }
             items(state.fromCar, key = { "car-${it.id}" }) { item ->
                 val spot = state.spot(item.spotId)
+                // A 파킷 at a new place starts a post there; at a known spot it opens that spot's tips.
+                val newPlace = item.isParkit && spot == null && item.location != null
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .clickable(enabled = spot != null, role = Role.Button) { spot?.let { actions.openSpot(it.id) } }
+                        .clickable(enabled = newPlace || spot != null, role = Role.Button) {
+                            if (newPlace) actions.startShareFromCar(item) else spot?.let { actions.openSpot(it.id) }
+                        }
                         .padding(vertical = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Outlined.DirectionsCar, null, tint = Palette.TextSecondary, modifier = Modifier.size(22.dp))
+                    Icon(if (item.isParkit) Icons.Outlined.PushPin else Icons.Outlined.DirectionsCar, null, tint = Palette.TextSecondary, modifier = Modifier.size(22.dp))
                     Column(Modifier.weight(1f)) {
                         Text(item.label, style = MaterialTheme.typography.bodyMedium, color = Palette.TextPrimary)
-                        Text(if (spot != null) "눌러서 장소 보기" else "차량 화면에서 보낸 항목", style = MaterialTheme.typography.bodySmall, color = Palette.TextTertiary)
+                        Text(
+                            when {
+                                newPlace -> "눌러서 이 위치로 장소 공유 시작"
+                                item.isParkit && spot != null -> "눌러서 꿀팁이 맞았는지 알려주기"
+                                spot != null -> "눌러서 장소 보기"
+                                else -> "차량 화면에서 보낸 항목"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Palette.TextTertiary,
+                        )
                     }
                     Icon(
                         Icons.Outlined.Close, "목록에서 지우기", tint = Palette.TextSecondary,

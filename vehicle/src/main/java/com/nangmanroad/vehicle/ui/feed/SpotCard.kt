@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.data.Spot
+import com.nangmanroad.core.ui.FacilityStrip
 import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.vehicle.ui.theme.Dimens
 import com.nangmanroad.core.ui.Palette
@@ -93,6 +94,7 @@ fun SpotCard(
                 Stat(Icons.Outlined.ChatBubbleOutline, spot.commentCount.toString())
                 Stat(Icons.Outlined.TipsAndUpdates, "꿀팁 ${spot.tips.size}")
             }
+            FacilityStrip(spot.tips, Modifier.padding(top = 6.dp), iconSize = 20.dp, gap = 6.dp)
         }
     }
 }

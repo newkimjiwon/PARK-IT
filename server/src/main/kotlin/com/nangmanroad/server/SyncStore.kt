@@ -323,7 +323,7 @@ class SyncStore(
         update { it.copy(users = it.users + (userId to transform(user))) }
     }
 
-    private fun SendRequest.toItem() = SentItem(id, label, spotId, clock())
+    private fun SendRequest.toItem() = SentItem(id, label, spotId, clock(), location)
 
     private fun NewTip.toHoneyTip(id: String, reporter: String) = HoneyTip(
         id = id,

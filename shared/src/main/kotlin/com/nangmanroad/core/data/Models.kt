@@ -78,6 +78,17 @@ enum class Visibility(val label: String) {
     PRIVATE("나만 보기"),
 }
 
+/**
+ * Whether you can actually sleep in the car there. Camping apps rarely say, and councils such as
+ * 강릉 now fine and tow overnight campers in public lots, so a spot states it up front.
+ */
+@Serializable
+enum class CarCamping(val label: String) {
+    ALLOWED("차박 가능"),
+    CHECK("현장 확인"),
+    BANNED("차박 금지"),
+}
+
 @Serializable
 data class Spot(
     val id: String,
@@ -98,6 +109,9 @@ data class Spot(
     val visibility: Visibility = Visibility.PUBLIC,
     /** True when the author chose to show only the city/county; [location] is then its centre. */
     val approximateLocation: Boolean = false,
+    val carCamping: CarCamping = CarCamping.CHECK,
+    /** Why, in the reporter's words: a council notice, a sign at the lot, a ranger's warning. */
+    val carCampingNote: String = "",
 ) {
     /** First word of the region, e.g. "강원" for "강원 강릉시". */
     val province: String get() = region.substringBefore(' ')

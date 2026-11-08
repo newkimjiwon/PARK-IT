@@ -52,7 +52,9 @@ import androidx.compose.ui.unit.dp
 import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
 import com.nangmanroad.vehicle.PhoneHandoff
+import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.Spot
+import com.nangmanroad.core.ui.CarCampingBadge
 import com.nangmanroad.vehicle.ui.components.ActionButton
 import com.nangmanroad.core.ui.Avatar
 import com.nangmanroad.vehicle.ui.components.Hairline
@@ -225,9 +227,19 @@ private fun RouteRow(spot: Spot, state: AppUiState, actions: AppViewModel, modif
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(spot.address, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(spot.address, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
+                CarCampingBadge(spot.carCamping, iconSize = 20.dp)
+            }
             Text(distanceLabel(state, spot), style = MaterialTheme.typography.bodyMedium.tabular(), color = Palette.TextSecondary)
+            if (spot.carCampingNote.isNotBlank()) {
+                Text(
+                    spot.carCampingNote,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (spot.carCamping == CarCamping.BANNED) Palette.Alert else Palette.TextSecondary,
+                )
+            }
         }
         ActionButton(
             text = if (routing) "안내 중" else "길 안내",

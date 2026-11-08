@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -111,6 +112,10 @@ private fun SideRail(state: AppUiState, actions: AppViewModel) {
         }
         RailButton(Icons.Outlined.PhoneAndroid, "휴대폰", onAlbum && state.albumTab == AlbumTab.FROM_PHONE, badge = state.fromPhone.size) {
             actions.showAlbum(AlbumTab.FROM_PHONE)
+        }
+        RailButton(Icons.Outlined.PushPin, "파킷", state.parkit != null) {
+            actions.showMap()
+            actions.suggestParkit(manual = true)
         }
         Spacer(Modifier.weight(1f))
         RailButton(

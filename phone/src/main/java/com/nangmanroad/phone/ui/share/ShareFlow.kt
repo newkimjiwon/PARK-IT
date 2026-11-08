@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -189,6 +190,15 @@ private fun PlaceStep(draft: ShareDraft, actions: PhoneViewModel) {
             ) {
                 Icon(Icons.Outlined.MyLocation, null, tint = Palette.Success)
                 Text("사진의 위치를 찾았어요. 틀리면 지도를 눌러 고쳐 주세요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextPrimary)
+            }
+        } else if (draft.fromCar) {
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Palette.Success.copy(alpha = 0.14f)).padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(Icons.Outlined.DirectionsCar, null, tint = Palette.Success)
+                Text("차량이 세운 위치를 받았어요. 틀리면 지도를 눌러 고쳐 주세요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextPrimary)
             }
         }
         LabeledField("시·군 검색", query, "예: 강릉, 태안, 제천") { query = it }

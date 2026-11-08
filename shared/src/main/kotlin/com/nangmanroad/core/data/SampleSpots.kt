@@ -105,6 +105,8 @@ object SampleSpots {
                     replies = listOf(Comment("c-gn-3r", "윤슬을따라", "평일 밤에는 두세 팀 정도였어요.", "3일 전")),
                 ),
             ),
+            carCamping = CarCamping.BANNED,
+            carCampingNote = "강릉시가 2026년 5월부터 해변·관광지 공영주차장의 밤샘 주차와 차박을 단속해요. 노을만 보고 이동하세요.",
         ),
         Spot(
             id = "s-jecheon",
@@ -131,6 +133,8 @@ object SampleSpots {
                 Comment("c-jc-1", "낭만을찾아서", "망원경 없이도 은하수가 보였나요?", "어제", isQuestion = true,
                     replies = listOf(Comment("c-jc-1r", "밤하늘수집가", "8월 그믐 즈음에는 맨눈으로도 보였어요.", "어제"))),
             ),
+            carCamping = CarCamping.ALLOWED,
+            carCampingNote = "전망대 주차장은 밤샘 주차를 막지 않는다는 제보가 두 건이에요. 취사는 금지예요.",
         ),
         Spot(
             id = "s-yangpyeong",
@@ -156,6 +160,8 @@ object SampleSpots {
                 Comment("c-yp-1", "윤슬을따라", "몇 시쯤 가야 물안개를 볼 수 있나요?", "4일 전", isQuestion = true,
                     replies = listOf(Comment("c-yp-1r", "주말의기록", "일출 30분 전쯤이 가장 짙었어요.", "4일 전"))),
             ),
+            carCamping = CarCamping.CHECK,
+            carCampingNote = "공영주차장이라 밤샘 주차 제한 안내문이 붙을 수 있어요. 입구 표지판을 확인하세요.",
         ),
         Spot(
             id = "s-goseong",
@@ -203,6 +209,8 @@ object SampleSpots {
             comments = listOf(
                 Comment("c-ta-1", "오후다섯시", "사진 정말 예뻐요. 다음 주에 가 볼게요!", "2일 전"),
             ),
+            carCamping = CarCamping.ALLOWED,
+            carCampingNote = "해변 입구 주차장에서 밤을 보낸 제보가 여러 건이에요. 성수기에는 안내문이 바뀔 수 있어요.",
         ),
         Spot(
             id = "s-yeongwol",
@@ -285,6 +293,8 @@ object SampleSpots {
             ),
             products = listOf(chair),
             comments = emptyList(),
+            carCamping = CarCamping.ALLOWED,
+            carCampingNote = "강변 쉼터 주차장에서 하룻밤 머문 제보가 있어요. 비 예보가 있으면 피하세요.",
         ),
     )
 

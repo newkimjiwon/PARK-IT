@@ -12,6 +12,8 @@ import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.Product
 import com.nangmanroad.core.data.SampleSpots
 import com.nangmanroad.core.data.Spot
+import com.nangmanroad.core.data.distanceKm
+import com.nangmanroad.core.sync.PARKIT_PREFIX
 import com.nangmanroad.core.sync.PairingCode
 import com.nangmanroad.core.sync.PairingState
 import com.nangmanroad.core.sync.Session
@@ -32,6 +34,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 sealed interface Screen {
     data object Map : Screen
@@ -52,6 +57,12 @@ enum class PhoneHandoff(val label: String, val toastObject: String) {
 
 /** The 6-digit code shown while the car waits to be linked to a phone account. */
 data class PairingUi(val code: PairingCode? = null, val error: String? = null)
+
+/**
+ * Where the car just stopped, offered as a "파킷": a new place to post from the phone, or, when it is
+ * [nearSpotId], a visit to a known spot whose tips the phone can confirm.
+ */
+data class ParkitSuggestion(val location: LatLng, val at: Long, val nearSpotId: String?)
 
 data class AppUiState(
     val user: UserState,
@@ -74,6 +85,9 @@ data class AppUiState(
     val naviConnected: Boolean = false,
     val destination: ActiveDestination? = null,
     val routedSpotId: String? = null,
+    val parkit: ParkitSuggestion? = null,
+    /** Bumped when a 파킷 goes out, so the map plays the pin drop at the car's position. */
+    val parkitPulse: Long? = null,
     val toast: ToastMessage? = null,
 ) {
     val saved: Set<String> get() = user.saved
@@ -117,7 +131,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { repository.session.collect { session -> _state.update { it.copy(session = session) } } }
         viewModelScope.launch { repository.online.collect { online -> _state.update { it.copy(online = online) } } }
         viewModelScope.launch {
-            driving.state.collect { drivingState -> _state.update { it.copy(drivingState = drivingState) } }
+            var previous = DrivingState.UNKNOWN
+            driving.state.collect { drivingState ->
+                // Moving off drops a pending suggestion; stopping after a drive is the moment to 파킷.
+                _state.update { it.copy(drivingState = drivingState, parkit = if (drivingState == DrivingState.DRIVING) null else it.parkit) }
+                if (previous == DrivingState.DRIVING && drivingState == DrivingState.PARKED) suggestParkit()
+                previous = drivingState
+            }
         }
         viewModelScope.launch {
             navigation.connected.collect { connected -> _state.update { it.copy(naviConnected = connected) } }
@@ -135,7 +155,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 when (event) {
                     is NaviEvent.RouteStarted -> toast("차량 내비게이션으로 목적지를 보냈어요")
                     is NaviEvent.Failed -> toast(event.reason)
-                    NaviEvent.Arrived -> toast("목적지에 도착했어요")
+                    NaviEvent.Arrived -> {
+                        toast("목적지에 도착했어요")
+                        // The spot we routed to is the one we arrived at, however far the fix says.
+                        suggestParkit(nearSpotId = _state.value.routedSpotId)
+                    }
                 }
             }
         }
@@ -284,6 +308,60 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // 파킷
+
+    /**
+     * Offers the current position as a 파킷. Without the navigation fix "here" is only Seoul City
+     * Hall, so nothing is offered; the rail button says why. A known spot within [NEAR_SPOT_KM] turns
+     * the offer into a visit.
+     */
+    fun suggestParkit(nearSpotId: String? = null, manual: Boolean = false) {
+        val current = _state.value
+        if (!current.hereFromNavigation) {
+            if (manual) toast("차량 내비게이션에 연결되지 않아 지금 위치를 알 수 없어요")
+            return
+        }
+        val near = nearSpotId ?: current.spots
+            .minByOrNull { distanceKm(it.location, current.here) }
+            ?.takeIf { distanceKm(it.location, current.here) <= NEAR_SPOT_KM }
+            ?.id
+        _state.update { it.copy(parkit = ParkitSuggestion(current.here, System.currentTimeMillis(), near)) }
+    }
+
+    fun dismissParkit() = _state.update { it.copy(parkit = null) }
+
+    /**
+     * Hands the parked position to the phone, where photos and tips turn it into a post. A known
+     * spot is also marked visited, so the phone can ask whether its tips held up.
+     */
+    fun sendParkit() {
+        val suggestion = _state.value.parkit ?: return
+        val near = _state.value.spot(suggestion.nearSpotId)
+        val time = SimpleDateFormat("M월 d일 a h:mm", Locale.KOREA).format(Date(suggestion.at))
+        val label = listOfNotNull("파킷", near?.title ?: nearestRegion(suggestion.location), time).joinToString(" · ")
+        viewModelScope.launch {
+            if (near != null && near.id !in _state.value.user.visited) repository.toggle(UserList.VISITED, near.id, true)
+            repository.sendToPhone("$PARKIT_PREFIX${suggestion.at}", label, near?.id, suggestion.location)
+                .onSuccess {
+                    _state.update { it.copy(parkit = null, parkitPulse = System.currentTimeMillis()) }
+                    toast(
+                        when {
+                            _state.value.session == null -> "담아 두었어요. 계정을 연결하면 휴대폰으로 보낼 수 있어요"
+                            near != null -> "방문 완료로 표시했어요. 꿀팁이 맞았는지 휴대폰에서 알려주세요"
+                            else -> "휴대폰으로 보냈어요. 사진과 꿀팁을 더해 공유해 보세요"
+                        },
+                    )
+                }
+                .onFailure { toast(it.message ?: "휴대폰으로 보내지 못했어요") }
+        }
+    }
+
+    /** Names the area by the closest known spot, when one is close enough for its region to apply. */
+    private fun nearestRegion(at: LatLng): String? = _state.value.spots
+        .minByOrNull { distanceKm(it.location, at) }
+        ?.takeIf { distanceKm(it.location, at) <= SAME_AREA_KM }
+        ?.let { "${it.region} 근처" }
+
     fun startRoute(spotId: String) {
         val spot = _state.value.spot(spotId) ?: return
         _state.update { it.copy(routedSpotId = spotId) }
@@ -313,5 +391,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         const val DESTINATION_REFRESH_MS = 15_000L
         const val SYNC_REFRESH_MS = 10_000L
         const val PAIRING_POLL_MS = 2_000L
+        /** Stopping this close to a known spot counts as visiting it rather than finding a new one. */
+        const val NEAR_SPOT_KM = 0.3
+        /** Beyond this the closest spot's region says nothing about where the car is. */
+        const val SAME_AREA_KM = 30.0
     }
 }

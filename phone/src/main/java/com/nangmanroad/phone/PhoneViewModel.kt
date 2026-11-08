@@ -70,7 +70,11 @@ data class ShareDraft(
     val products: List<Product> = emptyList(),
     val visibility: Visibility = Visibility.PUBLIC,
     val approximate: Boolean = false,
+    /** Set when the car's 파킷 started this draft; that inbox item is cleared once the post is up. */
+    val parkitId: String? = null,
 ) {
+    val fromCar: Boolean get() = parkitId != null
+
     fun canContinue(): Boolean = when (step) {
         0 -> photos.isNotEmpty() && !importing
         1 -> region != null
@@ -310,6 +314,17 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun startShare() = _state.update { it.copy(draft = ShareDraft(), stack = it.stack + PhoneRoute.Share) }
 
+    /** A 파킷 from the car: the post starts pinned where the car parked, photos and tips come here. */
+    fun startShareFromCar(item: SentItem) {
+        val location = item.location ?: return toast("차량이 보낸 위치 정보가 없어요")
+        _state.update {
+            it.copy(
+                draft = ShareDraft(pin = location, region = Regions.nearest(location), parkitId = item.id),
+                stack = it.stack.filter { route -> route != PhoneRoute.Share } + PhoneRoute.Share,
+            )
+        }
+    }
+
     fun updateDraft(transform: (ShareDraft) -> ShareDraft) = _state.update { current ->
         current.copy(draft = current.draft?.let(transform))
     }
@@ -380,7 +395,8 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         )
         updateDraft { it.copy(publishing = true) }
         viewModelScope.launch {
-            repository.publish(post)
+            val result = repository.publish(post)
+            result
                 .onSuccess { spot ->
                     _state.update { it.copy(draft = null, tab = PhoneTab.HOME, stack = listOf(PhoneRoute.Detail(spot.id)), mapSelectedId = spot.id) }
                     toast(if (draft.visibility == Visibility.PRIVATE) "나만 볼 수 있게 저장했어요" else "지도와 피드에 공개했어요")
@@ -389,6 +405,8 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
                     updateDraft { it.copy(publishing = false) }
                     showError(error)
                 }
+            // The car's 파킷 has done its job once the post is up.
+            if (result.isSuccess) draft.parkitId?.let { id -> repository.removeFromPhone(id) }
         }
     }
 

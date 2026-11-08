@@ -1,6 +1,12 @@
 package com.nangmanroad.vehicle.ui.map
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -35,16 +41,24 @@ import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Directions
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TipsAndUpdates
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
@@ -54,7 +68,10 @@ import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.map.PhotoMap
 import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
+import com.nangmanroad.vehicle.ParkitSuggestion
+import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.Category
+import com.nangmanroad.core.ui.CarCampingBadge
 import com.nangmanroad.core.data.FeedSort
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.SpotQueries
@@ -64,6 +81,7 @@ import com.nangmanroad.vehicle.ui.components.ActionButton
 import com.nangmanroad.vehicle.ui.components.EmptyState
 import com.nangmanroad.vehicle.ui.components.Hairline
 import com.nangmanroad.vehicle.ui.components.TextTab
+import com.nangmanroad.core.ui.FacilityStrip
 import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.vehicle.ui.feed.SpotCard
 import com.nangmanroad.vehicle.ui.feed.Stat
@@ -101,8 +119,12 @@ fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
                         here = state.here,
                         onSelect = { actions.selectSpot(it.id) },
                         onVisibleChange = actions::onVisibleSpotsChanged,
+                        herePulse = state.parkitPulse,
+                        // A red ring warns off overnight stays before the card is even read.
+                        markerTint = { if (it.carCamping == CarCamping.BANNED) Palette.Alert else null },
                         modifier = Modifier.fillMaxSize(),
                     )
+                    ParkitBannerHost(state, actions, Modifier.align(Alignment.TopStart))
                     if (selected != null) {
                         PreviewCard(
                             spot = selected,
@@ -200,10 +222,13 @@ private fun PreviewCard(
     modifier: Modifier = Modifier,
 ) {
     val saved = spot.id in state.saved
+    val shape = RoundedCornerShape(14.dp)
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(Palette.BackgroundRaised)
+            .shadow(24.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
+            .clip(shape)
+            .background(Palette.BackgroundRaised.copy(alpha = 0.97f))
+            .border(1.dp, Palette.Hairline, shape)
             .clickable(role = Role.Button, onClickLabel = "자세히 보기", onClick = onOpen)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -213,23 +238,35 @@ private fun PreviewCard(
             url = spot.photos.first(),
             contentDescription = spot.title,
             modifier = Modifier
-                .size(136.dp)
-                .clip(RoundedCornerShape(Dimens.PhotoRadius)),
+                .size(152.dp)
+                .clip(RoundedCornerShape(12.dp)),
         )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(spot.category.label, style = MaterialTheme.typography.labelMedium, color = Palette.TextSecondary)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "${spot.category.label} · ${spot.region}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Palette.TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                CarCampingBadge(spot.carCamping, iconSize = 20.dp)
+            }
             Text(spot.title, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(spot.region, style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary, maxLines = 1)
-            Text(
-                distanceLabel(state, spot),
-                style = MaterialTheme.typography.bodyMedium.tabular(),
-                color = Palette.TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Outlined.NearMe, contentDescription = null, tint = Palette.Coral, modifier = Modifier.size(20.dp))
+                Text(
+                    distanceLabel(state, spot),
+                    style = MaterialTheme.typography.bodyMedium.tabular(),
+                    color = Palette.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Stat(Icons.Outlined.FavoriteBorder, state.likeCount(spot).toString())
                 Stat(Icons.Outlined.TipsAndUpdates, "꿀팁 ${spot.tips.size}")
+                FacilityStrip(spot.tips, iconSize = 24.dp)
             }
         }
         Column(Modifier.width(280.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -245,6 +282,68 @@ private fun PreviewCard(
                 ActionButton("자세히", Icons.AutoMirrored.Outlined.ArrowForward, onOpen, modifier = Modifier.weight(1f))
             }
         }
+    }
+}
+
+/** Slides the banner in from the top and keeps the last suggestion while it slides away again. */
+@Composable
+private fun ParkitBannerHost(state: AppUiState, actions: AppViewModel, modifier: Modifier = Modifier) {
+    var shown by remember { mutableStateOf(state.parkit) }
+    if (state.parkit != null) shown = state.parkit
+    AnimatedVisibility(
+        visible = state.parkit != null,
+        enter = slideInVertically { -it } + fadeIn(),
+        exit = slideOutVertically { -it } + fadeOut(),
+        modifier = modifier,
+    ) {
+        ParkitBanner(
+            nearSpot = state.spot(shown?.nearSpotId),
+            onSend = actions::sendParkit,
+            onDismiss = actions::dismissParkit,
+            modifier = Modifier
+                .padding(Dimens.Gutter)
+                .widthIn(max = 980.dp),
+        )
+    }
+}
+
+/**
+ * Appears when the car has just stopped. A new place goes to the phone to become a post; a known
+ * one is marked visited so the phone can ask whether its tips held up. Coral here marks the one
+ * action the moment is about, as 길 안내 does on the preview card.
+ */
+@Composable
+private fun ParkitBanner(nearSpot: Spot?, onSend: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        modifier = modifier
+            .shadow(24.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
+            .clip(shape)
+            .background(Palette.BackgroundRaised.copy(alpha = 0.97f))
+            .border(1.dp, Palette.Coral.copy(alpha = 0.35f), shape)
+            .padding(start = 24.dp, top = 16.dp, end = 16.dp, bottom = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        Icon(Icons.Outlined.PushPin, contentDescription = null, tint = Palette.Coral, modifier = Modifier.size(44.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                if (nearSpot != null) "'${nearSpot.title}'에 왔어요" else "여기, 파킷할까요?",
+                style = MaterialTheme.typography.titleLarge,
+                color = Palette.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                if (nearSpot != null) "방문 완료로 표시하고, 꿀팁이 맞았는지 휴대폰에서 알려줘요" else "방금 세운 곳을 휴대폰으로 보내 사진과 꿀팁을 더해요",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Palette.TextSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        ActionButton("파킷하기", Icons.Outlined.PushPin, onSend, primary = true)
+        ActionButton("닫기", Icons.Outlined.Close, onDismiss)
     }
 }
 

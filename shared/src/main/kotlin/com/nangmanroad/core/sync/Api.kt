@@ -57,7 +57,17 @@ data class Session(val token: String, val user: Author, val device: DeviceKind)
 
 /** Something one device handed to the other: a spot for the car, or a spot/product for the phone. */
 @Serializable
-data class SentItem(val id: String, val label: String, val spotId: String? = null, val sentAt: Long)
+data class SentItem(val id: String, val label: String, val spotId: String? = null, val sentAt: Long, val location: LatLng? = null)
+
+/**
+ * "파킷": the car captured where it stopped and handed it to the phone. Such an item's id starts
+ * with this prefix, its [SentItem.location] is where the car parked and its [SentItem.spotId] is the
+ * known spot it stopped at, if any. The phone turns a new place into a post and a known one into a
+ * tip check.
+ */
+const val PARKIT_PREFIX = "parkit:"
+
+val SentItem.isParkit: Boolean get() = id.startsWith(PARKIT_PREFIX)
 
 /** The account's own lists. Every device linked to the account sees the same state. */
 @Serializable
@@ -83,7 +93,7 @@ enum class UserList { SAVED, LIKED, FOLLOWING, HELPFUL_TIPS, VISITED, SAVED_PROD
 data class ToggleRequest(val list: UserList, val id: String, val on: Boolean)
 
 @Serializable
-data class SendRequest(val id: String, val label: String, val spotId: String? = null)
+data class SendRequest(val id: String, val label: String, val spotId: String? = null, val location: LatLng? = null)
 
 @Serializable
 data class PairingCode(val pairingId: String, val code: String, val expiresAt: Long)

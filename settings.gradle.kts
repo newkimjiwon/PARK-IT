@@ -18,6 +18,8 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven("https://nexus-playground.pleos.ai/repository/maven-releases/")
+        // NAVER Maps SDK; the Compose wrapper itself comes from Maven Central.
+        maven("https://repository.map.naver.com/archive/maven")
     }
 }
 

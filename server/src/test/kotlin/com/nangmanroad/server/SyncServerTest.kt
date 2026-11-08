@@ -10,6 +10,7 @@ import com.nangmanroad.core.sync.DeviceKind
 import com.nangmanroad.core.sync.NewComment
 import com.nangmanroad.core.sync.NewPost
 import com.nangmanroad.core.sync.NewTip
+import com.nangmanroad.core.sync.PARKIT_PREFIX
 import com.nangmanroad.core.sync.PairingState
 import com.nangmanroad.core.sync.SendRequest
 import com.nangmanroad.core.sync.Session
@@ -17,6 +18,7 @@ import com.nangmanroad.core.sync.SignInRequest
 import com.nangmanroad.core.sync.ToggleRequest
 import com.nangmanroad.core.sync.UserList
 import com.nangmanroad.core.sync.UserState
+import com.nangmanroad.core.sync.isParkit
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.bearerAuth
@@ -139,6 +141,20 @@ class SyncServerTest {
         assertEquals(me, second.userFor(token))
         assertTrue(second.spots(me).any { it.id == spot.id })
         assertEquals(listOf(spot.id), second.state(me).carQueue.map { it.spotId })
+    }
+
+    @Test
+    fun `a 파킷 keeps where the car parked across a restart`() {
+        val first = SyncStore(folder.root)
+        val me = first.userFor(first.signIn("윤슬을따라").token)
+        val parked = LatLng(37.7519, 128.8761)
+        first.sendToPhone(me, SendRequest("${PARKIT_PREFIX}1700000000000", "파킷 · 강원 강릉시 근처 · 11월 8일 오후 9:40", null, parked))
+
+        val inbox = SyncStore(folder.root).state(me).phoneInbox
+        val item = inbox.single()
+        assertTrue(item.isParkit)
+        assertEquals(parked, item.location)
+        assertEquals(null, item.spotId)
     }
 
     @Test

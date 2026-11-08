@@ -4,6 +4,7 @@ import android.content.Context
 import com.nangmanroad.core.BuildConfig
 import com.nangmanroad.core.data.Author
 import com.nangmanroad.core.data.HoneyTip
+import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.LocalComment
 import com.nangmanroad.core.data.LocalTip
 import com.nangmanroad.core.data.PostStore
@@ -138,13 +139,13 @@ class SpotRepository(
         return remote { _state.value = client.removeFromCar(id) }
     }
 
-    suspend fun sendToPhone(id: String, label: String, spotId: String?): Result<Unit> {
+    suspend fun sendToPhone(id: String, label: String, spotId: String?, location: LatLng? = null): Result<Unit> {
         if (!signedIn) {
             users.phoneOutbox = users.phoneOutbox + id
             _state.value = localState()
             return Result.success(Unit)
         }
-        return remote { _state.value = client.sendToPhone(SendRequest(id, label, spotId)) }
+        return remote { _state.value = client.sendToPhone(SendRequest(id, label, spotId, location)) }
     }
 
     suspend fun removeFromPhone(id: String): Result<Unit> {

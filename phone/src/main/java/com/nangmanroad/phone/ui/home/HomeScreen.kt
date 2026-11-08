@@ -51,6 +51,8 @@ import com.nangmanroad.core.data.SpotQueries
 import com.nangmanroad.core.data.Visibility
 import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.ui.Avatar
+import com.nangmanroad.core.ui.CarCampingBadge
+import com.nangmanroad.core.ui.FacilityStrip
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.core.ui.SpotPhoto
@@ -149,13 +151,14 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                 .padding(horizontal = 16.dp)
                 .fillMaxWidth()
                 .aspectRatio(0.86f)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .clickable(role = Role.Button, onClickLabel = "${spot.title} 보기") { actions.openSpot(spot.id) },
         ) {
             HorizontalPager(pager, Modifier.fillMaxSize()) { page ->
                 SpotPhoto(spot.photos[page], "${spot.title} 사진 ${page + 1}", Modifier.fillMaxSize())
             }
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.6f to Color.Transparent, 1f to Palette.Background.copy(alpha = 0.8f))))
+            // Darken only the bottom so the title reads while the sky keeps its colour.
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.5f to Color.Transparent, 1f to Palette.Background.copy(alpha = 0.88f))))
             if (spot.photos.size > 1) {
                 Text(
                     "${pager.currentPage + 1}/${spot.photos.size}",
@@ -169,8 +172,19 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                         .padding(horizontal = 10.dp, vertical = 4.dp),
                 )
             }
-            Column(Modifier.align(Alignment.BottomStart).padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("${spot.province} · ${spot.category.label}", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
+            Column(Modifier.align(Alignment.BottomStart).padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    PhotoChip("${spot.province} · ${spot.category.label}")
+                    CarCampingBadge(spot.carCamping, Modifier.background(Palette.Scrim, RoundedCornerShape(8.dp)), iconSize = 14.dp)
+                    if (spot.tips.isNotEmpty()) PhotoChip("꿀팁 ${spot.tips.size}", accent = true)
+                }
+                // Facilities on their own line so the five icons never get clipped by the chips.
+                FacilityStrip(
+                    spot.tips,
+                    Modifier.clip(RoundedCornerShape(8.dp)).background(Palette.Scrim).padding(horizontal = 8.dp, vertical = 5.dp),
+                    iconSize = 16.dp,
+                    gap = 8.dp,
+                )
                 Text(spot.title, style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
             }
         }
@@ -232,12 +246,30 @@ private fun NearbyCard(spot: Spot, state: PhoneUiState, onClick: () -> Unit) {
     Column(
         Modifier
             .width(150.dp)
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .clickable(role = Role.Button, onClick = onClick),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        SpotPhoto(spot.photos.first(), spot.title, Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(8.dp)))
+        Box(Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(12.dp))) {
+            SpotPhoto(spot.photos.first(), spot.title, Modifier.fillMaxSize())
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.6f to Color.Transparent, 1f to Palette.Background.copy(alpha = 0.8f))))
+            PhotoChip(distanceFromHere(state.here, spot), Modifier.align(Alignment.BottomStart).padding(8.dp))
+        }
         Text(spot.title, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(distanceFromHere(state.here, spot), style = MaterialTheme.typography.bodySmall.tabular(), color = Palette.TextSecondary)
+        FacilityStrip(spot.tips, iconSize = 15.dp, gap = 5.dp)
     }
+}
+
+/** A small translucent label that sits on a photo; [accent] gives it the coral used for tips. */
+@Composable
+private fun PhotoChip(text: String, modifier: Modifier = Modifier, accent: Boolean = false) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelMedium.tabular(),
+        color = if (accent) Palette.OnCoral else Palette.TextPrimary,
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (accent) Palette.Coral.copy(alpha = 0.92f) else Palette.Scrim)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+    )
 }

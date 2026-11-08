@@ -126,6 +126,28 @@ $env:ANDROID_HOME = 'C:\실제\Android\sdk\경로'
 
 `emulator-5554`는 예시입니다. `adb devices`에 표시된 Pleos 에뮬레이터의 식별자로 바꿉니다. 이후 브라우저에서 [http://127.0.0.1:8088/](http://127.0.0.1:8088/)을 열면 차량 상태를 시뮬레이션할 수 있습니다. 포트 충돌이나 연결 문제가 있으면 [공식 Virtual Console 안내](https://document.pleos.ai/docs/connect/guide/getting-started/application-development/use-vehicle-emulator)를 확인합니다.
 
+## 네이버 지도 키
+
+앱의 지도는 NAVER Maps SDK로 그립니다. 키가 없으면 빌드와 실행은 되지만 지도 자리에 예전의 단순화된 Canvas 지도가 나옵니다.
+
+1. [네이버 클라우드 플랫폼](https://www.ncloud.com)에 가입하고 콘솔에서 **Services → Application Services → Maps**로 들어갑니다.
+2. **Application 등록**에서 이름을 정하고, API 선택에서 **Dynamic Map**을 켭니다. 이 항목이 없으면 지도가 429 오류로 열리지 않습니다.
+3. Android 앱 패키지 이름으로 `com.nangmanroad.vehicle`과 `com.nangmanroad.phone`을 모두 등록합니다. 패키지 이름이 틀리면 401 오류가 납니다.
+4. 등록된 애플리케이션의 인증 정보에서 **Client ID(키 ID)** 를 복사합니다.
+5. 저장소 루트의 `local.properties`(git에서 제외됨)에 한 줄을 추가하고 다시 빌드합니다.
+
+```
+naver.ncpKeyId=여기에_키_ID
+```
+
+명령줄에서 한 번만 넣으려면 `-Pnangmanroad.naverKeyId=키_ID`를 붙입니다. 키는 저장소에 올리지 않습니다. 지도는 야간 모드의 내비게이션 지도 스타일로 표시되며, 설정은 `core/src/main/java/com/nangmanroad/core/map/NaverPhotoMap.kt`에 있습니다.
+
+2026-11-08 Windows에서 확인한 내용입니다.
+
+- 콘솔의 인증 정보에는 키가 **Client ID (X-NCP-APIGW-API-KEY-ID)** 로 표시됩니다. 이 값을 그대로 `naver.ncpKeyId`에 넣으면 됩니다. SDK에는 `NcpKeyClient`로 전달하며(기본값), 예전 AI·NAVER API 방식의 키라면 `local.properties`에 `naver.clientType=legacy`를 추가합니다.
+- 앱 로그에 `NAVER Maps auth failed: 401`이 나오면 콘솔의 Android 앱 패키지 이름을 확인한 뒤 **Application 수정 화면에서 그대로 저장**을 한 번 눌러 보세요. 등록 직후에는 패키지 목록이 모바일 인증 서버에 반영되지 않아 401이 나다가, 다시 저장하고 앱을 다시 빌드·설치하니 해결되었습니다. 키가 살아 있는지는 Web 서비스 URL에 `http://localhost:포트`를 잠시 추가하고 `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=키` 를 불러오는 HTML로 확인할 수 있습니다.
+- 429가 나오면 Dynamic Map이 선택되지 않았거나 한도를 넘은 것입니다. 한도 설정의 "한도 초과 사용"은 허용안함으로 두면 과금 대신 차단됩니다.
+
 ## 6. 휴대폰 에뮬레이터 준비
 
 [스마트폰 앱](phone-app.md)은 일반 Android 휴대폰 에뮬레이터에서 실행합니다.
