@@ -75,6 +75,7 @@ import com.nangmanroad.vehicle.AppViewModel
 import com.nangmanroad.vehicle.ParkitSuggestion
 import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.carCampingCheckedLabel
+import com.nangmanroad.core.data.carCampingStale
 import com.nangmanroad.core.data.Category
 import com.nangmanroad.core.ui.CarCampingBadge
 import com.nangmanroad.core.data.FeedSort
@@ -266,9 +267,9 @@ private fun PreviewCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                CarCampingBadge(spot.carCamping, iconSize = 20.dp)
+                CarCampingBadge(spot.carCamping, iconSize = 20.dp, stale = spot.carCampingStale)
                 spot.carCampingCheckedDaysAgo?.let {
-                    Text(carCampingCheckedLabel(it), style = MaterialTheme.typography.labelMedium, color = Palette.TextTertiary, maxLines = 1, softWrap = false)
+                    Text(carCampingCheckedLabel(it), style = MaterialTheme.typography.labelMedium, color = if (spot.carCampingStale) Palette.Warning else Palette.TextTertiary, maxLines = 1, softWrap = false)
                 }
             }
             Text(spot.title, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)

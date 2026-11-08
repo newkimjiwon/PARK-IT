@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.carCampingCheckedLabel
+import com.nangmanroad.core.data.carCampingStale
 import com.nangmanroad.core.data.Comment
 import com.nangmanroad.core.data.HoneyTip
 import com.nangmanroad.core.data.Product
@@ -220,7 +221,7 @@ private fun Header(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
             )
             // The author's answer to "can the night be spent here?", with their reason when given.
             Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CarCampingBadge(spot.carCamping)
+                CarCampingBadge(spot.carCamping, stale = spot.carCampingStale)
                 if (spot.carCampingNote.isNotBlank()) {
                     Text(
                         spot.carCampingNote,

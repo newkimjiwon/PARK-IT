@@ -307,7 +307,7 @@ object SampleSpots {
             carCamping = CarCamping.ALLOWED,
             carCampingNote = "강변 쉼터 주차장에서 하룻밤 머문 제보가 있어요. 비 예보가 있으면 피하세요.",
             bestTime = "4월 초 벚꽃 철 이른 아침",
-            carCampingCheckedDaysAgo = 41,
+            carCampingCheckedDaysAgo = 130,
         ),
     )
 

@@ -51,6 +51,7 @@ import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.SpotQueries
 import com.nangmanroad.core.data.Visibility
 import com.nangmanroad.core.data.distanceKm
+import com.nangmanroad.core.data.carCampingStale
 import com.nangmanroad.core.data.hasFacility
 import com.nangmanroad.core.ui.Avatar
 import com.nangmanroad.core.ui.CarCampingBadge
@@ -187,7 +188,7 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
             Column(Modifier.align(Alignment.BottomStart).padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     PhotoChip("${spot.province} · ${spot.category.label}")
-                    CarCampingBadge(spot.carCamping, Modifier.background(Palette.Scrim, RoundedCornerShape(8.dp)), iconSize = 14.dp)
+                    CarCampingBadge(spot.carCamping, Modifier.background(Palette.Scrim, RoundedCornerShape(8.dp)), iconSize = 14.dp, stale = spot.carCampingStale)
                     if (spot.tips.isNotEmpty()) PhotoChip("꿀팁 ${spot.tips.size}", accent = true)
                 }
                 // Facilities on their own line so the five icons never get clipped by the chips.

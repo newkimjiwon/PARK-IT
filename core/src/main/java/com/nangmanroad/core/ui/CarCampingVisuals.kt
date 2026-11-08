@@ -40,8 +40,9 @@ fun CarCamping.icon(): ImageVector = when (this) {
  * visitor has, so it sits next to the category on every card and above the route button.
  */
 @Composable
-fun CarCampingBadge(status: CarCamping, modifier: Modifier = Modifier, iconSize: Dp = 18.dp, filled: Boolean = true) {
-    val color = status.color()
+fun CarCampingBadge(status: CarCamping, modifier: Modifier = Modifier, iconSize: Dp = 18.dp, filled: Boolean = true, stale: Boolean = false) {
+    // A stale answer loses its colour: it is still the last word, but not one to lean on.
+    val color = if (stale) Palette.TextTertiary else status.color()
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))

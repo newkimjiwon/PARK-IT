@@ -59,6 +59,7 @@ import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.data.rangeLabel
 import com.nangmanroad.core.data.reach
 import com.nangmanroad.core.data.carCampingCheckedLabel
+import com.nangmanroad.core.data.carCampingStale
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.ui.CarCampingBadge
 import com.nangmanroad.core.ui.color
@@ -237,9 +238,9 @@ private fun RouteRow(spot: Spot, state: AppUiState, actions: AppViewModel, modif
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(spot.address, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
-                CarCampingBadge(spot.carCamping, iconSize = 20.dp)
+                CarCampingBadge(spot.carCamping, iconSize = 20.dp, stale = spot.carCampingStale)
                 spot.carCampingCheckedDaysAgo?.let {
-                    Text(carCampingCheckedLabel(it), style = MaterialTheme.typography.labelMedium, color = Palette.TextTertiary, maxLines = 1, softWrap = false)
+                    Text(carCampingCheckedLabel(it), style = MaterialTheme.typography.labelMedium, color = if (spot.carCampingStale) Palette.Warning else Palette.TextTertiary, maxLines = 1, softWrap = false)
                 }
             }
             Text(distanceLabel(state, spot), style = MaterialTheme.typography.bodyMedium.tabular(), color = Palette.TextSecondary)

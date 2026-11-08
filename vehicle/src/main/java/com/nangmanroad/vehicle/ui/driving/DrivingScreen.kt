@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.data.CarCamping
+import com.nangmanroad.core.data.carCampingStale
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.formatDuration
 import com.nangmanroad.core.data.formatMeters
@@ -161,7 +162,11 @@ fun DrivingScreen(state: AppUiState, onExitPreview: () -> Unit) {
                 ) {
                     Icon(routed.carCamping.icon(), contentDescription = null, tint = routed.carCamping.color(), modifier = Modifier.size(44.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(routed.carCamping.label, style = MaterialTheme.typography.titleLarge, color = routed.carCamping.color())
+                        Text(
+                            if (routed.carCampingStale) "${routed.carCamping.label} · 오래된 정보" else routed.carCamping.label,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = if (routed.carCampingStale) Palette.TextSecondary else routed.carCamping.color(),
+                        )
                         if (routed.carCampingNote.isNotBlank()) {
                             Text(routed.carCampingNote, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
                         }

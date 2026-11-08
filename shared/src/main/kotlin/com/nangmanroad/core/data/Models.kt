@@ -39,10 +39,17 @@ enum class TipKind(val label: String) {
 /** The facilities a card answers at a glance, in the order a 차박 visitor asks about them. */
 val FacilityKinds: List<TipKind> = listOf(TipKind.TOILET, TipKind.POWER, TipKind.CHARGING, TipKind.SIGNAL, TipKind.STORE, TipKind.PARKING)
 
-/** "오늘 확인", "어제 확인", "12일 전 확인": how fresh a car-camping status is. */
-fun carCampingCheckedLabel(daysAgo: Int): String = when (daysAgo) {
-    0 -> "오늘 확인"
-    1 -> "어제 확인"
+/** A car-camping status older than this is shown faded and called out as stale: rules change by season. */
+const val STALE_CHECK_DAYS = 90
+
+/** True when the last confirmation is older than [STALE_CHECK_DAYS]; never for an unconfirmed author's word. */
+val Spot.carCampingStale: Boolean get() = (carCampingCheckedDaysAgo ?: 0) > STALE_CHECK_DAYS
+
+/** "오늘 확인", "어제 확인", "12일 전 확인", or "130일 전 확인 · 오래된 정보" past the stale line. */
+fun carCampingCheckedLabel(daysAgo: Int): String = when {
+    daysAgo == 0 -> "오늘 확인"
+    daysAgo == 1 -> "어제 확인"
+    daysAgo > STALE_CHECK_DAYS -> "${daysAgo}일 전 확인 · 오래된 정보"
     else -> "${daysAgo}일 전 확인"
 }
 

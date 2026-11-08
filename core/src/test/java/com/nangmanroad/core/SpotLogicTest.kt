@@ -14,6 +14,8 @@ import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.data.withConflictsFlagged
+import com.nangmanroad.core.data.carCampingCheckedLabel
+import com.nangmanroad.core.data.carCampingStale
 import com.nangmanroad.core.data.Reach
 import com.nangmanroad.core.data.rangeLabel
 import com.nangmanroad.core.data.reach
@@ -176,6 +178,16 @@ class SpotLogicTest {
         assertEquals(Reach.ONE_WAY, reach(164.0, full))      // 강릉: 213 km there, not back
         assertEquals(Reach.SHORT, reach(164.0, usableRangeKm(40, 77.4)))
         assertEquals("배터리 40% · 약 130km", rangeLabel(40, usableRangeKm(40, 77.4)))
+    }
+
+    @Test
+    fun `a car-camping status confirmed long ago is called stale`() {
+        assertEquals("3일 전 확인", carCampingCheckedLabel(3))
+        assertEquals("130일 전 확인 · 오래된 정보", carCampingCheckedLabel(130))
+        assertTrue(spots.first { it.id == "s-hadong" }.carCampingStale)
+        assertTrue(!spots.first { it.id == "s-gangneung" }.carCampingStale)
+        // The author's own word carries no date, so it is never "stale", only unconfirmed.
+        assertTrue(!spots.first { it.id == "s-goseong" }.carCampingStale)
     }
 
     @Test
