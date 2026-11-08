@@ -4,7 +4,7 @@ Pleos Connect 차량용 앱을 만들기 위한 팀 저장소입니다. 차박·
 
 ## 화면
 
-에뮬레이터에서 실제 앱을 실행해 찍은 화면입니다. 차량은 Pleos Connect Emulator 2.1.0(2560×1440), 휴대폰은 Pixel 7(Android 15)이고, 두 기기가 동기화 서버로 `윤슬을따라` 계정에 연결된 상태입니다. 장소와 사진은 샘플 데이터입니다.
+에뮬레이터에서 실제 앱을 실행해 찍은 화면입니다(2026-11-09 기준). 차량은 Pleos Connect Emulator 2.1.0(2560×1440), 휴대폰은 Pixel 계열 에뮬레이터이고, 두 기기가 동기화 서버로 `윤슬을따라` 계정에 연결된 상태입니다. 장소와 사진은 샘플 데이터이고, 지도는 NAVER 지도 야간 스타일입니다.
 
 ### 차량용 앱
 
@@ -14,7 +14,7 @@ Pleos 헤드유닛에서는 왼쪽 클러스터 옆 창에 앱이 열립니다. 
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/car-map.jpg" alt="사진 마커 지도, 선택한 장소 미리보기 카드, 지도에 보이는 지역의 피드"></td>
+    <td width="50%"><img src="docs/images/car-map.jpg" alt="사진 마커 지도, 시설·배터리 필터 칩, 선택한 장소 미리보기 카드(차박 상태·배터리 판정·일몰 시각), 지도에 보이는 지역의 피드"></td>
     <td width="50%"><img src="docs/images/car-detail-tips.jpg" alt="장소 상세의 방문 꿀팁 탭. 확인 필요, 준비하세요 상태 카드"></td>
   </tr>
   <tr>
@@ -31,7 +31,7 @@ Pleos 헤드유닛에서는 왼쪽 클러스터 옆 창에 앱이 열립니다. 
   </tr>
   <tr>
     <td><img src="docs/images/car-from-phone.jpg" alt="휴대폰에서 보낸 장소 탭과 레일의 배지"></td>
-    <td><img src="docs/images/car-driving.jpg" alt="주행 중 간소화 화면. 목적지, 남은 거리와 시간, 도착 전 꿀팁 3개"></td>
+    <td><img src="docs/images/car-driving.jpg" alt="주행 중 간소화 화면. 목적지, 남은 거리와 시간, 도착 시 배터리, 일몰까지 여유, 차박 금지 안내, 도착 전 꿀팁 3개"></td>
   </tr>
   <tr>
     <td><b>휴대폰에서 보냄</b> · 휴대폰의 '차량으로 보내기'가 도착하면 레일에 배지</td>
