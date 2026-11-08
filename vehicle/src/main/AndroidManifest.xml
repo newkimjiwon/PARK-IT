@@ -5,6 +5,9 @@
 
     <!-- Vehicle State: gear selection decides parked vs. driving UI. -->
     <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
+    <!-- EV battery charge and capacity, for the "there and back?" verdict on each place. -->
+    <uses-permission android:name="pleos.car.permission.CAR_ENERGY" />
+    <uses-permission android:name="pleos.car.permission.CAR_INFO" />
 
     <!-- NaviHelper: send a destination and read the current location. -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />

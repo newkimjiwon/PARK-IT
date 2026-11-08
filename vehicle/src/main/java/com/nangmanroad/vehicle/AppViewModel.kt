@@ -13,6 +13,7 @@ import com.nangmanroad.core.data.Product
 import com.nangmanroad.core.data.SampleSpots
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.TipKind
+import com.nangmanroad.core.data.usableRangeKm
 import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.sync.PARKIT_PREFIX
 import com.nangmanroad.core.sync.PairingCode
@@ -24,6 +25,7 @@ import com.nangmanroad.core.sync.UserState
 import com.nangmanroad.core.sync.list
 import com.nangmanroad.vehicle.pleos.ActiveDestination
 import com.nangmanroad.vehicle.pleos.DrivingState
+import com.nangmanroad.vehicle.pleos.EvBatteryStatus
 import com.nangmanroad.vehicle.pleos.DrivingStateMonitor
 import com.nangmanroad.vehicle.pleos.NaviEvent
 import com.nangmanroad.vehicle.pleos.NavigationBridge
@@ -84,6 +86,8 @@ data class AppUiState(
     val here: LatLng = DefaultLocation,
     val hereFromNavigation: Boolean = false,
     val drivingState: DrivingState = DrivingState.UNKNOWN,
+    /** Traction battery from the Vehicle SDK; null on a car (or emulator) that does not report one. */
+    val battery: EvBatteryStatus? = null,
     val drivingPreview: Boolean = false,
     val naviConnected: Boolean = false,
     val destination: ActiveDestination? = null,
@@ -101,6 +105,9 @@ data class AppUiState(
 
     /** Spot ids the phone sent to this car, newest first. */
     val fromPhone: List<String> get() = user.carQueue.mapNotNull { it.spotId }.distinct()
+
+    /** Kilometres the pack can still cover with a reserve kept back, or null when unknown. */
+    val usableRangeKm: Double? get() = battery?.let { usableRangeKm(it.percent, it.capacityKwh) }
 
     /** Driving hides photos, feeds and long text; the preview lets us demo it while parked. */
     val showDrivingView: Boolean get() = drivingState == DrivingState.DRIVING || drivingPreview
@@ -143,6 +150,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 previous = drivingState
             }
         }
+        viewModelScope.launch { driving.battery.collect { battery -> _state.update { it.copy(battery = battery) } } }
         viewModelScope.launch {
             navigation.connected.collect { connected -> _state.update { it.copy(naviConnected = connected) } }
         }

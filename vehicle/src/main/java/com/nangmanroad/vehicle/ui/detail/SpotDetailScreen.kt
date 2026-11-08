@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.BookmarkBorder
@@ -54,9 +55,13 @@ import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
 import com.nangmanroad.vehicle.PhoneHandoff
 import com.nangmanroad.core.data.CarCamping
+import com.nangmanroad.core.data.distanceKm
+import com.nangmanroad.core.data.rangeLabel
+import com.nangmanroad.core.data.reach
 import com.nangmanroad.core.data.carCampingCheckedLabel
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.ui.CarCampingBadge
+import com.nangmanroad.core.ui.color
 import com.nangmanroad.vehicle.ui.components.ActionButton
 import com.nangmanroad.core.ui.Avatar
 import com.nangmanroad.vehicle.ui.components.Hairline
@@ -238,6 +243,19 @@ private fun RouteRow(spot: Spot, state: AppUiState, actions: AppViewModel, modif
                 }
             }
             Text(distanceLabel(state, spot), style = MaterialTheme.typography.bodyMedium.tabular(), color = Palette.TextSecondary)
+            state.usableRangeKm?.let { range ->
+                val verdict = reach(distanceKm(state.here, spot.location), range)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Outlined.BatteryChargingFull, contentDescription = null, tint = verdict.color(), modifier = Modifier.size(20.dp))
+                    Text(
+                        "${verdict.label} · ${rangeLabel(state.battery!!.percent, range)}",
+                        style = MaterialTheme.typography.bodyMedium.tabular(),
+                        color = verdict.color(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
             if (spot.bestTime.isNotBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Outlined.Schedule, contentDescription = "가기 좋은 때", tint = Palette.TextSecondary, modifier = Modifier.size(20.dp))

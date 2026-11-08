@@ -15,6 +15,7 @@
 | 카카오맵 | 범용 지도 | 로드뷰, 즐겨찾기 |
 | Hipcamp / iOverlander (해외) | 차박·캠핑 공유 | 커뮤니티 검증, 오프라인 지도 |
 | Alpenglow / Sundown 류 일몰 앱 | 일출·일몰·골든아워 | 기기 안 계산, 알림 |
+| PlugShare / ABRP (해외 EV) | 충전소 커뮤니티·경로 계획 | 체크인, 배터리 잔량 기반 도착 가능 판단 |
 | Polarsteps / 트립 기록 앱 | 여행 기록 | 이동 경로 자동 기록 |
 
 ## 백로그 (아직 안 한 것)
@@ -28,7 +29,7 @@
 - 다녀온 날짜: 방문 집합에 시각을 더해 다녀온 곳을 시간순 타임라인으로, 연말 "올해의 낭만로드" 요약
 - 가기 좋은 때 활용: 7회차의 `bestTime`을 분류·계절로 구조화해 "이번 주말에 좋은 곳" 필터나 지도 홈 추천에 쓰기, 차량 피드 카드에도 표시
 - 시설 필터 확장: 휴대폰 지도 탭과 차량 앨범에도 같은 칩 적용, 선택 상태를 재시작 뒤에도 유지
-- 충전 연동: Vehicle SDK의 EvBattery 잔량으로 "지금 배터리로 갈 수 있고 근처에 충전기가 확인된 곳"만 거르기, 충전소 꿀팁에 급속/완속·운영사 구조화
+- 배터리 필터·전비: 12회차의 왕복/편도 판정을 지도 필터("지금 배터리로 왕복 가능")와 주행 화면에 쓰고, 차량의 실제 전비(getCurrentEvEfficiency)로 5km/kWh 가정을 대체, 충전소 꿀팁에 급속/완속·운영사 구조화
 
 ## 기록
 
@@ -120,3 +121,11 @@
 - **바꾼 것**: `TipKind.CHARGING("충전")`을 전기 다음에 더하고(`shared/.../Models.kt`), `FacilityKinds`에 넣어 1회차 시설 아이콘 행과 3회차 필터 칩이 자동으로 "충전"을 갖게 했습니다(`EvStation` 아이콘, `core/ui/TipVisuals.kt`). 휴대폰 공유의 꿀팁 종류 칩에도 자동으로 나타나며 예시 문구를 더했습니다(`phone/ui/share/ShareFlow.kt`). 샘플에 충전 꿀팁 3개를 넣었습니다(강릉 "10분 거리에 급속 2대", 양평 "주차장에 완속 2대", 제천 "읍내까지 나가야 해요"·준비).
 - **검증**: 빌드 성공, core 19·server 11 테스트 통과(시설 필터 테스트에 충전 조건 추가: 강릉·양평 포함, 고성 제외). 차량 지도 홈에서 "충전" 칩을 켜면 강릉·양평·제천만 남고 카드 아이콘 행에 충전 아이콘이 보이며, 휴대폰 게시물의 아이콘 행도 6개로 늘어난 것을 확인했습니다(scratchpad `i11-car-crop.png`, `i11-phone-crop.png`). shared가 바뀌어 서버를 다시 띄웠습니다(탭 c14).
 - **못 한 것**: 차량 배터리 잔량과는 아직 엮지 않았습니다(백로그). 충전소 꿀팁은 자유 문장이라 급속/완속을 거를 수 없습니다.
+
+### 12회차 · 2026-11-08 22:43 · PlugShare / ABRP
+
+- **비교**: [PlugShare](https://appshunter.io/ios/app/plugshare/id421788217)는 충전소 커뮤니티 평점과 경로 위 충전소 추가가 강점이지만, 가이드들은 **"PlugShare는 내 배터리를 모른다"** 고 짚습니다([EV Course](https://www.evcourse.com/how-to-use-plugshare-road-trip), [Rivian 포럼](https://www.rivianforums.com/how-to-use-plugshare-for-route-planning/)). 그래서 사람들은 배터리를 계산하는 ABRP로 계획하고 PlugShare로 충전소를 확인합니다. PARK-IT은 Pleos 헤드유닛 위에서 돌아가므로 **Vehicle SDK로 배터리를 직접 읽을 수 있는** 드문 위치에 있습니다.
+- **PARK-IT의 빈틈**: 11회차까지 "근처에 충전기가 있나"는 답했지만 "지금 배터리로 거기까지 가서 돌아올 수 있나"는 묻지 않았습니다.
+- **바꾼 것**: `shared/.../data/Ev.kt`에 `usableRangeKm`(용량 × 잔량% × 5km/kWh × 85%, 15%는 예비), `reach`(직선 × 1.3 도로 계수로 왕복 가능/편도만 · 도착 후 충전/충전 후 출발), `rangeLabel`을 더했습니다. `DrivingStateMonitor`(`vehicle/pleos`)가 기어와 같은 `Vehicle` 핸들로 `getEvBattery()`의 잔량(%)·용량을 읽고 `registerEvBatteryStateOfCharge`로 변화를 받습니다. 용량은 에뮬레이터가 Wh(77400)로 주어 kWh로 정규화했고, 못 읽으면 77.4kWh(아이오닉 5)로 가정합니다. 매니페스트에 `pleos.car.permission.CAR_ENERGY`·`CAR_INFO`를 더했습니다(없으면 `SecurityException: need Permission`). `AppUiState.battery`/`usableRangeKm`를 노출하고, 차량 미리보기 카드에 "편도만 · 도착 후 충전 · 배터리 100%"(`vehicle/ui/map/MapHomeScreen.kt`), 상세 길 안내 줄에 "… · 배터리 100% · 약 330km"(`vehicle/ui/detail/SpotDetailScreen.kt`)를 배터리 아이콘과 판정 색(초록/노랑/빨강, `Reach.color()` in `core/ui/TipVisuals.kt`)으로 넣었습니다. 배터리를 못 읽는 차나 휴대폰에서는 줄이 숨습니다.
+- **검증**: 빌드 성공, core 20·server 11 테스트 통과(새 테스트: 77.4kWh 100%가 약 329km, 100km는 왕복, 강릉 164km는 편도, 40%면 충전 후 출발, 라벨 "배터리 40% · 약 130km"). Pleos 에뮬레이터(배터리 100%)에서 강릉 카드가 "편도만 · 도착 후 충전 · 배터리 100%", 상세가 "약 330km"로 뜨는 것을 확인했습니다(scratchpad `i12-car-crop.png`, `i12-car-detail-crop.png`). 처음에는 권한이 없어 SecurityException, 그다음엔 Wh 단위로 "약 328950km"가 떠서 둘 다 고쳤습니다. 가상 콘솔의 `/vehicle/ev-battery`는 잔량 변경 필드명을 못 찾아 100%로만 확인했습니다. shared가 바뀌어 서버를 다시 띄웠습니다(탭 c15).
+- **못 한 것**: 전비는 5km/kWh 고정 가정이고(SDK의 `getCurrentEvEfficiency`로 대체 가능), 지도 필터·주행 화면에는 아직 없습니다(백로그).

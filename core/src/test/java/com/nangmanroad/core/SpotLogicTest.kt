@@ -14,6 +14,10 @@ import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.data.withConflictsFlagged
+import com.nangmanroad.core.data.Reach
+import com.nangmanroad.core.data.rangeLabel
+import com.nangmanroad.core.data.reach
+import com.nangmanroad.core.data.usableRangeKm
 import com.nangmanroad.core.data.KoreaZone
 import com.nangmanroad.core.data.formatClock
 import com.nangmanroad.core.data.sunPlan
@@ -161,6 +165,17 @@ class SpotLogicTest {
         assertTrue(almostThere.makesIt && almostThere.fromRoute)
         // A drive spot has no sun moment, so no plan.
         assertEquals(null, sunPlan(spots.first { it.category == Category.DRIVE }, DefaultLocation))
+    }
+
+    @Test
+    fun `battery verdict keeps a reserve and pads the straight line for roads`() {
+        // 77.4 kWh at 100%: 77.4 * 5 * 0.85 ≈ 329 km usable.
+        val full = usableRangeKm(100, 77.4)
+        assertTrue(full in 320.0..340.0)
+        assertEquals(Reach.ROUND_TRIP, reach(100.0, full))   // 260 km of road there and back
+        assertEquals(Reach.ONE_WAY, reach(164.0, full))      // 강릉: 213 km there, not back
+        assertEquals(Reach.SHORT, reach(164.0, usableRangeKm(40, 77.4)))
+        assertEquals("배터리 40% · 약 130km", rangeLabel(40, usableRangeKm(40, 77.4)))
     }
 
     @Test

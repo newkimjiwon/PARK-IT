@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.data.FacilityKinds
 import com.nangmanroad.core.data.HoneyTip
+import com.nangmanroad.core.data.Reach
 import com.nangmanroad.core.data.facilityStatus
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
@@ -56,6 +57,12 @@ fun TipStatus.color(): Color = when (this) {
     TipStatus.GOOD -> Palette.Success
     TipStatus.PREPARE -> Palette.Warning
     TipStatus.NEEDS_CHECK -> Palette.Alert
+}
+
+fun Reach.color(): Color = when (this) {
+    Reach.ROUND_TRIP -> Palette.Success
+    Reach.ONE_WAY -> Palette.Warning
+    Reach.SHORT -> Palette.Alert
 }
 
 fun TipStatus.label(): String = when (this) {

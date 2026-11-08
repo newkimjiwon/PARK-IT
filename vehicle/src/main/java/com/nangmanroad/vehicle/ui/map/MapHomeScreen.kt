@@ -38,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.WbSunny
@@ -85,6 +86,8 @@ import com.nangmanroad.core.data.formatClock
 import com.nangmanroad.core.data.sunMoment
 import com.nangmanroad.core.data.sunTimesToday
 import com.nangmanroad.core.data.distanceKm
+import com.nangmanroad.core.data.reach
+import com.nangmanroad.core.ui.color
 import com.nangmanroad.core.data.formatKm
 import com.nangmanroad.vehicle.ui.components.ActionButton
 import com.nangmanroad.vehicle.ui.components.EmptyState
@@ -278,6 +281,20 @@ private fun PreviewCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            // The battery answers before the charger question comes up: there and back, or not.
+            state.usableRangeKm?.let { range ->
+                val verdict = reach(distanceKm(state.here, spot.location), range)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Outlined.BatteryChargingFull, contentDescription = null, tint = verdict.color(), modifier = Modifier.size(20.dp))
+                    Text(
+                        "${verdict.label} · 배터리 ${state.battery!!.percent}%",
+                        style = MaterialTheme.typography.bodyMedium.tabular(),
+                        color = verdict.color(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             // "When to go" is what separates a scenic spot from a pin: the author's own words, if any.
             if (spot.bestTime.isNotBlank()) {
