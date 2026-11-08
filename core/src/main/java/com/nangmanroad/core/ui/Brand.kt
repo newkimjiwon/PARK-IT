@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** The app's name as it appears to people; the code keeps its 낭만로드 working name. */
+/** The app's names: 파킷 on screen, PARK-IT on the contest form; the code keeps its 낭만로드 working name. */
 const val BRAND_NAME = "PARK-IT"
 const val BRAND_NAME_KO = "파킷"
 const val BRAND_TAGLINE = "당신의 경험이 누군가의 목적지가 되는 곳"
@@ -40,7 +40,7 @@ fun ParkItMark(size: Dp = 40.dp, modifier: Modifier = Modifier) {
     ) {
         Icon(
             Icons.Filled.PushPin,
-            contentDescription = BRAND_NAME,
+            contentDescription = BRAND_NAME_KO,
             tint = Palette.OnCoral,
             modifier = Modifier.size(size * 0.58f).rotate(-20f),
         )
@@ -62,8 +62,8 @@ fun ParkItWordmark(
         ParkItMark(markSize)
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                BRAND_NAME,
-                style = textStyle.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp),
+                BRAND_NAME_KO,
+                style = textStyle.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
                 color = Palette.TextPrimary,
             )
             if (caption != null) Text(caption, style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
