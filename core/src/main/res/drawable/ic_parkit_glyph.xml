@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- P for 파킷/parking, with a crescent moon for the night spent in the car. -->
+    <path
+        android:fillColor="#2A120B"
+        android:fillType="evenOdd"
+        android:pathData="M8,4 H30 A14,14 0 0 1 30,32 H18 V44 H8 Z M18,13.5 H30 A4.5,4.5 0 0 1 30,22.5 H18 Z" />
+    <path
+        android:fillColor="#2A120B"
+        android:pathData="M38,31 a7,7 0 1 0 0,14 a5.2,5.2 0 1 1 0,-14 z" />
+</vector>

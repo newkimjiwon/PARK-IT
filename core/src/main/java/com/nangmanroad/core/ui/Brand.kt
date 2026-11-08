@@ -7,8 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.foundation.Image
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -16,19 +15,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nangmanroad.core.R
 
 /** The app's names: 파킷 on screen, PARK-IT on the contest form; the code keeps its 낭만로드 working name. */
 const val BRAND_NAME = "PARK-IT"
 const val BRAND_NAME_KO = "파킷"
 const val BRAND_TAGLINE = "당신의 경험이 누군가의 목적지가 되는 곳"
 
-/** A coral pin on a rounded square: the one place coral is used for identity rather than action. */
+/** The launcher glyph (a P with a crescent moon) on a coral square: the one place coral marks identity rather than action. */
 @Composable
 fun ParkItMark(size: Dp = 40.dp, modifier: Modifier = Modifier) {
     Box(
@@ -38,11 +38,10 @@ fun ParkItMark(size: Dp = 40.dp, modifier: Modifier = Modifier) {
             .background(Palette.Coral),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            Icons.Filled.PushPin,
+        Image(
+            painterResource(R.drawable.ic_parkit_glyph),
             contentDescription = BRAND_NAME_KO,
-            tint = Palette.OnCoral,
-            modifier = Modifier.size(size * 0.58f).rotate(-20f),
+            modifier = Modifier.size(size * 0.7f),
         )
     }
 }
