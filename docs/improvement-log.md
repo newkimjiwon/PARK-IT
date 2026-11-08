@@ -16,6 +16,7 @@
 | Hipcamp / iOverlander (해외) | 차박·캠핑 공유 | 커뮤니티 검증, 오프라인 지도 |
 | Alpenglow / Sundown 류 일몰 앱 | 일출·일몰·골든아워 | 기기 안 계산, 알림 |
 | PlugShare / ABRP (해외 EV) | 충전소 커뮤니티·경로 계획 | 체크인, 배터리 잔량 기반 도착 가능 판단 |
+| 테슬라 내비 | 차량 내장 경로 계획 | 도착 시 배터리 % 한 숫자, 주행 중 계속 갱신 |
 | Polarsteps / 트립 기록 앱 | 여행 기록 | 이동 경로 자동 기록 |
 
 ## 백로그 (아직 안 한 것)
@@ -29,7 +30,7 @@
 - 다녀온 날짜: 방문 집합에 시각을 더해 다녀온 곳을 시간순 타임라인으로, 연말 "올해의 낭만로드" 요약
 - 가기 좋은 때 활용: 7회차의 `bestTime`을 분류·계절로 구조화해 "이번 주말에 좋은 곳" 필터나 지도 홈 추천에 쓰기, 차량 피드 카드에도 표시
 - 시설 필터 확장: 휴대폰 지도 탭과 차량 앨범에도 같은 칩 적용, 선택 상태를 재시작 뒤에도 유지
-- 전비·도착 잔량: 차량의 실제 전비(`getCurrentEvEfficiency`, 단위 확인 필요)로 5km/kWh 가정을 대체하고, ABRP처럼 "도착 시 배터리 N%"를 주행 화면에 표시, 충전소 꿀팁에 급속/완속·운영사 구조화
+- 실제 전비: 차량의 `getCurrentEvEfficiency`(단위 확인 필요)로 5km/kWh 가정을 대체해 15회차의 도착 잔량을 보정, 충전소 꿀팁에 급속/완속·운영사 구조화
 
 ## 기록
 
@@ -145,3 +146,11 @@
 - **바꾼 것**: `List<Spot>.withinRoundTrip(here, usableRangeKm)`(`shared/.../Ev.kt`, 배터리를 모르면 거르지 않음)를 더하고, 차량 지도 홈의 시설 칩 줄 끝에 **"지금 배터리로 왕복"** 토글 칩을 넣었습니다(`vehicle/ui/map/MapHomeScreen.kt`, `AppUiState.onlyRoundTrip`). 배터리를 보고하는 차에서만 보이고, 켜면 지도 마커와 피드가 왕복 가능한 곳으로 줄어듭니다. 칩 모양을 `ToggleChip`으로 뽑아 `FacilityFilterRow`가 `trailing` 슬롯으로 같은 모양의 칩을 받게 했습니다(`core/ui/TipVisuals.kt`).
 - **검증**: 빌드 성공, core 21·server 11 테스트 통과(새 검증: 서울에서 만충이면 양평은 남고 강릉은 빠짐, 배터리 모르면 전부). Pleos 에뮬레이터(100%, 약 330km)에서 칩을 켜자 지도에 수도권·충청 쪽 가까운 곳만 남는 것을 확인했습니다(scratchpad `i14-car-chips.png`, `i14-car-on.png`). shared가 바뀌어 서버를 다시 띄웠습니다(탭 c17).
 - **못 한 것**: 전비는 여전히 5km/kWh 가정이고 도착 잔량 예측은 없습니다(백로그).
+
+### 15회차 · 2026-11-09 00:13 · 테슬라 내비게이션 (도착 시 배터리)
+
+- **비교**: 테슬라 내비는 목적지까지의 에너지 소모를 계속 다시 계산해 **"도착 시 배터리 N%"** 한 숫자를 보여 주고, 바람·고도·기온·주행 습관까지 반영한다고 밝혔습니다([Teslarati](https://www.teslarati.com/tesla-factors-battery-on-arrival/amp/), [Drive Tesla](https://driveteslacanada.ca/news/tesla-improves-trip-planner-with-backend-rewrite-and-new-feature)). 운전자들은 그 숫자가 어느 선 아래면 출발하지 않는 습관을 들입니다([TMC 포럼](https://teslamotorsclub.com/tmc/threads/dont-leave-unless-it-shows-6-or-more-arrival.146662/)). 주행 중에 운전자가 보는 숫자는 "남은 km"가 아니라 "도착하면 몇 %"입니다.
+- **PARK-IT의 빈틈**: 12·14회차의 왕복/편도 판정은 출발 전 화면에만 있었고, 주행 화면은 거리·시간·일몰만 보여 줬습니다.
+- **바꾼 것**: `arrivalPercent`(잔량 − 경로 km ÷ 전비 ÷ 용량, 내비가 잰 도로 거리라 도로 계수 없음)와 `arrivalLabel`("도착 시 배터리 약 49%", 30% 아래면 "돌아올 땐 충전", 15% 아래면 "도중 충전 필요")을 `shared/.../Ev.kt`에 더했습니다. 주행 화면 목적지 카드에서 도착 예정 시각 아래, 일몰 줄 위에 배터리 아이콘과 함께 한 줄을 넣었습니다(`vehicle/ui/driving/DrivingScreen.kt`, 색은 초록/노랑/빨강). 배터리를 모르는 차에서는 줄이 없습니다.
+- **검증**: 빌드 성공, core 22·server 11 테스트 통과(새 테스트: 만충에 198km면 약 49%, 20%에 400km면 0%, 경고 문구 두 단계). 처음 테스트의 기대 구간을 잘못 잡아 한 번 고쳤습니다. Pleos 에뮬레이터에서 강릉 길 안내(198km) 후 주행 화면에 "도착 시 배터리 약 49%"가 뜨는 것을 확인했습니다(scratchpad `i15-car-driving-crop.png`). shared가 바뀌어 서버를 다시 띄웠습니다(탭 c18).
+- **못 한 것**: 전비는 5km/kWh 고정이라 실제보다 보수적이거나 낙관적일 수 있습니다(백로그). 주행 중 갱신은 내비 남은 거리가 바뀔 때만 따라갑니다.

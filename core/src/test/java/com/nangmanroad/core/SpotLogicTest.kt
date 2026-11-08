@@ -20,6 +20,8 @@ import com.nangmanroad.core.data.Reach
 import com.nangmanroad.core.data.rangeLabel
 import com.nangmanroad.core.data.reach
 import com.nangmanroad.core.data.usableRangeKm
+import com.nangmanroad.core.data.arrivalLabel
+import com.nangmanroad.core.data.arrivalPercent
 import com.nangmanroad.core.data.withinRoundTrip
 import com.nangmanroad.core.data.KoreaZone
 import com.nangmanroad.core.data.formatClock
@@ -193,6 +195,16 @@ class SpotLogicTest {
         assertTrue(!spots.first { it.id == "s-gangneung" }.carCampingStale)
         // The author's own word carries no date, so it is never "stale", only unconfirmed.
         assertTrue(!spots.first { it.id == "s-goseong" }.carCampingStale)
+    }
+
+    @Test
+    fun `arrival charge follows the route distance and warns when low`() {
+        // 77.4 kWh at 100%, 198 km of road at 5 km/kWh burns 39.6 kWh ≈ 51%.
+        assertEquals(49, arrivalPercent(100, 77.4, 198.0))
+        assertEquals("도착 시 배터리 약 49%", arrivalLabel(49))
+        assertEquals(0, arrivalPercent(20, 77.4, 400.0))
+        assertTrue(arrivalLabel(arrivalPercent(50, 77.4, 100.0)).endsWith("돌아올 땐 충전"))  // 50% − 26% = 24%
+        assertTrue(arrivalLabel(arrivalPercent(30, 77.4, 100.0)).endsWith("도중 충전 필요"))
     }
 
     @Test

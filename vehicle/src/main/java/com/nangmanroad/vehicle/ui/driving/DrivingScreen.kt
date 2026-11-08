@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.PauseCircle
 import androidx.compose.material.icons.outlined.WbSunny
@@ -29,7 +30,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
+import com.nangmanroad.core.data.ARRIVAL_COMFORT_PERCENT
+import com.nangmanroad.core.data.ARRIVAL_LOW_PERCENT
 import com.nangmanroad.core.data.CarCamping
+import com.nangmanroad.core.data.arrivalLabel
+import com.nangmanroad.core.data.arrivalPercent
 import com.nangmanroad.core.data.carCampingStale
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.formatDuration
@@ -118,6 +123,19 @@ fun DrivingScreen(state: AppUiState, onExitPreview: () -> Unit) {
                                         style = MaterialTheme.typography.headlineMedium.tabular(),
                                         color = Palette.TextPrimary,
                                     )
+                                }
+                            }
+                            // What the navigation's road distance leaves in the pack: the number an EV driver watches.
+                            state.battery?.let { battery ->
+                                val left = arrivalPercent(battery.percent, battery.capacityKwh, destination.remainMeters / 1000.0)
+                                val tone = when {
+                                    left < ARRIVAL_LOW_PERCENT -> Palette.Alert
+                                    left < ARRIVAL_COMFORT_PERCENT -> Palette.Warning
+                                    else -> Palette.Success
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Icon(Icons.Outlined.BatteryChargingFull, contentDescription = null, tint = tone, modifier = Modifier.size(28.dp))
+                                    Text(arrivalLabel(left), style = MaterialTheme.typography.titleMedium.tabular(), color = Palette.TextPrimary)
                                 }
                             }
                             // For a sunset or sunrise place, the one question is whether we make it in time.

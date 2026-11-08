@@ -38,3 +38,21 @@ fun rangeLabel(percent: Int, usableRangeKm: Double): String = "배터리 $percen
 /** Only the places the pack can reach and come back from, when the pack is known; everything otherwise. */
 fun List<Spot>.withinRoundTrip(here: LatLng, usableRangeKm: Double?): List<Spot> =
     if (usableRangeKm == null) this else filter { reach(distanceKm(here, it.location), usableRangeKm) == Reach.ROUND_TRIP }
+
+/** Below this much charge on arrival the night is a gamble; below the lower line it is a tow. */
+const val ARRIVAL_COMFORT_PERCENT = 30
+const val ARRIVAL_LOW_PERCENT = 15
+
+/**
+ * Charge left on arrival after [roadKm] of actual route (no road factor: the navigation already
+ * measured the road), clamped at zero. The same question Tesla's navigation answers in one number.
+ */
+fun arrivalPercent(percent: Int, capacityKwh: Double, roadKm: Double, kmPerKwh: Double = DEFAULT_KM_PER_KWH): Int =
+    (percent - roadKm / kmPerKwh / capacityKwh * 100).roundToInt().coerceIn(0, 100)
+
+/** "도착 시 배터리 약 48%", with a word of warning once it gets low. */
+fun arrivalLabel(arrivalPercent: Int): String = when {
+    arrivalPercent < ARRIVAL_LOW_PERCENT -> "도착 시 배터리 약 $arrivalPercent% · 도중 충전 필요"
+    arrivalPercent < ARRIVAL_COMFORT_PERCENT -> "도착 시 배터리 약 $arrivalPercent% · 돌아올 땐 충전"
+    else -> "도착 시 배터리 약 $arrivalPercent%"
+}
