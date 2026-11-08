@@ -52,6 +52,7 @@ import com.nangmanroad.vehicle.ui.detail.SpotDetailScreen
 import com.nangmanroad.vehicle.ui.driving.DrivingScreen
 import com.nangmanroad.vehicle.ui.map.MapHomeScreen
 import com.nangmanroad.vehicle.ui.theme.Dimens
+import com.nangmanroad.core.ui.ParkItMark
 import com.nangmanroad.core.ui.Palette
 import kotlinx.coroutines.delay
 
@@ -102,6 +103,7 @@ private fun SideRail(state: AppUiState, actions: AppViewModel) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        ParkItMark(size = 44.dp, modifier = Modifier.padding(bottom = 12.dp))
         RailButton(Icons.Outlined.Map, "지도", state.screen == Screen.Map, onClick = actions::showMap)
         val shortcutTabs = setOf(AlbumTab.SAVED, AlbumTab.FROM_PHONE)
         RailButton(Icons.Outlined.PhotoLibrary, "앨범", onAlbum && state.albumTab !in shortcutTabs) {

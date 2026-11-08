@@ -74,7 +74,7 @@ fun AccountScreen(state: AppUiState, actions: AppViewModel) {
             } else {
                 Text("휴대폰 계정과 연결하기", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
                 Text(
-                    "휴대폰 낭만로드 앱의 차량 탭 > 차량 연결에 이 코드를 입력하세요.",
+                    "휴대폰 파킷 앱의 차량 탭 > 차량 연결에 이 코드를 입력하세요.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = Palette.TextSecondary,
                 )

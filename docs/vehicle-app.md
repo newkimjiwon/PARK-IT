@@ -1,4 +1,4 @@
-# 차량용 앱 — 낭만로드
+# 차량용 앱 — PARK-IT(파킷)
 
 [Figma 프로토타입](figma-prototype-review.md)의 차량 디스플레이 화면을 Pleos Connect용 Android Automotive 앱으로 옮긴 것입니다. 코드는 `vehicle/` 모듈에 있고, 데이터 모델과 사진 지도는 [스마트폰 앱](phone-app.md)과 함께 쓰는 `core/` 모듈에 있습니다. 계정·서버 동기화는 아직 없습니다.
 

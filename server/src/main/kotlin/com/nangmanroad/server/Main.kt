@@ -13,6 +13,6 @@ fun main() {
     val port = System.getenv("PORT")?.toIntOrNull() ?: Api.DEFAULT_PORT
     val dataDir = File(System.getenv("NANGMANROAD_DATA") ?: "data").absoluteFile
     val store = SyncStore(dataDir)
-    println("낭만로드 sync server: http://localhost:$port (data: $dataDir)")
+    println("PARK-IT sync server: http://localhost:$port (data: $dataDir)")
     embeddedServer(CIO, port = port, host = "0.0.0.0") { syncModule(store) }.start(wait = true)
 }

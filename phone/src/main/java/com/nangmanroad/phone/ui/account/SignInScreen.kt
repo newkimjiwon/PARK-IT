@@ -25,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.nangmanroad.core.ui.BRAND_TAGLINE
+import com.nangmanroad.core.ui.ParkItWordmark
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.phone.AccountUi
 import com.nangmanroad.phone.PhoneViewModel
@@ -42,7 +44,7 @@ fun SignInScreen(account: AccountUi, actions: PhoneViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Spacer(Modifier.weight(1f))
-        Text("낭만로드", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
+        ParkItWordmark(markSize = 56.dp, textStyle = MaterialTheme.typography.headlineLarge, caption = BRAND_TAGLINE)
         Text(
             "휴대폰과 차량이 같은 계정을 쓰면 저장한 장소, 내 게시물, 보낸 장소가 함께 보여요.",
             style = MaterialTheme.typography.bodyLarge,

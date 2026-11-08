@@ -1,4 +1,4 @@
-# 스마트폰 앱 — 낭만로드
+# 스마트폰 앱 — PARK-IT(파킷)
 
 [Figma 프로토타입](figma-prototype-review.md)의 모바일 화면을 Android 앱으로 옮긴 것입니다. 코드는 `phone/` 모듈에 있습니다. 데이터 모델, 샘플 장소, 추천 로직, 사진 지도는 [차량용 앱](vehicle-app.md)과 함께 쓰는 `core/` 모듈에 있습니다.
 

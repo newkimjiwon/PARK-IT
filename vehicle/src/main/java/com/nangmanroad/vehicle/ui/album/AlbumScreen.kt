@@ -118,7 +118,7 @@ fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
                         Icons.Outlined.PhoneAndroid,
                         "휴대폰에서 보낸 장소가 없어요",
                         if (state.session == null) "왼쪽 아래 '계정'에서 휴대폰과 연결하면 휴대폰에서 고른 장소가 여기에 와요."
-                        else "휴대폰 낭만로드 앱의 장소 상세에서 '차량으로 보내기'를 눌러 보세요.",
+                        else "휴대폰 파킷 앱의 장소 상세에서 '차량으로 보내기'를 눌러 보세요.",
                     )
                     else -> EmptyState(Icons.Outlined.PersonAddAlt, "팔로잉한 사람이 없어요", "장소 상세에서 작성자를 팔로우해 보세요.")
                 }

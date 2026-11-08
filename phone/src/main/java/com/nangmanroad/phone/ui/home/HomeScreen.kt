@@ -58,6 +58,7 @@ import com.nangmanroad.core.ui.CarCampingBadge
 import com.nangmanroad.core.ui.FacilityFilterRow
 import com.nangmanroad.core.ui.FacilityStrip
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.ParkItWordmark
 import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.phone.HomeTab
@@ -87,7 +88,7 @@ fun HomeScreen(state: PhoneUiState, actions: PhoneViewModel) {
         item {
             Column {
                 Row(Modifier.padding(start = 20.dp, end = 10.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("낭만로드", style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary, modifier = Modifier.weight(1f))
+                    ParkItWordmark(Modifier.weight(1f), markSize = 32.dp, textStyle = MaterialTheme.typography.titleLarge)
                     IconCircle(Icons.Outlined.Notifications, "알림", actions::openNotifications, badge = state.fromCar.isNotEmpty())
                 }
                 TabRow {

@@ -20,7 +20,7 @@ Windows PowerShell:
 .\gradlew.bat :server:run
 ```
 
-`낭만로드 sync server: http://localhost:8080` 메시지가 나오면 준비된 것입니다. `curl http://localhost:8080/health`가 `ok`를 돌려주면 정상입니다.
+`PARK-IT sync server: http://localhost:8080` 메시지가 나오면 준비된 것입니다. `curl http://localhost:8080/health`가 `ok`를 돌려주면 정상입니다.
 
 | 환경 변수 | 기본값 | 설명 |
 | --- | --- | --- |
