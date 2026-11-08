@@ -33,6 +33,7 @@ import com.nangmanroad.core.data.SpotQueries
 import com.nangmanroad.core.map.MapCamera
 import com.nangmanroad.core.map.PhotoMap
 import com.nangmanroad.core.map.PhotoMapStyle
+import com.nangmanroad.core.ui.FacilityFilterRow
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.core.ui.SpotPhoto
@@ -54,7 +55,8 @@ val PhoneMapStyle = PhotoMapStyle(
 
 @Composable
 fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
-    val spots = SpotQueries.matching(state.spots, state.mapCategory, "")
+    // The same facility chips as the home feed, so a filter chosen there carries over to the map.
+    val spots = SpotQueries.matching(state.spots, state.mapCategory, "", state.facilities)
     val selected = state.spot(state.mapSelectedId)?.takeIf { it in spots }
 
     Column(Modifier.fillMaxSize()) {
@@ -65,6 +67,14 @@ fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
                 TextTab(category.label, state.mapCategory == category, { actions.setMapCategory(if (state.mapCategory == category) null else category) })
             }
         }
+        FacilityFilterRow(
+            selected = state.facilities,
+            onToggle = actions::toggleFacility,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+            height = 36.dp,
+            iconSize = 18.dp,
+            gap = 6.dp,
+        )
         Box(Modifier.weight(1f).fillMaxWidth()) {
             PhotoMap(
                 spots = spots,
