@@ -34,6 +34,9 @@ enum class TipKind(val label: String) {
     CAUTION("주의"),
 }
 
+/** The facilities a card answers at a glance, in the order a 차박 visitor asks about them. */
+val FacilityKinds: List<TipKind> = listOf(TipKind.TOILET, TipKind.POWER, TipKind.SIGNAL, TipKind.STORE, TipKind.PARKING)
+
 /** How a tip should read at a glance: fine, worth preparing for, or reports that disagree. */
 @Serializable
 enum class TipStatus { GOOD, PREPARE, NEEDS_CHECK }
@@ -131,3 +134,26 @@ fun List<HoneyTip>.withConflictsFlagged(): List<HoneyTip> {
         .keys
     return map { if (it.kind in conflicting) it.copy(status = TipStatus.NEEDS_CHECK) else it }
 }
+
+/**
+ * The one status that sums up every tip of a kind: a disagreement wins over a warning, a warning
+ * over a reassurance. Null when nobody has reported on that facility yet.
+ */
+fun List<HoneyTip>.facilityStatus(kind: TipKind): TipStatus? =
+    filter { it.kind == kind }.map { it.status }.minByOrNull { status ->
+        when (status) {
+            TipStatus.NEEDS_CHECK -> 0
+            TipStatus.PREPARE -> 1
+            TipStatus.GOOD -> 2
+        }
+    }
+
+/**
+ * Whether visitors say the facility is there. A caveat ("준비하세요") still counts as present;
+ * disagreeing reports or silence do not, so a filter never promises a toilet nobody confirmed.
+ */
+fun Spot.hasFacility(kind: TipKind): Boolean =
+    when (tips.facilityStatus(kind)) {
+        TipStatus.GOOD, TipStatus.PREPARE -> true
+        TipStatus.NEEDS_CHECK, null -> false
+    }

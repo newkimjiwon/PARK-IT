@@ -81,6 +81,7 @@ import com.nangmanroad.vehicle.ui.components.ActionButton
 import com.nangmanroad.vehicle.ui.components.EmptyState
 import com.nangmanroad.vehicle.ui.components.Hairline
 import com.nangmanroad.vehicle.ui.components.TextTab
+import com.nangmanroad.core.ui.FacilityFilterRow
 import com.nangmanroad.core.ui.FacilityStrip
 import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.vehicle.ui.feed.SpotCard
@@ -91,7 +92,7 @@ import com.nangmanroad.core.ui.tabular
 
 @Composable
 fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
-    val matching = SpotQueries.matching(state.spots, state.category, state.query)
+    val matching = SpotQueries.matching(state.spots, state.category, state.query, state.facilities)
     val selected = state.spot(state.selectedSpotId)?.takeIf { it in matching }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -110,6 +111,7 @@ fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
                 ) {
                     SearchField(query = state.query, onQueryChange = actions::setQuery)
                     CategoryFilters(selected = state.category, onSelect = actions::setCategory)
+                    FacilityFilterRow(selected = state.facilities, onToggle = actions::toggleFacility, modifier = Modifier.padding(bottom = 8.dp))
                 }
                 Hairline()
                 Box(Modifier.weight(1f).fillMaxWidth()) {

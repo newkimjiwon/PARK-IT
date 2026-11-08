@@ -50,8 +50,10 @@ import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.SpotQueries
 import com.nangmanroad.core.data.Visibility
 import com.nangmanroad.core.data.distanceKm
+import com.nangmanroad.core.data.hasFacility
 import com.nangmanroad.core.ui.Avatar
 import com.nangmanroad.core.ui.CarCampingBadge
+import com.nangmanroad.core.ui.FacilityFilterRow
 import com.nangmanroad.core.ui.FacilityStrip
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.tabular
@@ -72,7 +74,7 @@ fun HomeScreen(state: PhoneUiState, actions: PhoneViewModel) {
         HomeTab.FOR_YOU -> SpotQueries.recommended(state.spots, state.saved, state.liked, state.following, state.here)
         HomeTab.FOLLOWING -> state.spots.filter { it.author.id in state.following }.sortedBy { it.postedDaysAgo }
         HomeTab.NEARBY -> state.spots.sortedBy { distanceKm(state.here, it.location) }
-    }
+    }.filter { spot -> state.facilities.all { spot.hasFacility(it) } }
     val nearby = state.spots.sortedBy { distanceKm(state.here, it.location) }.take(6)
 
     LazyColumn(
@@ -89,12 +91,21 @@ fun HomeScreen(state: PhoneUiState, actions: PhoneViewModel) {
                 TabRow {
                     HomeTab.entries.forEach { tab -> TextTab(tab.label, state.homeTab == tab, { actions.setHomeTab(tab) }) }
                 }
+                FacilityFilterRow(
+                    selected = state.facilities,
+                    onToggle = actions::toggleFacility,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                    height = 36.dp,
+                    iconSize = 18.dp,
+                    gap = 6.dp,
+                )
             }
         }
         if (feed.isEmpty()) {
             item {
                 Text(
-                    "팔로우한 사람의 게시물이 아직 없어요. 마음에 드는 작성자를 팔로우해 보세요.",
+                    if (state.facilities.isNotEmpty()) "고른 시설을 모두 갖췄다고 확인된 장소가 아직 없어요. 조건을 하나 줄여 보세요."
+                    else "팔로우한 사람의 게시물이 아직 없어요. 마음에 드는 작성자를 팔로우해 보세요.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Palette.TextSecondary,
                     modifier = Modifier.padding(horizontal = 20.dp),

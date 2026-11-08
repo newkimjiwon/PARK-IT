@@ -1,7 +1,14 @@
 package com.nangmanroad.core.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DirectionsCar
@@ -13,15 +20,22 @@ import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.Wc
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.nangmanroad.core.data.FacilityKinds
 import com.nangmanroad.core.data.HoneyTip
+import com.nangmanroad.core.data.facilityStatus
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
 
@@ -55,22 +69,6 @@ fun List<HoneyTip>.byImportance(): List<HoneyTip> = sortedWith(
         .thenByDescending { it.helpfulCount },
 )
 
-/** The facilities a card answers at a glance, in the order a 차박 visitor asks about them. */
-val FacilityKinds: List<TipKind> = listOf(TipKind.TOILET, TipKind.POWER, TipKind.SIGNAL, TipKind.STORE, TipKind.PARKING)
-
-/**
- * The one status that sums up every tip of a kind: a disagreement wins over a warning, a warning
- * over a reassurance. Null when nobody has reported on that facility yet.
- */
-fun List<HoneyTip>.facilityStatus(kind: TipKind): TipStatus? =
-    filter { it.kind == kind }.map { it.status }.minByOrNull { status ->
-        when (status) {
-            TipStatus.NEEDS_CHECK -> 0
-            TipStatus.PREPARE -> 1
-            TipStatus.GOOD -> 2
-        }
-    }
-
 /**
  * Facility icons in a row, coloured by what visitors reported: green fine, amber prepare, red
  * check, and dim when nothing is known. Camping apps answer "is there a toilet?" on the list
@@ -89,6 +87,51 @@ fun FacilityStrip(tips: List<HoneyTip>, modifier: Modifier = Modifier, iconSize:
                 tint = tint,
                 modifier = Modifier.size(iconSize).semantics { contentDescription = description },
             )
+        }
+    }
+}
+
+/**
+ * Toggle chips for "only places that have …": one per facility, selected ones drawn light on dark
+ * so they read as a pressed key. Camping apps filter on toilets and power at the list; here the
+ * answer comes from visitors' tips, so a chip only keeps places someone actually confirmed.
+ * [height] sets the touch target: 56.dp for the head unit, 36.dp for the phone.
+ */
+@Composable
+fun FacilityFilterRow(
+    selected: Set<TipKind>,
+    onToggle: (TipKind) -> Unit,
+    modifier: Modifier = Modifier,
+    height: Dp = 56.dp,
+    iconSize: Dp = 24.dp,
+    gap: Dp = 8.dp,
+) {
+    Row(
+        modifier = modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(gap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FacilityKinds.forEach { kind ->
+            val on = kind in selected
+            val textStyle = if (height >= 48.dp) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge
+            Row(
+                modifier = Modifier
+                    .heightIn(min = height)
+                    .clip(RoundedCornerShape(height / 2))
+                    .background(if (on) Palette.TextPrimary else Palette.Surface)
+                    .clickable(role = Role.Checkbox, onClickLabel = "${kind.label} 있는 곳만") { onToggle(kind) }
+                    .padding(horizontal = height / 3),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(gap),
+            ) {
+                Icon(
+                    kind.icon(),
+                    contentDescription = null,
+                    tint = if (on) Palette.Background else Palette.TextSecondary,
+                    modifier = Modifier.size(iconSize),
+                )
+                Text(kind.label, style = textStyle, color = if (on) Palette.Background else Palette.TextSecondary)
+            }
         }
     }
 }

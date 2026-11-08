@@ -110,6 +110,8 @@ data class PhoneUiState(
     val tab: PhoneTab = PhoneTab.HOME,
     val stack: List<PhoneRoute> = emptyList(),
     val homeTab: HomeTab = HomeTab.FOR_YOU,
+    /** Facilities a place must have (visitor-confirmed) to appear in the home feed. */
+    val facilities: Set<TipKind> = emptySet(),
     val mapCategory: Category? = null,
     val mapSelectedId: String? = null,
     val profileTab: ProfileTab = ProfileTab.SHARED,
@@ -229,6 +231,10 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setHomeTab(tab: HomeTab) = _state.update { it.copy(homeTab = tab) }
+
+    fun toggleFacility(kind: TipKind) = _state.update {
+        it.copy(facilities = if (kind in it.facilities) it.facilities - kind else it.facilities + kind)
+    }
 
     fun setMapCategory(category: Category?) = _state.update { it.copy(mapCategory = category) }
 

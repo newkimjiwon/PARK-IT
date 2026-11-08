@@ -17,10 +17,17 @@ enum class AlbumTab(val label: String) {
 /** Pure list logic shared by the map feed and the album, kept apart from Compose for tests. */
 object SpotQueries {
 
-    fun matching(spots: List<Spot>, category: Category?, query: String): List<Spot> {
+    fun matching(
+        spots: List<Spot>,
+        category: Category?,
+        query: String,
+        /** Facilities the place must have, as reported by visitors; empty means no restriction. */
+        facilities: Set<TipKind> = emptySet(),
+    ): List<Spot> {
         val needle = query.trim()
         return spots.filter { spot ->
             (category == null || spot.category == category) &&
+                facilities.all { spot.hasFacility(it) } &&
                 (needle.isEmpty() || listOf(spot.title, spot.region, spot.address, spot.author.name, spot.category.label)
                     .any { it.contains(needle, ignoreCase = true) })
         }

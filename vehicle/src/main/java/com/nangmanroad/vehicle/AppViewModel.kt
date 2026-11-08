@@ -12,6 +12,7 @@ import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.Product
 import com.nangmanroad.core.data.SampleSpots
 import com.nangmanroad.core.data.Spot
+import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.sync.PARKIT_PREFIX
 import com.nangmanroad.core.sync.PairingCode
@@ -74,6 +75,8 @@ data class AppUiState(
     val screen: Screen = Screen.Map,
     val selectedSpotId: String? = SampleSpots.all.first().id,
     val category: Category? = null,
+    /** Facilities a place must have (visitor-confirmed) to show on the map and feed. */
+    val facilities: Set<TipKind> = emptySet(),
     val query: String = "",
     val feedSort: FeedSort = FeedSort.POPULAR,
     val albumTab: AlbumTab = AlbumTab.RECOMMENDED,
@@ -207,6 +210,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setCategory(category: Category?) = _state.update { it.copy(category = category) }
+
+    fun toggleFacility(kind: TipKind) = _state.update {
+        it.copy(facilities = if (kind in it.facilities) it.facilities - kind else it.facilities + kind)
+    }
 
     fun setQuery(query: String) = _state.update { it.copy(query = query) }
 

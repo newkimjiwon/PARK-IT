@@ -35,6 +35,16 @@ class SpotLogicTest {
     }
 
     @Test
+    fun `facility filter keeps only places visitors confirmed`() {
+        val withToilet = SpotQueries.matching(spots, null, "", setOf(TipKind.TOILET))
+        assertTrue(withToilet.isNotEmpty())
+        // 강릉's toilet reports disagree, so it must not be promised.
+        assertTrue(withToilet.none { it.id == "s-gangneung" })
+        val toiletAndPower = SpotQueries.matching(spots, null, "", setOf(TipKind.TOILET, TipKind.POWER))
+        assertEquals(listOf("s-goseong"), toiletAndPower.map { it.id })
+    }
+
+    @Test
     fun `feed keeps only spots in view and respects following`() {
         val visible = setOf("s-gangneung", "s-jecheon")
         val popular = SpotQueries.feed(spots, visible, FeedSort.POPULAR, emptySet())
