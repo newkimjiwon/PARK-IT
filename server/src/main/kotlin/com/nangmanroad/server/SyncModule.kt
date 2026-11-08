@@ -2,6 +2,7 @@ package com.nangmanroad.server
 
 import com.nangmanroad.core.sync.Api
 import com.nangmanroad.core.sync.ApiError
+import com.nangmanroad.core.sync.CarCampingReport
 import com.nangmanroad.core.sync.ClaimRequest
 import com.nangmanroad.core.sync.NewComment
 import com.nangmanroad.core.sync.NewPost
@@ -89,6 +90,9 @@ fun Application.syncModule(store: SyncStore) {
             }
             post("/spots/{id}/tips") {
                 call.respond(store.addTip(call.userId(store), call.parameters["id"].orEmpty(), call.receive<NewTip>()))
+            }
+            post("/spots/{id}/car-camping") {
+                call.respond(store.reportCarCamping(call.userId(store), call.parameters["id"].orEmpty(), call.receive<CarCampingReport>()))
             }
 
             post("/photos") {

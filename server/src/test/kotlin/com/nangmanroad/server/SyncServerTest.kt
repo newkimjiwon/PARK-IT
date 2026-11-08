@@ -18,6 +18,7 @@ import com.nangmanroad.core.sync.Session
 import com.nangmanroad.core.sync.SignInRequest
 import com.nangmanroad.core.sync.ToggleRequest
 import com.nangmanroad.core.sync.UserList
+import com.nangmanroad.core.sync.CarCampingReport
 import com.nangmanroad.core.sync.UserState
 import com.nangmanroad.core.sync.isParkit
 import io.ktor.client.call.body
@@ -117,6 +118,22 @@ class SyncServerTest {
         assertEquals("맑은 날 일몰", spot.bestTime)
         // Older phones that send no answer land on the honest default.
         assertEquals(CarCamping.CHECK, store.createPost(author, post("모르는 곳", Visibility.PUBLIC)).carCamping)
+    }
+
+    @Test
+    fun `car-camping reports update the badge and disagreement falls back to check`() {
+        val store = SyncStore(folder.root)
+        val first = store.userFor(store.signIn("첫째").token)
+        val second = store.userFor(store.signIn("둘째").token)
+        val banned = store.reportCarCamping(first, "s-taean", CarCampingReport(CarCamping.BANNED, " 입구에 금지 안내판 "))
+        assertEquals(CarCamping.BANNED, banned.carCamping)
+        assertEquals("입구에 금지 안내판", banned.carCampingNote)
+        assertEquals(0, banned.carCampingCheckedDaysAgo)
+        val disputed = store.reportCarCamping(second, "s-taean", CarCampingReport(CarCamping.ALLOWED))
+        assertEquals(CarCamping.CHECK, disputed.carCamping)
+        assertTrue(disputed.carCampingNote.startsWith("최근 제보가 엇갈려요"))
+        // A later report that agrees with the previous one settles it again.
+        assertEquals(CarCamping.ALLOWED, store.reportCarCamping(first, "s-taean", CarCampingReport(CarCamping.ALLOWED)).carCamping)
     }
 
     @Test

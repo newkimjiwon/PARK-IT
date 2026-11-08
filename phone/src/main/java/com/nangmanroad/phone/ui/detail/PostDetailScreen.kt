@@ -59,6 +59,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.data.CarCamping
+import com.nangmanroad.core.data.carCampingCheckedLabel
 import com.nangmanroad.core.data.Comment
 import com.nangmanroad.core.data.HoneyTip
 import com.nangmanroad.core.data.Product
@@ -226,6 +227,17 @@ private fun Header(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                         style = MaterialTheme.typography.bodySmall,
                         color = if (spot.carCamping == CarCamping.BANNED) Palette.Alert else Palette.TextSecondary,
                     )
+                }
+            }
+            // Anyone who has been there can say whether the night is still allowed; the newest word wins.
+            Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    spot.carCampingCheckedDaysAgo?.let { "${carCampingCheckedLabel(it)} · 다녀왔다면" } ?: "다녀왔다면",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Palette.TextSecondary,
+                )
+                CarCamping.entries.forEach { status ->
+                    Chip(status.label, spot.carCamping == status, { actions.reportCarCamping(spot.id, status) })
                 }
             }
         }

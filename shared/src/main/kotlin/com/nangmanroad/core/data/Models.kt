@@ -37,6 +37,13 @@ enum class TipKind(val label: String) {
 /** The facilities a card answers at a glance, in the order a 차박 visitor asks about them. */
 val FacilityKinds: List<TipKind> = listOf(TipKind.TOILET, TipKind.POWER, TipKind.SIGNAL, TipKind.STORE, TipKind.PARKING)
 
+/** "오늘 확인", "어제 확인", "12일 전 확인": how fresh a car-camping status is. */
+fun carCampingCheckedLabel(daysAgo: Int): String = when (daysAgo) {
+    0 -> "오늘 확인"
+    1 -> "어제 확인"
+    else -> "${daysAgo}일 전 확인"
+}
+
 /** How a tip should read at a glance: fine, worth preparing for, or reports that disagree. */
 @Serializable
 enum class TipStatus { GOOD, PREPARE, NEEDS_CHECK }
@@ -117,6 +124,8 @@ data class Spot(
     val carCampingNote: String = "",
     /** When the place is at its best, in the author's words: "맑은 날 일몰 30분 전", "가을 새벽 물안개". */
     val bestTime: String = "",
+    /** Days since a visitor last confirmed [carCamping]; null when only the author's word exists. */
+    val carCampingCheckedDaysAgo: Int? = null,
 ) {
     /** First word of the region, e.g. "강원" for "강원 강릉시". */
     val province: String get() = region.substringBefore(' ')

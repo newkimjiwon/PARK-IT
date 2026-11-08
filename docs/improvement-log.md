@@ -19,7 +19,8 @@
 
 ## 백로그 (아직 안 한 것)
 
-- 차박 가능 여부 재제보: 이미 올라온 장소에 방문자가 "최근 확인" 날짜와 함께 상태를 덧붙이기 (iOverlander의 last visited처럼), 제보가 엇갈리면 현장 확인으로 내리기
+- 재제보 근거 입력: 10회차의 상태 제보 칩에 한 줄 근거(안내판 사진 등)를 받기, 차량 상세에서도 "다녀왔어요"와 함께 제보
+- 오래된 확인 경고: 마지막 확인이 90일을 넘으면 배지를 흐리게 하고 "오래된 정보" 표시
 - 날씨·월령: 별 명소는 월령(달이 밝은 날은 별이 덜 보임), 노을 명소는 구름 예보 (5회차의 일출·일몰에 이어서, 네트워크 필요)
 - 출발 알림: "늦어도 오후 1:30 출발"이 다가오면 차량 지도 홈 배너로 알려주기(파킷 배너 재사용), 휴대폰에도 같은 카드
 - 오프라인 대비: 저장한 장소는 사진·꿀팁을 미리 받아 두기
@@ -102,3 +103,11 @@
 - **바꾼 것**: `SunPlan`(`shared/.../Sun.kt`)에 `latestDeparture`(일몰 − 주행 시간 − 자리 잡을 15분)와 `tomorrowLatestDeparture`를 더하고 `departureHint()`가 "늦어도 오후 1:30 출발" 또는, 오늘이 늦었으면 "내일은 늦어도 오후 1:30 출발"을 돌려줍니다(15분 안쪽으로 빠듯하면 생략). `sunPlan`은 `driveSeconds`를 받아 그 장소로 길 안내 중이면 내비 남은 시간을 씁니다(`fromRoute`). 차량 저장 탭의 "오늘 해를 보러 간다면" 카드에 이 줄을 넣고, 근거 줄은 "길 안내 남은 시간 기준"으로 바뀝니다(`vehicle/ui/album/AlbumScreen.kt`).
 - **검증**: 빌드 성공, core 19·server 10 테스트 통과(정오 출발 힌트가 "늦어도 오후 1:"로 시작, 17시에는 "내일은 늦어도 오후 1:", 길 안내 10분 남음이면 도착 가능·`fromRoute`). 차량 저장 탭에서 밤 시각에 "오늘 일몰은 늦었어요 · 오후 5:19" 아래 "내일은 늦어도 오후 1:3x 출발"을 확인했습니다(scratchpad `i9-car-saved-crop.png`). shared가 바뀌어 서버를 다시 띄웠습니다(탭 c12).
 - **못 한 것**: 출발 시각이 다가올 때 알려 주는 배너는 없습니다(백로그). 휴대폰에는 넣지 않았습니다.
+
+### 10회차 · 2026-11-08 21:43 · iOverlander (두 번째, 체크인)
+
+- **비교**: iOverlander의 장소 페이지는 **체크인**(방문 후 "아직 이용할 수 있어요"를 남기는 것)과 마지막 체크인 날짜를 중심에 두고, 체크인 글이 "2024년 3월 침수, 밤을 보낼 수 없음" 같은 변화를 가장 먼저 알립니다([체크인 목록](https://app.ioverlander.com/check_ins?page=27648), [장소 예시](https://www.ioverlander.com/places/173157-valley-of-the-gods), [Pilot Plans 리뷰](https://www.pilotplans.com/blog/ioverlander-review)). 정보의 가치가 "맞느냐"보다 **"언제 마지막으로 확인됐느냐"** 에서 나옵니다.
+- **PARK-IT의 빈틈**: 차박 가능 여부는 작성자가 올릴 때 한 번 정하면 끝이었고, 뒤에 간 사람이 바뀐 사정(단속 시작, 안내판)을 덧붙일 길이 없었습니다. 배지에는 언제 확인된 값인지도 없었습니다.
+- **바꾼 것**: `Spot.carCampingCheckedDaysAgo`(마지막 확인 며칠 전, 기본 null)와 `carCampingCheckedLabel`("오늘 확인"/"어제 확인"/"12일 전 확인")을 `shared/.../Models.kt`에 더하고 샘플 5곳에 값을 넣었습니다. 새 API `CarCampingReport(status, note)`와 `POST /api/spots/{id}/car-camping`(`server/.../SyncModule.kt`), 서버 저장소의 `StoredCarCamping`과 규칙(`SyncStore.reportCarCamping`·`decorate`): 가장 최근 제보가 이기되, 최근 두 제보가 서로 다른 확정 상태면 "현장 확인"으로 내리고 안내문에 누가 뭐라 했는지 적습니다. `SyncClient.reportCarCamping`·`SpotRepository.reportCarCamping`(로그인 전엔 이 기기 화면만 바꿈)·`PhoneViewModel.reportCarCamping`을 이었고, 휴대폰 상세 배지 아래에 "N일 전 확인 · 다녀왔다면 [차박 가능][현장 확인][차박 금지]" 칩 줄을 넣었습니다(`phone/ui/detail/PostDetailScreen.kt`). 차량 미리보기 카드와 상세 배지 옆에 "N일 전 확인"이 붙습니다.
+- **검증**: 빌드 성공, core 19·server 11 테스트 통과(새 서버 테스트: 금지 제보 → 금지·오늘 확인, 다른 사람의 가능 제보 → 현장 확인·엇갈림 안내, 같은 답이 이어지면 다시 확정). 휴대폰 강릉 상세에서 "차박 가능"을 제보하자 동기화 서버를 거쳐 차량 카드 배지가 "차박 가능 · 오늘 확인"으로 바뀌는 것을 확인했습니다(scratchpad `i10-phone.png`, `i10-car.png`). shared가 바뀌어 서버를 다시 띄웠습니다(탭 c13).
+- **못 한 것**: 제보에 근거 한 줄을 받지 않습니다(칩만). 차량 상세에서는 제보할 수 없습니다. 둘 다 백로그.

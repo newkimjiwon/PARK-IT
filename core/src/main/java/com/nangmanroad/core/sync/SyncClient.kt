@@ -70,6 +70,9 @@ class SyncClient(
     suspend fun addTip(spotId: String, tip: NewTip): Spot =
         resolvePhotos(call(HttpMethod.Post, "/api/spots/$spotId/tips") { jsonBody(tip) }.body())
 
+    suspend fun reportCarCamping(spotId: String, report: CarCampingReport): Spot =
+        resolvePhotos(call(HttpMethod.Post, "/api/spots/$spotId/car-camping") { jsonBody(report) }.body())
+
     /** Uploads a photo and returns its server path, e.g. "/photos/3f2a.jpg". */
     suspend fun uploadPhoto(file: File): String {
         val type = if (file.extension.equals("png", ignoreCase = true)) ContentType.Image.PNG else ContentType.Image.JPEG

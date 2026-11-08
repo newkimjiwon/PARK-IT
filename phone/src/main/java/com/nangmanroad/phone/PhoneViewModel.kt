@@ -309,6 +309,14 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun reportCarCamping(spotId: String, status: CarCamping) {
+        viewModelScope.launch {
+            repository.reportCarCamping(spotId, status, "")
+                .onSuccess { toast("차박 상태를 제보했어요. 고마워요!") }
+                .onFailure(::showError)
+        }
+    }
+
     /** Links the car whose screen shows [code] to this account. */
     fun claimCar(code: String) {
         val digits = code.filter(Char::isDigit)

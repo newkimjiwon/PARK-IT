@@ -2,6 +2,7 @@ package com.nangmanroad.core.sync
 
 import android.content.Context
 import com.nangmanroad.core.BuildConfig
+import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.Author
 import com.nangmanroad.core.data.HoneyTip
 import com.nangmanroad.core.data.LatLng
@@ -176,6 +177,18 @@ class SpotRepository(
             return Result.success(Unit)
         }
         return remote { replaceSpot(client.addTip(spotId, NewTip(kind, status, summary, detail))) }
+    }
+
+    /** Offline the report only changes what this device shows; signed in, the server keeps it for everyone. */
+    suspend fun reportCarCamping(spotId: String, status: CarCamping, note: String): Result<Unit> {
+        if (!signedIn) {
+            _spots.value = _spots.value.map { spot ->
+                if (spot.id != spotId) spot
+                else spot.copy(carCamping = status, carCampingNote = note.trim().ifEmpty { spot.carCampingNote }, carCampingCheckedDaysAgo = 0)
+            }
+            return Result.success(Unit)
+        }
+        return remote { replaceSpot(client.reportCarCamping(spotId, CarCampingReport(status, note))) }
     }
 
     /** Publishes a post. Photos given as file:// URIs are uploaded first when signed in. */

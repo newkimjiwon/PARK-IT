@@ -73,6 +73,7 @@ import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
 import com.nangmanroad.vehicle.ParkitSuggestion
 import com.nangmanroad.core.data.CarCamping
+import com.nangmanroad.core.data.carCampingCheckedLabel
 import com.nangmanroad.core.data.Category
 import com.nangmanroad.core.ui.CarCampingBadge
 import com.nangmanroad.core.data.FeedSort
@@ -253,14 +254,19 @@ private fun PreviewCard(
         )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                // The region shrinks first so the badge and its freshness never wrap.
                 Text(
                     "${spot.category.label} · ${spot.region}",
                     style = MaterialTheme.typography.labelMedium,
                     color = Palette.TextSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 CarCampingBadge(spot.carCamping, iconSize = 20.dp)
+                spot.carCampingCheckedDaysAgo?.let {
+                    Text(carCampingCheckedLabel(it), style = MaterialTheme.typography.labelMedium, color = Palette.TextTertiary, maxLines = 1, softWrap = false)
+                }
             }
             Text(spot.title, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

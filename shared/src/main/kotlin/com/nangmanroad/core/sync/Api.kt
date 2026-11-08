@@ -112,6 +112,10 @@ data class ClaimRequest(val code: String)
 @Serializable
 data class NewTip(val kind: TipKind, val status: TipStatus, val summary: String, val detail: String)
 
+/** A visitor's word on whether the night can still be spent at a place, with their reason. */
+@Serializable
+data class CarCampingReport(val status: CarCamping, val note: String = "")
+
 @Serializable
 data class NewComment(val text: String, val isQuestion: Boolean, val parentId: String? = null)
 

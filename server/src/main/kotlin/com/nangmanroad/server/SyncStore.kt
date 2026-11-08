@@ -7,7 +7,9 @@ import com.nangmanroad.core.data.SampleSpots
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.Visibility
 import com.nangmanroad.core.data.withConflictsFlagged
+import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.sync.Api
+import com.nangmanroad.core.sync.CarCampingReport
 import com.nangmanroad.core.sync.DeviceKind
 import com.nangmanroad.core.sync.NewComment
 import com.nangmanroad.core.sync.NewPost
@@ -57,12 +59,16 @@ private data class StoredComment(
 private data class StoredTip(val spotId: String, val tip: HoneyTip, val createdAt: Long)
 
 @Serializable
+private data class StoredCarCamping(val spotId: String, val status: CarCamping, val note: String, val reporter: String, val createdAt: Long)
+
+@Serializable
 private data class Snapshot(
     val users: Map<String, StoredUser> = emptyMap(),
     val sessions: Map<String, StoredSession> = emptyMap(),
     val posts: List<StoredPost> = emptyList(),
     val comments: List<StoredComment> = emptyList(),
     val tips: List<StoredTip> = emptyList(),
+    val carCamping: List<StoredCarCamping> = emptyList(),
 )
 
 private class Pairing(val id: String, val code: String, val expiresAt: Long) {
@@ -279,6 +285,14 @@ class SyncStore(
         return decorate(spot, userId)
     }
 
+    /** The newest report wins; two reporters who disagree send the place back to "현장 확인". */
+    fun reportCarCamping(userId: String, spotId: String, report: CarCampingReport): Spot {
+        val spot = findSpot(spotId)
+        val stored = StoredCarCamping(spotId, report.status, report.note.trim(), user(userId).author.name, clock())
+        update { it.copy(carCamping = it.carCamping + stored) }
+        return decorate(spot, userId)
+    }
+
     fun newPhotoFile(extension: String): File {
         val dir = photoDir ?: throw IllegalStateException("사진 저장 폴더가 없어요")
         return File(dir, "${UUID.randomUUID()}.$extension")
@@ -290,7 +304,24 @@ class SyncStore(
         val others = snapshot.users.values.filter { it.author.id != userId }
         val now = clock()
         val extraTips = snapshot.tips.filter { it.spotId == spot.id }.map { it.tip.copy(confirmedDaysAgo = daysSince(it.createdAt)) }
+        val reports = snapshot.carCamping.filter { it.spotId == spot.id }.sortedByDescending { it.createdAt }
+        val latest = reports.getOrNull(0)
+        val previous = reports.getOrNull(1)
+        val disputed = latest != null && previous != null &&
+            latest.status != previous.status && latest.status != CarCamping.CHECK && previous.status != CarCamping.CHECK
         return spot.copy(
+            carCamping = when {
+                latest == null -> spot.carCamping
+                disputed -> CarCamping.CHECK
+                else -> latest.status
+            },
+            carCampingNote = when {
+                latest == null -> spot.carCampingNote
+                disputed -> "최근 제보가 엇갈려요 · ${latest.reporter}: ${latest.status.label}, ${previous!!.reporter}: ${previous.status.label}"
+                latest.note.isNotBlank() -> latest.note
+                else -> spot.carCampingNote
+            },
+            carCampingCheckedDaysAgo = latest?.let { daysSince(it.createdAt) } ?: spot.carCampingCheckedDaysAgo,
             likeCount = spot.likeCount + others.count { spot.id in it.list(UserList.LIKED) },
             saveCount = spot.saveCount + others.count { spot.id in it.list(UserList.SAVED) },
             comments = mergeComments(spot.comments, snapshot.comments.filter { it.spotId == spot.id }, now),
