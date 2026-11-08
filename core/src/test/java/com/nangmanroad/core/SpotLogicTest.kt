@@ -16,7 +16,9 @@ import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.data.withConflictsFlagged
 import com.nangmanroad.core.data.KoreaZone
 import com.nangmanroad.core.data.formatClock
+import com.nangmanroad.core.data.sunPlan
 import com.nangmanroad.core.data.sunTimes
+import java.time.LocalTime
 import java.time.Instant
 import java.time.LocalDate
 import com.nangmanroad.core.map.MapCamera
@@ -122,6 +124,22 @@ class SpotLogicTest {
         val gangneung = sunTimes(spots.first { it.id == "s-gangneung" }.location, day)!!
         val taean = sunTimes(spots.first { it.id == "s-taean" }.location, day)!!
         assertTrue(taean.sunset - gangneung.sunset > 5 * 60_000L)
+    }
+
+    @Test
+    fun `leaving Seoul at noon makes the Gangneung sunset, leaving at five does not`() {
+        val gangneung = spots.first { it.id == "s-gangneung" }
+        fun at(time: LocalTime) = LocalDate.of(2026, 11, 1).atTime(time).atZone(KoreaZone).toInstant().toEpochMilli()
+        val noon = sunPlan(gangneung, DefaultLocation, now = at(LocalTime.NOON))!!
+        assertTrue(noon.toString(), noon.makesIt)
+        // The sunset must be the one on the day of departure, not the day before.
+        assertTrue(noon.sunAt - at(LocalTime.NOON) in 4 * 3_600_000L..7 * 3_600_000L)
+        assertTrue(noon.verdict(), noon.verdict().startsWith("지금 출발하면 일몰"))
+        val five = sunPlan(gangneung, DefaultLocation, now = at(LocalTime.of(17, 0)))!!
+        assertTrue(!five.makesIt)
+        assertTrue(five.verdict(), five.verdict().startsWith("오늘 일몰은 늦었어요"))
+        // A drive spot has no sun moment, so no plan.
+        assertEquals(null, sunPlan(spots.first { it.category == Category.DRIVE }, DefaultLocation))
     }
 
     @Test

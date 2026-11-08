@@ -1,11 +1,19 @@
 package com.nangmanroad.vehicle.ui.album
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
@@ -14,15 +22,30 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.WbSunny
+import androidx.compose.material.icons.outlined.WbTwilight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
 import com.nangmanroad.core.data.AlbumTab
+import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.SpotQueries
+import com.nangmanroad.core.data.SunMoment
+import com.nangmanroad.core.data.SunPlan
+import com.nangmanroad.core.data.distanceKm
+import com.nangmanroad.core.data.formatKm
+import com.nangmanroad.core.data.sunPlan
+import com.nangmanroad.vehicle.ui.theme.Dimens
+import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.vehicle.ui.components.EmptyState
 import com.nangmanroad.vehicle.ui.components.Hairline
 import com.nangmanroad.vehicle.ui.components.TextTab
@@ -61,6 +84,13 @@ fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
                 Hairline()
             }
         }
+        // Saved sunset and sunrise places answer "can I still make it today?" before anything else.
+        val plans = if (state.albumTab == AlbumTab.SAVED) spots.mapNotNull { spot -> sunPlan(spot, state.here)?.let { spot to it } } else emptyList()
+        if (plans.isNotEmpty()) {
+            item(span = StaggeredGridItemSpan.FullLine) {
+                SunPlanStrip(plans.sortedWith(compareByDescending<Pair<Spot, SunPlan>> { it.second.makesIt }.thenBy { it.second.minutesToSpare }), state, actions)
+            }
+        }
         if (spots.isEmpty()) {
             item(span = StaggeredGridItemSpan.FullLine) {
                 when (state.albumTab) {
@@ -84,6 +114,49 @@ fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
                 onOpen = { actions.openSpot(spot.id) },
                 onToggleSave = { actions.toggleSave(spot.id) },
             )
+        }
+    }
+}
+
+/**
+ * One card per saved place that lives by the sun, makeable ones first: the title, whether leaving
+ * now gets there in time, and the distance the estimate rests on. Tapping opens the place.
+ */
+@Composable
+private fun SunPlanStrip(plans: List<Pair<Spot, SunPlan>>, state: AppUiState, actions: AppViewModel) {
+    Column(Modifier.padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text("오늘 해를 보러 간다면", style = MaterialTheme.typography.headlineSmall, color = Palette.TextPrimary)
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            plans.forEach { (spot, plan) ->
+                val tone = if (plan.makesIt) Palette.Warning else Palette.TextTertiary
+                Row(
+                    modifier = Modifier
+                        .widthIn(min = 420.dp, max = 560.dp)
+                        .heightIn(min = Dimens.TouchTarget)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Palette.Surface)
+                        .clickable(role = Role.Button, onClickLabel = "${spot.title} 보기") { actions.openSpot(spot.id) }
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Icon(
+                        if (plan.moment == SunMoment.SUNSET) Icons.Outlined.WbTwilight else Icons.Outlined.WbSunny,
+                        contentDescription = null,
+                        tint = tone,
+                        modifier = Modifier.size(36.dp),
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(spot.title, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(plan.verdict(), style = MaterialTheme.typography.bodyLarge.tabular(), color = if (plan.makesIt) Palette.TextPrimary else Palette.TextSecondary)
+                        Text(
+                            "직선 ${formatKm(distanceKm(state.here, spot.location))} · 시속 60km 기준",
+                            style = MaterialTheme.typography.labelMedium.tabular(),
+                            color = Palette.TextTertiary,
+                        )
+                    }
+                }
+            }
         }
     }
 }

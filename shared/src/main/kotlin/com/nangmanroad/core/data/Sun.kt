@@ -9,6 +9,7 @@ import kotlin.math.acos
 import kotlin.math.asin
 import kotlin.math.ceil
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /** The clock the apps live on: Korean local time. */
@@ -39,11 +40,11 @@ fun SunTimes.at(moment: SunMoment): Long = when (moment) {
  * Runs on the device with no network, which is what a head unit in a valley needs. Null above the
  * polar circles when the sun never rises or sets that day.
  */
-fun sunTimes(location: LatLng, date: LocalDate, zone: ZoneId = KoreaZone): SunTimes? {
-    // Julian day of local midnight, then the day count since J2000 adjusted by longitude.
-    val midnightUtc = date.atStartOfDay(zone).toInstant()
-    val julianMidnight = midnightUtc.epochSecond / 86400.0 + 2440587.5
-    val n = ceil(julianMidnight - 2451545.0 + 0.0008 - location.longitude / 360.0)
+fun sunTimes(location: LatLng, date: LocalDate): SunTimes? {
+    // Julian day number of the civil date (1970-01-01 is 2440588), then the day count since J2000
+    // nudged by longitude so the transit lands on this date's local noon rather than the day before.
+    val julianDayNumber = date.toEpochDay() + 2440588.0
+    val n = ceil(julianDayNumber - 2451545.0 + 0.0008 - location.longitude / 360.0)
     val meanSolarTime = n - location.longitude / 360.0
     val meanAnomaly = (357.5291 + 0.98560028 * meanSolarTime).mod(360.0)
     val m = Math.toRadians(meanAnomaly)
@@ -68,3 +69,29 @@ private val clockFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("a h:mm
 
 /** "오후 5:23" on the Korean clock. */
 fun formatClock(epochMillis: Long): String = clockFormat.format(Instant.ofEpochMilli(epochMillis).atZone(KoreaZone))
+
+/** Straight-line distance padded for real roads, at the pace a weekend drive actually averages. */
+private const val ROAD_FACTOR = 1.3
+private const val AVERAGE_KMH = 60.0
+
+/**
+ * Whether leaving now gets the car to [spot] before its sun moment today: the question a saved
+ * sunset place has to answer on the head unit before anyone starts the engine.
+ */
+data class SunPlan(val moment: SunMoment, val sunAt: Long, val arrival: Long, val minutesToSpare: Int) {
+    val makesIt: Boolean get() = minutesToSpare >= 1
+
+    /** "지금 출발하면 일몰 40분 전 도착" or "오늘 일몰은 늦었어요 · 오후 5:20". */
+    fun verdict(): String = when {
+        makesIt -> "지금 출발하면 ${moment.label} ${formatDuration(minutesToSpare * 60)} 전 도착"
+        else -> "오늘 ${moment.label}은 늦었어요 · ${formatClock(sunAt)}"
+    }
+}
+
+fun sunPlan(spot: Spot, here: LatLng, now: Long = System.currentTimeMillis()): SunPlan? {
+    val moment = spot.category.sunMoment ?: return null
+    val sunAt = sunTimesToday(spot.location, now)?.at(moment) ?: return null
+    val driveSeconds = (distanceKm(here, spot.location) * ROAD_FACTOR / AVERAGE_KMH * 3600).roundToInt()
+    val arrival = now + driveSeconds * 1000L
+    return SunPlan(moment, sunAt, arrival, ((sunAt - arrival) / 60_000L).toInt())
+}
