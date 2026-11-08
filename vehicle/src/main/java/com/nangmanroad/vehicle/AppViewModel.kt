@@ -97,6 +97,7 @@ data class AppUiState(
     val liked: Set<String> get() = user.liked
     val following: Set<String> get() = user.following
     val helpfulTips: Set<String> get() = user.helpfulTips
+    val visited: Set<String> get() = user.visited
 
     /** Spot ids the phone sent to this car, newest first. */
     val fromPhone: List<String> get() = user.carQueue.mapNotNull { it.spotId }.distinct()

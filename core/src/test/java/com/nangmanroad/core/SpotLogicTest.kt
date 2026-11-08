@@ -18,6 +18,7 @@ import com.nangmanroad.core.data.KoreaZone
 import com.nangmanroad.core.data.formatClock
 import com.nangmanroad.core.data.sunPlan
 import com.nangmanroad.core.data.sunTimes
+import com.nangmanroad.core.data.travelSummary
 import java.time.LocalTime
 import java.time.Instant
 import java.time.LocalDate
@@ -65,6 +66,17 @@ class SpotLogicTest {
     fun `saved album tab lists exactly the saved spots`() {
         val saved = SpotQueries.album(spots, AlbumTab.SAVED, setOf("s-taean"), emptySet(), emptySet(), DefaultLocation)
         assertEquals(listOf("s-taean"), saved.map { it.id })
+    }
+
+    @Test
+    fun `visited album tab lists the places been to, farthest first, and sums them up`() {
+        val visited = SpotQueries.album(spots, AlbumTab.VISITED, emptySet(), emptySet(), emptySet(), DefaultLocation, visited = setOf("s-taean", "s-gangneung"))
+        assertEquals(listOf("s-gangneung", "s-taean"), visited.map { it.id })
+        val summary = travelSummary(visited, DefaultLocation)
+        assertEquals(2, summary.places)
+        assertEquals(setOf("강원", "충남"), summary.provinces)
+        assertEquals("s-gangneung", summary.farthest?.id)
+        assertEquals(0, travelSummary(emptyList(), DefaultLocation).places)
     }
 
     @Test

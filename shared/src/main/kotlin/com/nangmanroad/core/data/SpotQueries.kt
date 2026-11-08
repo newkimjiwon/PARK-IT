@@ -11,6 +11,7 @@ enum class AlbumTab(val label: String) {
     FOLLOWING("팔로잉"),
     LATEST("최신"),
     SAVED("저장한 장소"),
+    VISITED("다녀온 곳"),
     FROM_PHONE("휴대폰에서 보냄"),
 }
 
@@ -56,11 +57,14 @@ object SpotQueries {
         here: LatLng,
         /** Spot ids the phone sent to the car, newest first. */
         fromPhone: List<String> = emptyList(),
+        /** Spot ids the user has been to: a 파킷 at the place, or "다녀왔어요" on the phone. */
+        visited: Set<String> = emptySet(),
     ): List<Spot> = when (tab) {
         AlbumTab.RECOMMENDED -> recommended(spots, saved, liked, following, here)
         AlbumTab.FOLLOWING -> spots.filter { it.author.id in following }.sortedBy { it.postedDaysAgo }
         AlbumTab.LATEST -> spots.sortedBy { it.postedDaysAgo }
         AlbumTab.SAVED -> spots.filter { it.id in saved }
+        AlbumTab.VISITED -> spots.filter { it.id in visited }.sortedByDescending { distanceKm(here, it.location) }
         AlbumTab.FROM_PHONE -> fromPhone.mapNotNull { id -> spots.firstOrNull { it.id == id } }
     }
 
@@ -91,4 +95,20 @@ object SpotQueries {
         val provinces = spots.map { it.province }.distinct()
         return if (provinces.size == 1) provinces.single() else "지도에 보이는 곳"
     }
+}
+
+/**
+ * What a travel tracker shows at the top of a timeline, in PARK-IT terms: places, provinces and
+ * how far the farthest one is. Computed from the visited set, so it needs no tracking of its own.
+ */
+data class TravelSummary(val places: Int, val provinces: Set<String>, val farthest: Spot?, val farthestKm: Double)
+
+fun travelSummary(visitedSpots: List<Spot>, here: LatLng): TravelSummary {
+    val farthest = visitedSpots.maxByOrNull { distanceKm(here, it.location) }
+    return TravelSummary(
+        places = visitedSpots.size,
+        provinces = visitedSpots.map { it.province }.toSet(),
+        farthest = farthest,
+        farthestKm = farthest?.let { distanceKm(here, it.location) } ?: 0.0,
+    )
 }

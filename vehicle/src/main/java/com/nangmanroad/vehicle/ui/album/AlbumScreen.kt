@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.WbSunny
@@ -41,6 +42,8 @@ import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.SpotQueries
 import com.nangmanroad.core.data.SunMoment
 import com.nangmanroad.core.data.SunPlan
+import com.nangmanroad.core.data.TravelSummary
+import com.nangmanroad.core.data.travelSummary
 import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.data.formatKm
 import com.nangmanroad.core.data.sunPlan
@@ -56,7 +59,7 @@ private val aspects = listOf(0.78f, 1.0f, 0.68f, 1.2f, 0.9f)
 
 @Composable
 fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
-    val spots = SpotQueries.album(state.spots, state.albumTab, state.saved, state.liked, state.following, state.here, state.fromPhone)
+    val spots = SpotQueries.album(state.spots, state.albumTab, state.saved, state.liked, state.following, state.here, state.fromPhone, state.visited)
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Adaptive(320.dp),
         modifier = Modifier.fillMaxSize(),
@@ -75,6 +78,7 @@ fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
                             onClick = { actions.setAlbumTab(tab) },
                             count = when (tab) {
                                 AlbumTab.SAVED -> state.saved.size
+                                AlbumTab.VISITED -> state.visited.size
                                 AlbumTab.FROM_PHONE -> state.fromPhone.size
                                 else -> null
                             },
@@ -91,10 +95,19 @@ fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
                 SunPlanStrip(plans.sortedWith(compareByDescending<Pair<Spot, SunPlan>> { it.second.makesIt }.thenBy { it.second.minutesToSpare }), state, actions)
             }
         }
+        // The places already been to, summed up the way a travel tracker does: count, provinces, farthest.
+        if (state.albumTab == AlbumTab.VISITED && spots.isNotEmpty()) {
+            item(span = StaggeredGridItemSpan.FullLine) { TravelStrip(travelSummary(spots, state.here)) }
+        }
         if (spots.isEmpty()) {
             item(span = StaggeredGridItemSpan.FullLine) {
                 when (state.albumTab) {
                     AlbumTab.SAVED -> EmptyState(Icons.Outlined.BookmarkBorder, "저장한 장소가 없어요", "마음에 드는 사진의 책갈피를 눌러 저장해 보세요.")
+                    AlbumTab.VISITED -> EmptyState(
+                        Icons.Outlined.CheckCircle,
+                        "아직 다녀온 곳이 없어요",
+                        "장소에 도착해 파킷을 남기거나, 휴대폰 상세에서 '다녀왔다면'을 누르면 여기에 쌓여요.",
+                    )
                     AlbumTab.FROM_PHONE -> EmptyState(
                         Icons.Outlined.PhoneAndroid,
                         "휴대폰에서 보낸 장소가 없어요",
@@ -158,5 +171,31 @@ private fun SunPlanStrip(plans: List<Pair<Spot, SunPlan>>, state: AppUiState, ac
                 }
             }
         }
+    }
+}
+
+/** "3곳 · 강원·충남 · 가장 멀리 강릉 164km": the numbers a trip tracker would put above its timeline. */
+@Composable
+private fun TravelStrip(summary: TravelSummary) {
+    Row(
+        modifier = Modifier
+            .padding(bottom = 8.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Palette.Surface)
+            .padding(horizontal = 24.dp, vertical = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(28.dp),
+    ) {
+        TravelFigure("${summary.places}곳", "다녀왔어요")
+        TravelFigure("${summary.provinces.size}개 지역", summary.provinces.joinToString("·"))
+        summary.farthest?.let { TravelFigure(formatKm(summary.farthestKm), "가장 멀리 · ${it.province}") }
+    }
+}
+
+@Composable
+private fun TravelFigure(value: String, caption: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(value, style = MaterialTheme.typography.headlineSmall.tabular(), color = Palette.TextPrimary)
+        Text(caption, style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
