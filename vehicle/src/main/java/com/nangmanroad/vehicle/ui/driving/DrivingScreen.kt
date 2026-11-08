@@ -18,6 +18,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.PauseCircle
+import androidx.compose.material.icons.outlined.WbSunny
+import androidx.compose.material.icons.outlined.WbTwilight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,6 +33,11 @@ import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.formatDuration
 import com.nangmanroad.core.data.formatMeters
+import com.nangmanroad.core.data.SunMoment
+import com.nangmanroad.core.data.at
+import com.nangmanroad.core.data.formatClock
+import com.nangmanroad.core.data.sunMoment
+import com.nangmanroad.core.data.sunTimesToday
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.byImportance
 import com.nangmanroad.core.ui.color
@@ -40,9 +47,6 @@ import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.pleos.DrivingState
 import com.nangmanroad.vehicle.ui.components.ActionButton
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /**
  * While the car can move: no photos, feeds or scrolling, just the destination and at most three
@@ -111,6 +115,24 @@ fun DrivingScreen(state: AppUiState, onExitPreview: () -> Unit) {
                                     Text(
                                         arrivalTime(destination.remainSeconds),
                                         style = MaterialTheme.typography.headlineMedium.tabular(),
+                                        color = Palette.TextPrimary,
+                                    )
+                                }
+                            }
+                            // For a sunset or sunrise place, the one question is whether we make it in time.
+                            val moment = routed?.category?.sunMoment
+                            val sun = if (moment != null && routed != null) sunTimesToday(routed.location) else null
+                            if (moment != null && sun != null) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Icon(
+                                        if (moment == SunMoment.SUNSET) Icons.Outlined.WbTwilight else Icons.Outlined.WbSunny,
+                                        contentDescription = null,
+                                        tint = Palette.Warning,
+                                        modifier = Modifier.size(28.dp),
+                                    )
+                                    Text(
+                                        sunVerdict(moment, sun.at(moment), destination.remainSeconds),
+                                        style = MaterialTheme.typography.titleMedium.tabular(),
                                         color = Palette.TextPrimary,
                                     )
                                 }
@@ -185,6 +207,17 @@ fun DrivingScreen(state: AppUiState, onExitPreview: () -> Unit) {
     }
 }
 
-/** Clock time [secondsFromNow] ahead, e.g. "오후 9:40". */
-private fun arrivalTime(secondsFromNow: Int): String =
-    SimpleDateFormat("a h:mm", Locale.KOREA).format(Date(System.currentTimeMillis() + secondsFromNow * 1000L))
+/** "일몰 오후 5:23 · 40분 전 도착", or that the sun will already be gone (or up) when we get there. */
+private fun sunVerdict(moment: SunMoment, sunAt: Long, remainSeconds: Int): String {
+    val arrival = System.currentTimeMillis() + remainSeconds * 1000L
+    val minutesToSpare = ((sunAt - arrival) / 60_000L).toInt()
+    val when_ = "${moment.label} ${formatClock(sunAt)}"
+    return when {
+        minutesToSpare >= 1 -> "$when_ · ${formatDuration(minutesToSpare * 60)} 전 도착"
+        moment == SunMoment.SUNSET -> "$when_ · 해 진 뒤 도착해요"
+        else -> "$when_ · 해 뜬 뒤 도착해요"
+    }
+}
+
+/** Clock time [secondsFromNow] ahead, e.g. "오후 9:40", on the same Korean clock as the sun times. */
+private fun arrivalTime(secondsFromNow: Int): String = formatClock(System.currentTimeMillis() + secondsFromNow * 1000L)

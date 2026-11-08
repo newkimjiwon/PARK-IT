@@ -14,6 +14,11 @@ import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.data.withConflictsFlagged
+import com.nangmanroad.core.data.KoreaZone
+import com.nangmanroad.core.data.formatClock
+import com.nangmanroad.core.data.sunTimes
+import java.time.Instant
+import java.time.LocalDate
 import com.nangmanroad.core.map.MapCamera
 import com.nangmanroad.core.map.clusterMarkers
 import org.junit.Assert.assertEquals
@@ -98,6 +103,25 @@ class SpotLogicTest {
         // A point under the focus scales away from it by exactly the zoom factor.
         assertEquals(focus.x + (before.x - focus.x) * 2, after.x, 0.5f)
         assertEquals(focus.y + (before.y - focus.y) * 2, after.y, 0.5f)
+    }
+
+    @Test
+    fun `sun times in Gangneung match the published table within a few minutes`() {
+        // badatime.com lists 강릉 2026-11-01 as 06:49 / 17:26; the equation is good to about two minutes.
+        val sun = sunTimes(spots.first { it.id == "s-gangneung" }.location, LocalDate.of(2026, 11, 1))!!
+        val rise = Instant.ofEpochMilli(sun.sunrise).atZone(KoreaZone).toLocalTime()
+        val set = Instant.ofEpochMilli(sun.sunset).atZone(KoreaZone).toLocalTime()
+        assertTrue("sunrise $rise", rise.hour == 6 && rise.minute in 45..53)
+        assertTrue("sunset $set", set.hour == 17 && set.minute in 22..30)
+        assertTrue(formatClock(sun.sunset).startsWith("오후 5:"))
+    }
+
+    @Test
+    fun `the sun sets later on the west coast than on the east coast`() {
+        val day = LocalDate.of(2026, 11, 8)
+        val gangneung = sunTimes(spots.first { it.id == "s-gangneung" }.location, day)!!
+        val taean = sunTimes(spots.first { it.id == "s-taean" }.location, day)!!
+        assertTrue(taean.sunset - gangneung.sunset > 5 * 60_000L)
     }
 
     @Test

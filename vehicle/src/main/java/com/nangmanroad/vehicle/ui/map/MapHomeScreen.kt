@@ -39,6 +39,8 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.WbSunny
+import androidx.compose.material.icons.outlined.WbTwilight
 import androidx.compose.material.icons.outlined.Directions
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.NearMe
@@ -75,6 +77,11 @@ import com.nangmanroad.core.ui.CarCampingBadge
 import com.nangmanroad.core.data.FeedSort
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.SpotQueries
+import com.nangmanroad.core.data.SunMoment
+import com.nangmanroad.core.data.at
+import com.nangmanroad.core.data.formatClock
+import com.nangmanroad.core.data.sunMoment
+import com.nangmanroad.core.data.sunTimesToday
 import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.data.formatKm
 import com.nangmanroad.vehicle.ui.components.ActionButton
@@ -268,6 +275,12 @@ private fun PreviewCard(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Stat(Icons.Outlined.FavoriteBorder, state.likeCount(spot).toString())
                 Stat(Icons.Outlined.TipsAndUpdates, "꿀팁 ${spot.tips.size}")
+                // A sunset place is only worth the drive before the sun goes: say when that is.
+                spot.category.sunMoment?.let { moment ->
+                    sunTimesToday(spot.location)?.let { sun ->
+                        Stat(if (moment == SunMoment.SUNSET) Icons.Outlined.WbTwilight else Icons.Outlined.WbSunny, "${moment.label} ${formatClock(sun.at(moment))}")
+                    }
+                }
                 FacilityStrip(spot.tips, iconSize = 24.dp)
             }
         }
