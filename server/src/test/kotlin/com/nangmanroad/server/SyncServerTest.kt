@@ -1,5 +1,6 @@
 package com.nangmanroad.server
 
+import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.Category
 import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.TipKind
@@ -103,6 +104,18 @@ class SyncServerTest {
         now += SyncStore.PAIRING_TTL_MS + 1
         val failure = runCatching { store.claimPairing(store.userFor(phone.token), code.code) }.exceptionOrNull()
         assertTrue(failure is NoSuchElementException)
+    }
+
+    @Test
+    fun `a published post keeps the author's car-camping answer`() {
+        val store = SyncStore(folder.root)
+        val author = store.userFor(store.signIn("작성자").token)
+        val banned = post("단속 주차장", Visibility.PUBLIC).copy(carCamping = CarCamping.BANNED, carCampingNote = " 야간 주차 금지 안내판 ")
+        val spot = store.createPost(author, banned)
+        assertEquals(CarCamping.BANNED, spot.carCamping)
+        assertEquals("야간 주차 금지 안내판", spot.carCampingNote)
+        // Older phones that send no answer land on the honest default.
+        assertEquals(CarCamping.CHECK, store.createPost(author, post("모르는 곳", Visibility.PUBLIC)).carCamping)
     }
 
     @Test

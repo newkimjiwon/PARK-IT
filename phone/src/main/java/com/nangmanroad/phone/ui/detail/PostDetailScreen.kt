@@ -58,12 +58,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.Comment
 import com.nangmanroad.core.data.HoneyTip
 import com.nangmanroad.core.data.Product
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.ui.Avatar
+import com.nangmanroad.core.ui.CarCampingBadge
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.core.ui.SpotPhoto
@@ -215,6 +217,17 @@ private fun Header(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                 style = MaterialTheme.typography.bodySmall.tabular(),
                 color = Palette.TextSecondary,
             )
+            // The author's answer to "can the night be spent here?", with their reason when given.
+            Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CarCampingBadge(spot.carCamping)
+                if (spot.carCampingNote.isNotBlank()) {
+                    Text(
+                        spot.carCampingNote,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (spot.carCamping == CarCamping.BANNED) Palette.Alert else Palette.TextSecondary,
+                    )
+                }
+            }
         }
         if (spot.story.isNotBlank()) Text("“${spot.story}”", style = MaterialTheme.typography.bodyLarge, color = Palette.TextPrimary)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {

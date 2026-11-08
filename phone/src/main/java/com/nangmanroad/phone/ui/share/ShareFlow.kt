@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.Category
 import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.Product
@@ -246,6 +247,36 @@ private fun StoryStep(draft: ShareDraft, actions: PhoneViewModel) {
             Category.entries.forEach { category ->
                 Chip(category.label, draft.category == category, { actions.updateDraft { it.copy(category = category) } })
             }
+        }
+        CarCampingQuestion(draft, actions)
+    }
+}
+
+/**
+ * "Can the night be spent here?" is the first thing the next driver looks for, so it is asked where
+ * the place is described, not buried among tips. "현장 확인" stays the honest default; a reason is
+ * invited only once the author commits to 가능 or 금지.
+ */
+@Composable
+private fun CarCampingQuestion(draft: ShareDraft, actions: PhoneViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("이곳에서 밤을 보내도 되나요?", style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
+        Text(
+            "다음 운전자가 가장 먼저 보는 정보예요. 확실하지 않으면 '현장 확인'으로 두세요.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Palette.TextSecondary,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            CarCamping.entries.forEach { status ->
+                Chip(status.label, draft.carCamping == status, { actions.updateDraft { it.copy(carCamping = status) } }, icon = status.icon())
+            }
+        }
+        if (draft.carCamping != CarCamping.CHECK) {
+            LabeledField(
+                "근거 (선택)",
+                draft.carCampingNote,
+                if (draft.carCamping == CarCamping.BANNED) "예: 공영주차장에 야간 주차 금지 안내판이 있어요" else "예: 관리인이 차박을 허용한다고 했어요",
+            ) { note -> actions.updateDraft { it.copy(carCampingNote = note) } }
         }
     }
 }

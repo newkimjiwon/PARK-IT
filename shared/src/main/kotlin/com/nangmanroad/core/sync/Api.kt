@@ -1,6 +1,7 @@
 package com.nangmanroad.core.sync
 
 import com.nangmanroad.core.data.Author
+import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.Category
 import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.Product
@@ -128,6 +129,9 @@ data class NewPost(
     val products: List<Product>,
     val visibility: Visibility,
     val approximateLocation: Boolean,
+    /** Whether the author says the night can be spent here; defaults keep older phones publishing. */
+    val carCamping: CarCamping = CarCamping.CHECK,
+    val carCampingNote: String = "",
 )
 
 /** [path] is relative to the server, e.g. "/photos/3f2a.jpg". */

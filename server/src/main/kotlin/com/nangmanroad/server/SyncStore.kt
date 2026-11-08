@@ -245,6 +245,8 @@ class SyncStore(
             comments = emptyList(),
             visibility = post.visibility,
             approximateLocation = post.approximateLocation,
+            carCamping = post.carCamping,
+            carCampingNote = post.carCampingNote.trim(),
         )
         update { it.copy(posts = it.posts + StoredPost(spot, now)) }
         return decorate(spot, userId)
