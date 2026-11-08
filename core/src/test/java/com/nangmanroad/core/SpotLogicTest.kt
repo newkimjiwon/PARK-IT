@@ -147,9 +147,15 @@ class SpotLogicTest {
         // The sunset must be the one on the day of departure, not the day before.
         assertTrue(noon.sunAt - at(LocalTime.NOON) in 4 * 3_600_000L..7 * 3_600_000L)
         assertTrue(noon.verdict(), noon.verdict().startsWith("지금 출발하면 일몰"))
+        // Leaving by about half past one keeps 15 minutes to settle before a 17:26 sunset.
+        assertTrue(noon.departureHint(), noon.departureHint()!!.startsWith("늦어도 오후 1:"))
         val five = sunPlan(gangneung, DefaultLocation, now = at(LocalTime.of(17, 0)))!!
         assertTrue(!five.makesIt)
         assertTrue(five.verdict(), five.verdict().startsWith("오늘 일몰은 늦었어요"))
+        assertTrue(five.departureHint(), five.departureHint()!!.startsWith("내일은 늦어도 오후 1:"))
+        // A live route that says ten minutes to go beats the straight-line guess.
+        val almostThere = sunPlan(gangneung, DefaultLocation, now = at(LocalTime.of(17, 0)), driveSeconds = 600)!!
+        assertTrue(almostThere.makesIt && almostThere.fromRoute)
         // A drive spot has no sun moment, so no plan.
         assertEquals(null, sunPlan(spots.first { it.category == Category.DRIVE }, DefaultLocation))
     }

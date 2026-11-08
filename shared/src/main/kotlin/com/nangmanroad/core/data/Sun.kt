@@ -74,11 +74,25 @@ fun formatClock(epochMillis: Long): String = clockFormat.format(Instant.ofEpochM
 private const val ROAD_FACTOR = 1.3
 private const val AVERAGE_KMH = 60.0
 
+/** Minutes to be parked and settled before the sun does its thing. */
+private const val SETTLE_MINUTES = 15
+
 /**
  * Whether leaving now gets the car to [spot] before its sun moment today: the question a saved
- * sunset place has to answer on the head unit before anyone starts the engine.
+ * sunset place has to answer on the head unit before anyone starts the engine. When today is
+ * already lost, [tomorrowLatestDeparture] says when to leave tomorrow instead.
  */
-data class SunPlan(val moment: SunMoment, val sunAt: Long, val arrival: Long, val minutesToSpare: Int) {
+data class SunPlan(
+    val moment: SunMoment,
+    val sunAt: Long,
+    val arrival: Long,
+    val minutesToSpare: Int,
+    /** Leave by then to be settled [SETTLE_MINUTES] before the sun; past already when too late. */
+    val latestDeparture: Long,
+    val tomorrowLatestDeparture: Long?,
+    /** True when the drive time came from the navigation route rather than a straight-line guess. */
+    val fromRoute: Boolean = false,
+) {
     val makesIt: Boolean get() = minutesToSpare >= 1
 
     /** "지금 출발하면 일몰 40분 전 도착" or "오늘 일몰은 늦었어요 · 오후 5:20". */
@@ -86,12 +100,35 @@ data class SunPlan(val moment: SunMoment, val sunAt: Long, val arrival: Long, va
         makesIt -> "지금 출발하면 ${moment.label} ${formatDuration(minutesToSpare * 60)} 전 도착"
         else -> "오늘 ${moment.label}은 늦었어요 · ${formatClock(sunAt)}"
     }
+
+    /** "늦어도 오후 1:30 출발", or tomorrow's when today is gone; null only when nothing can be said. */
+    fun departureHint(): String? = when {
+        makesIt && minutesToSpare > SETTLE_MINUTES -> "늦어도 ${formatClock(latestDeparture)} 출발"
+        !makesIt && tomorrowLatestDeparture != null -> "내일은 늦어도 ${formatClock(tomorrowLatestDeparture)} 출발"
+        else -> null
+    }
 }
 
-fun sunPlan(spot: Spot, here: LatLng, now: Long = System.currentTimeMillis()): SunPlan? {
+/**
+ * [driveSeconds] overrides the straight-line estimate, e.g. with the navigation route's remaining
+ * time when the car is already heading there.
+ */
+fun sunPlan(spot: Spot, here: LatLng, now: Long = System.currentTimeMillis(), driveSeconds: Int? = null): SunPlan? {
     val moment = spot.category.sunMoment ?: return null
-    val sunAt = sunTimesToday(spot.location, now)?.at(moment) ?: return null
-    val driveSeconds = (distanceKm(here, spot.location) * ROAD_FACTOR / AVERAGE_KMH * 3600).roundToInt()
-    val arrival = now + driveSeconds * 1000L
-    return SunPlan(moment, sunAt, arrival, ((sunAt - arrival) / 60_000L).toInt())
+    val today = Instant.ofEpochMilli(now).atZone(KoreaZone).toLocalDate()
+    val sunAt = sunTimes(spot.location, today)?.at(moment) ?: return null
+    val drive = driveSeconds ?: (distanceKm(here, spot.location) * ROAD_FACTOR / AVERAGE_KMH * 3600).roundToInt()
+    val driveMillis = drive * 1000L
+    val arrival = now + driveMillis
+    val settle = SETTLE_MINUTES * 60_000L
+    val tomorrowSunAt = sunTimes(spot.location, today.plusDays(1))?.at(moment)
+    return SunPlan(
+        moment = moment,
+        sunAt = sunAt,
+        arrival = arrival,
+        minutesToSpare = ((sunAt - arrival) / 60_000L).toInt(),
+        latestDeparture = sunAt - driveMillis - settle,
+        tomorrowLatestDeparture = tomorrowSunAt?.let { it - driveMillis - settle },
+        fromRoute = driveSeconds != null,
+    )
 }

@@ -89,7 +89,13 @@ fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
             }
         }
         // Saved sunset and sunrise places answer "can I still make it today?" before anything else.
-        val plans = if (state.albumTab == AlbumTab.SAVED) spots.mapNotNull { spot -> sunPlan(spot, state.here)?.let { spot to it } } else emptyList()
+        val plans = if (state.albumTab == AlbumTab.SAVED) {
+            spots.mapNotNull { spot ->
+                // A live route to that very place beats the straight-line guess.
+                val routeSeconds = state.destination?.remainSeconds?.takeIf { state.routedSpotId == spot.id }
+                sunPlan(spot, state.here, driveSeconds = routeSeconds)?.let { spot to it }
+            }
+        } else emptyList()
         if (plans.isNotEmpty()) {
             item(span = StaggeredGridItemSpan.FullLine) {
                 SunPlanStrip(plans.sortedWith(compareByDescending<Pair<Spot, SunPlan>> { it.second.makesIt }.thenBy { it.second.minutesToSpare }), state, actions)
@@ -162,8 +168,11 @@ private fun SunPlanStrip(plans: List<Pair<Spot, SunPlan>>, state: AppUiState, ac
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(spot.title, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(plan.verdict(), style = MaterialTheme.typography.bodyLarge.tabular(), color = if (plan.makesIt) Palette.TextPrimary else Palette.TextSecondary)
+                        plan.departureHint()?.let { hint ->
+                            Text(hint, style = MaterialTheme.typography.bodyMedium.tabular(), color = Palette.TextPrimary)
+                        }
                         Text(
-                            "직선 ${formatKm(distanceKm(state.here, spot.location))} · 시속 60km 기준",
+                            if (plan.fromRoute) "길 안내 남은 시간 기준" else "직선 ${formatKm(distanceKm(state.here, spot.location))} · 시속 60km 기준",
                             style = MaterialTheme.typography.labelMedium.tabular(),
                             color = Palette.TextTertiary,
                         )
