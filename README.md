@@ -14,7 +14,7 @@ Pleos 헤드유닛에서는 왼쪽 클러스터 옆 창에 앱이 열립니다. 
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/car-map.jpg" alt="사진 마커 지도, 시설·배터리 필터 칩, 선택한 장소 미리보기 카드(차박 상태·배터리 판정·일몰 시각), 지도에 보이는 지역의 피드"></td>
+    <td width="50%"><img src="docs/images/car-map.jpg" alt="사진 마커 지도, 지금 갈 수 있는 곳만 토글, 선택한 장소의 세 줄 카드(제목 / 차박 상태·배터리 판정 / 거리·지역·일몰), 지도에 보이는 지역의 피드"></td>
     <td width="50%"><img src="docs/images/car-detail-tips.jpg" alt="장소 상세의 방문 꿀팁 탭. 확인 필요, 준비하세요 상태 카드"></td>
   </tr>
   <tr>
