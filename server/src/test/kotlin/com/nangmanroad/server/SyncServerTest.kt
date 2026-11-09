@@ -36,6 +36,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -134,6 +135,44 @@ class SyncServerTest {
         assertTrue(disputed.carCampingNote.startsWith("최근 제보가 엇갈려요"))
         // A later report that agrees with the previous one settles it again.
         assertEquals(CarCamping.ALLOWED, store.reportCarCamping(first, "s-taean", CarCampingReport(CarCamping.ALLOWED)).carCamping)
+    }
+
+    @Test
+    fun `lifting a ban takes two visitors and one person cannot vote twice`() {
+        val store = SyncStore(folder.root)
+        val first = store.userFor(store.signIn("첫째").token)
+        val second = store.userFor(store.signIn("둘째").token)
+        // 강릉 is banned in the sample data. One visitor saying "allowed" only flags it for checking.
+        val once = store.reportCarCamping(first, "s-gangneung", CarCampingReport(CarCamping.ALLOWED))
+        assertEquals(CarCamping.CHECK, once.carCamping)
+        assertTrue(once.carCampingNote.contains("한 명이 더 확인하면"))
+        // The same person again changes nothing.
+        assertEquals(CarCamping.CHECK, store.reportCarCamping(first, "s-gangneung", CarCampingReport(CarCamping.ALLOWED)).carCamping)
+        // A second visitor agreeing does.
+        assertEquals(CarCamping.ALLOWED, store.reportCarCamping(second, "s-gangneung", CarCampingReport(CarCamping.ALLOWED)).carCamping)
+        // A ban from one visitor is applied at once: that is the safe direction.
+        assertEquals(CarCamping.BANNED, store.reportCarCamping(second, "s-taean", CarCampingReport(CarCamping.BANNED)).carCamping)
+    }
+
+    @Test
+    fun `too many wrong pairing codes lock the account for a while`() {
+        var now = 1_700_000_000_000L
+        val store = SyncStore(folder.root, clock = { now })
+        val me = store.userFor(store.signIn("윤슬을따라").token)
+        store.startPairing()
+        repeat(5) { assertFailsWith<NoSuchElementException> { store.claimPairing(me, "000000") } }
+        assertFailsWith<TooManyAttemptsException> { store.claimPairing(me, "000000") }
+        now += 11 * 60 * 1000L
+        assertFailsWith<NoSuchElementException> { store.claimPairing(me, "000000") }
+    }
+
+    @Test
+    fun `over-long text is refused with a clear message`() {
+        val store = SyncStore(folder.root)
+        val me = store.userFor(store.signIn("윤슬을따라").token)
+        val error = assertFailsWith<IllegalArgumentException> { store.createPost(me, post("x".repeat(61), Visibility.PUBLIC)) }
+        assertTrue(error.message!!.contains("60자"))
+        assertFailsWith<IllegalArgumentException> { store.addComment(me, "s-gangneung", NewComment("y".repeat(501), isQuestion = false)) }
     }
 
     @Test

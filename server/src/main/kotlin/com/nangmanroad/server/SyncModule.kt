@@ -49,6 +49,7 @@ fun Application.syncModule(store: SyncStore) {
         exception<UnauthorizedException> { call, cause -> call.respond(HttpStatusCode.Unauthorized, ApiError(cause.message.orEmpty())) }
         exception<IllegalArgumentException> { call, cause -> call.respond(HttpStatusCode.BadRequest, ApiError(cause.message.orEmpty())) }
         exception<NoSuchElementException> { call, cause -> call.respond(HttpStatusCode.NotFound, ApiError(cause.message.orEmpty())) }
+        exception<TooManyAttemptsException> { call, cause -> call.respond(HttpStatusCode.TooManyRequests, ApiError(cause.message.orEmpty())) }
     }
 
     routing {
@@ -97,20 +98,38 @@ fun Application.syncModule(store: SyncStore) {
 
             post("/photos") {
                 call.userId(store)
-                val type = call.request.contentType()
-                require(type.match(ContentType.Image.Any)) { "이미지 파일만 올릴 수 있어요" }
-                val extension = if (type.match(ContentType.Image.PNG)) "png" else "jpg"
+                require(call.request.contentType().match(ContentType.Image.Any)) { "이미지 파일만 올릴 수 있어요" }
                 val length = call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull()
                 require(length == null || length <= MAX_PHOTO_BYTES) { "사진은 15MB까지 올릴 수 있어요" }
-                val file = store.newPhotoFile(extension)
-                file.outputStream().use { out -> call.receiveChannel().copyTo(out, limit = MAX_PHOTO_BYTES) }
-                call.respond(UploadedPhoto("/photos/${file.name}"))
+                // Spool to a temporary file with a hard cap, then trust the bytes, not the header.
+                val temp = store.newPhotoFile("tmp")
+                try {
+                    val copied = temp.outputStream().use { out -> call.receiveChannel().copyTo(out, limit = MAX_PHOTO_BYTES + 1) }
+                    require(copied <= MAX_PHOTO_BYTES) { "사진은 15MB까지 올릴 수 있어요" }
+                    val extension = imageExtension(temp) ?: throw IllegalArgumentException("JPEG나 PNG 사진만 올릴 수 있어요")
+                    val file = store.newPhotoFile(extension)
+                    require(temp.renameTo(file)) { "사진을 저장하지 못했어요" }
+                    call.respond(UploadedPhoto("/photos/${file.name}"))
+                } finally {
+                    temp.delete()
+                }
             }
 
             post("/pairings") { call.respond(store.startPairing()) }
             get("/pairings/{id}") { call.respond(store.pairingStatus(call.parameters["id"].orEmpty())) }
             post("/pairings/claim") { call.respond(store.claimPairing(call.userId(store), call.receive<ClaimRequest>().code)) }
         }
+    }
+}
+
+/** "jpg" or "png" from the file's first bytes, or null when it is neither. */
+private fun imageExtension(file: File): String? {
+    val head = file.inputStream().use { input -> ByteArray(8).also { input.read(it) } }
+    val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+    return when {
+        head.contentEquals(png) -> "png"
+        head[0] == 0xFF.toByte() && head[1] == 0xD8.toByte() && head[2] == 0xFF.toByte() -> "jpg"
+        else -> null
     }
 }
 

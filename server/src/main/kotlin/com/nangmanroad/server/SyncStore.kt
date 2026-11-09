@@ -10,6 +10,7 @@ import com.nangmanroad.core.data.withConflictsFlagged
 import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.sync.Api
 import com.nangmanroad.core.sync.CarCampingReport
+import com.nangmanroad.core.sync.Limits
 import com.nangmanroad.core.sync.DeviceKind
 import com.nangmanroad.core.sync.NewComment
 import com.nangmanroad.core.sync.NewPost
@@ -29,6 +30,9 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 class UnauthorizedException : RuntimeException("로그인이 필요해요")
+
+/** Too many wrong pairing codes in a short time; the client is told to wait. */
+class TooManyAttemptsException(message: String) : RuntimeException(message)
 
 @Serializable
 private data class StoredUser(
@@ -196,10 +200,26 @@ class SyncStore(
         }
     }
 
+    private val claimFailures = mutableMapOf<String, MutableList<Long>>()
+
+    /**
+     * A six-digit code only holds up if nobody can try a million of them: after
+     * [MAX_CLAIM_ATTEMPTS] wrong codes in [CLAIM_WINDOW_MS] the account has to wait.
+     */
     @Synchronized
     fun claimPairing(userId: String, code: String): UserState {
-        val pairing = pairings.values.firstOrNull { it.code == code.trim() && it.session == null && it.expiresAt >= clock() }
-            ?: throw NoSuchElementException("코드가 맞지 않거나 시간이 지났어요. 차량 화면의 새 코드를 입력해 주세요")
+        val now = clock()
+        val failures = claimFailures.getOrPut(userId) { mutableListOf() }
+        failures.removeAll { it < now - CLAIM_WINDOW_MS }
+        if (failures.size >= MAX_CLAIM_ATTEMPTS) {
+            throw TooManyAttemptsException("코드를 너무 여러 번 틀렸어요. ${CLAIM_WINDOW_MS / 60_000}분 뒤에 다시 해 주세요")
+        }
+        val pairing = pairings.values.firstOrNull { it.code == code.trim() && it.session == null && it.expiresAt >= now }
+        if (pairing == null) {
+            failures += now
+            throw NoSuchElementException("코드가 맞지 않거나 시간이 지났어요. 차량 화면의 새 코드를 입력해 주세요")
+        }
+        claimFailures.remove(userId)
         val stored = StoredSession(newToken(), userId, DeviceKind.CAR, clock())
         update { it.copy(sessions = it.sessions + (stored.token to stored)) }
         pairing.session = Session(stored.token, user(userId).author, DeviceKind.CAR)
@@ -230,6 +250,14 @@ class SyncStore(
     fun createPost(userId: String, post: NewPost): Spot {
         require(post.title.isNotBlank()) { "제목을 입력해 주세요" }
         require(post.photos.isNotEmpty()) { "사진을 한 장 이상 골라 주세요" }
+        require(post.title.length <= Limits.TITLE) { "제목은 ${Limits.TITLE}자까지예요" }
+        require(post.story.length <= Limits.STORY) { "경험은 ${Limits.STORY}자까지예요" }
+        require(post.region.length <= Limits.REGION && post.address.length <= Limits.ADDRESS) { "지역 이름이 너무 길어요" }
+        require(post.carCampingNote.length <= Limits.NOTE) { "근거는 ${Limits.NOTE}자까지예요" }
+        require(post.bestTime.length <= Limits.BEST_TIME) { "가기 좋은 때는 ${Limits.BEST_TIME}자까지예요" }
+        require(post.photos.size <= Limits.PHOTOS) { "사진은 ${Limits.PHOTOS}장까지예요" }
+        require(post.tips.size <= Limits.TIPS && post.products.size <= Limits.PRODUCTS) { "꿀팁과 준비물이 너무 많아요" }
+        post.tips.forEach { tip -> tip.checkLength() }
         val author = user(userId).author
         val now = clock()
         val id = "post-${UUID.randomUUID().toString().take(12)}"
@@ -262,6 +290,7 @@ class SyncStore(
     @Synchronized
     fun addComment(userId: String, spotId: String, comment: NewComment): Spot {
         require(comment.text.isNotBlank()) { "내용을 입력해 주세요" }
+        require(comment.text.length <= Limits.COMMENT) { "댓글은 ${Limits.COMMENT}자까지예요" }
         val spot = findSpot(spotId)
         val stored = StoredComment(
             id = "c-${UUID.randomUUID().toString().take(12)}",
@@ -279,14 +308,21 @@ class SyncStore(
     @Synchronized
     fun addTip(userId: String, spotId: String, tip: NewTip): Spot {
         require(tip.summary.isNotBlank()) { "한 줄 요약을 입력해 주세요" }
+        tip.checkLength()
         val spot = findSpot(spotId)
         val stored = StoredTip(spotId, tip.toHoneyTip("tip-${UUID.randomUUID().toString().take(12)}", user(userId).author.name), clock())
         update { it.copy(tips = it.tips + stored) }
         return decorate(spot, userId)
     }
 
-    /** The newest report wins; two reporters who disagree send the place back to "현장 확인". */
+    /**
+     * Reports are weighed per person (a reporter's newer word replaces their older one). A ban or
+     * a "check" from one visitor is applied at once; lifting to "allowed" takes two visitors, and
+     * two who disagree send the place back to "현장 확인".
+     */
+    @Synchronized
     fun reportCarCamping(userId: String, spotId: String, report: CarCampingReport): Spot {
+        require(report.note.length <= Limits.NOTE) { "근거는 ${Limits.NOTE}자까지예요" }
         val spot = findSpot(spotId)
         val stored = StoredCarCamping(spotId, report.status, report.note.trim(), user(userId).author.name, clock())
         update { it.copy(carCamping = it.carCamping + stored) }
@@ -304,20 +340,25 @@ class SyncStore(
         val others = snapshot.users.values.filter { it.author.id != userId }
         val now = clock()
         val extraTips = snapshot.tips.filter { it.spotId == spot.id }.map { it.tip.copy(confirmedDaysAgo = daysSince(it.createdAt)) }
-        val reports = snapshot.carCamping.filter { it.spotId == spot.id }.sortedByDescending { it.createdAt }
+        // One voice per reporter: the same person reporting twice cannot outvote anyone.
+        val reports = snapshot.carCamping.filter { it.spotId == spot.id }.sortedByDescending { it.createdAt }.distinctBy { it.reporter }
         val latest = reports.getOrNull(0)
         val previous = reports.getOrNull(1)
         val disputed = latest != null && previous != null &&
             latest.status != previous.status && latest.status != CarCamping.CHECK && previous.status != CarCamping.CHECK
+        // Saying a place is fine to sleep at is the claim that can get someone towed: it needs a second visitor.
+        val liftNeedsSecond = latest != null && !disputed && latest.status == CarCamping.ALLOWED &&
+            spot.carCamping != CarCamping.ALLOWED && previous?.status != CarCamping.ALLOWED
         return spot.copy(
             carCamping = when {
                 latest == null -> spot.carCamping
-                disputed -> CarCamping.CHECK
+                disputed || liftNeedsSecond -> CarCamping.CHECK
                 else -> latest.status
             },
             carCampingNote = when {
                 latest == null -> spot.carCampingNote
                 disputed -> "최근 제보가 엇갈려요 · ${latest.reporter}: ${latest.status.label}, ${previous!!.reporter}: ${previous.status.label}"
+                liftNeedsSecond -> "${latest.reporter}님이 '차박 가능'으로 제보했어요 · 한 명이 더 확인하면 바뀌어요"
                 latest.note.isNotBlank() -> latest.note
                 else -> spot.carCampingNote
             },
@@ -358,6 +399,11 @@ class SyncStore(
     }
 
     private fun SendRequest.toItem() = SentItem(id, label, spotId, clock(), location)
+
+    private fun NewTip.checkLength() {
+        require(summary.length <= Limits.TIP_SUMMARY) { "한 줄 꿀팁은 ${Limits.TIP_SUMMARY}자까지예요" }
+        require(detail.length <= Limits.TIP_DETAIL) { "꿀팁 설명은 ${Limits.TIP_DETAIL}자까지예요" }
+    }
 
     private fun NewTip.toHoneyTip(id: String, reporter: String) = HoneyTip(
         id = id,
@@ -405,6 +451,8 @@ class SyncStore(
 
     companion object {
         const val PAIRING_TTL_MS = 10 * 60 * 1000L
+        const val MAX_CLAIM_ATTEMPTS = 5
+        const val CLAIM_WINDOW_MS = 10 * 60 * 1000L
 
         fun relativeTime(time: Long, now: Long): String {
             val minutes = TimeUnit.MILLISECONDS.toMinutes(now - time)

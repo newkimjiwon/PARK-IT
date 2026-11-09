@@ -145,3 +145,20 @@ data class UploadedPhoto(val path: String)
 
 @Serializable
 data class ApiError(val message: String)
+
+/** Hard limits the server enforces on what users send, so the apps can stop at the same line. */
+object Limits {
+    const val NICKNAME = 20
+    const val TITLE = 60
+    const val STORY = 2000
+    const val REGION = 60
+    const val ADDRESS = 120
+    const val NOTE = 200
+    const val BEST_TIME = 60
+    const val COMMENT = 500
+    const val TIP_SUMMARY = 80
+    const val TIP_DETAIL = 500
+    const val PHOTOS = 10
+    const val TIPS = 20
+    const val PRODUCTS = 20
+}
