@@ -23,7 +23,7 @@ Pleos 헤드유닛에서는 왼쪽 클러스터 옆 창에 앱이 열립니다. 
   </tr>
   <tr>
     <td><img src="docs/images/car-detail-items.jpg" alt="장소 상세의 준비물 탭. 가격, 추천한 사람, 광고·제휴 표시"></td>
-    <td><img src="docs/images/car-album.jpg" alt="앨범의 추천 탭 사진 그리드"></td>
+    <td><img src="docs/images/car-album.jpg" alt="내 장소의 저장한 장소 탭. 오늘 해를 보러 간다면 카드와 저장한 사진"></td>
   </tr>
   <tr>
     <td><b>준비물</b> · 방문자들이 챙겨 간 물건과 가격, 광고·제휴 표시, 구매는 휴대폰으로</td>
@@ -39,7 +39,7 @@ Pleos 헤드유닛에서는 왼쪽 클러스터 옆 창에 앱이 열립니다. 
   </tr>
   <tr>
     <td><img src="docs/images/car-pairing.jpg" alt="휴대폰 계정과 연결하기 화면의 6자리 코드"></td>
-    <td><img src="docs/images/car-account.jpg" alt="휴대폰과 연결되어 있어요 화면"></td>
+    <td><img src="docs/images/car-account.jpg" alt="휴대폰과 연결되어 있어요 화면과 파킷 위치를 시·군 중심으로만 보내기 설정"></td>
   </tr>
   <tr>
     <td><b>계정 연결</b> · 휴대폰에 입력할 6자리 코드(10분마다 새 코드)</td>
@@ -51,7 +51,7 @@ Pleos 헤드유닛에서는 왼쪽 클러스터 옆 창에 앱이 열립니다. 
 
 <table>
   <tr>
-    <td width="25%"><img src="docs/images/phone-signin.jpg" alt="닉네임 로그인 화면"></td>
+    <td width="25%"><img src="docs/images/phone-signin.jpg" alt="닉네임과 비밀번호 로그인 화면"></td>
     <td width="25%"><img src="docs/images/phone-home.jpg" alt="홈 피드의 나를 위한 추천 탭"></td>
     <td width="25%"><img src="docs/images/phone-map.jpg" alt="지도와 선택한 장소 카드"></td>
     <td width="25%"><img src="docs/images/phone-detail.jpg" alt="장소 상세 상단 사진 갤러리"></td>
@@ -65,7 +65,7 @@ Pleos 헤드유닛에서는 왼쪽 클러스터 옆 창에 앱이 열립니다. 
   <tr>
     <td><img src="docs/images/phone-tips.jpg" alt="장소 상세의 방문 꿀팁과 차량으로 보내기 버튼"></td>
     <td><img src="docs/images/phone-share-photo.jpg" alt="장소 공유 1단계 사진 고르기"></td>
-    <td><img src="docs/images/phone-share-place.jpg" alt="장소 공유 2단계 시·군과 지도 핀"></td>
+    <td><img src="docs/images/phone-share-place.jpg" alt="장소 공유 2단계. 시·군과 지도 핀, 위치 공개 수준, 차박 가능 여부"></td>
     <td><img src="docs/images/phone-car.jpg" alt="내 차량 탭의 차량 연결 카드와 콘셉트 안내"></td>
   </tr>
   <tr>
