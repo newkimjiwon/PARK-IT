@@ -1,7 +1,5 @@
-package com.nangmanroad.phone.data
+package com.nangmanroad.core.data
 
-import com.nangmanroad.core.data.LatLng
-import com.nangmanroad.core.data.distanceKm
 
 /** City/county a post can be pinned to. [address] is what the post shows; [short] is for cards. */
 data class Region(val short: String, val address: String, val center: LatLng)

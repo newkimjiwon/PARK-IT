@@ -25,6 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.nangmanroad.core.sync.DEMO_ACCOUNT_PASSWORD
+import com.nangmanroad.core.sync.Limits
+import com.nangmanroad.core.sync.MIN_PASSWORD_LENGTH
 import com.nangmanroad.core.ui.BRAND_TAGLINE
 import com.nangmanroad.core.ui.ParkItWordmark
 import com.nangmanroad.core.ui.Palette
@@ -36,6 +39,7 @@ import com.nangmanroad.phone.ui.detail.LabeledField
 @Composable
 fun SignInScreen(account: AccountUi, actions: PhoneViewModel) {
     var nickname by rememberSaveable { mutableStateOf("윤슬을따라") }
+    var password by rememberSaveable { mutableStateOf("") }
     Column(
         Modifier
             .fillMaxSize()
@@ -50,9 +54,10 @@ fun SignInScreen(account: AccountUi, actions: PhoneViewModel) {
             style = MaterialTheme.typography.bodyLarge,
             color = Palette.TextSecondary,
         )
-        LabeledField("닉네임", nickname, "2~20자") { nickname = it }
+        LabeledField("닉네임", nickname, "2~${Limits.NICKNAME}자", maxLength = Limits.NICKNAME) { nickname = it }
+        LabeledField("비밀번호", password, "${MIN_PASSWORD_LENGTH}자 이상", secure = true) { password = it }
         Text(
-            "개발용 서버라 비밀번호 없이 닉네임으로 들어가요. '윤슬을따라'는 샘플 게시물이 있는 데모 계정이에요.",
+            "새 닉네임이면 이 비밀번호로 계정이 만들어져요. '윤슬을따라'는 샘플 게시물이 있는 데모 계정이고 비밀번호는 $DEMO_ACCOUNT_PASSWORD 예요.",
             style = MaterialTheme.typography.bodySmall,
             color = Palette.TextTertiary,
         )
@@ -65,8 +70,8 @@ fun SignInScreen(account: AccountUi, actions: PhoneViewModel) {
         }
         PrimaryButton(
             text = if (account.busy) "연결하는 중…" else "시작하기",
-            onClick = { actions.signIn(nickname) },
-            enabled = !account.busy && nickname.trim().length in 2..20,
+            onClick = { actions.signIn(nickname, password) },
+            enabled = !account.busy && nickname.trim().length in 2..Limits.NICKNAME && password.length >= MIN_PASSWORD_LENGTH,
             modifier = Modifier.fillMaxWidth(),
         )
         Text(

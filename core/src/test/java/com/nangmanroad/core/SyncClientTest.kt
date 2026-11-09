@@ -33,7 +33,7 @@ class SyncClientTest {
             seen = request
             respond(Api.json.encodeToString(Session.serializer(), session), HttpStatusCode.OK, jsonHeaders)
         }
-        val result = SyncClient("http://server", { null }, engine).signIn("윤슬을따라")
+        val result = SyncClient("http://server", { null }, engine).signIn("윤슬을따라", "parkit-demo")
 
         val request = seen!!
         assertEquals("http://server/api/session", request.url.toString())

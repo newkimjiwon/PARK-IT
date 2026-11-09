@@ -66,6 +66,7 @@ import com.nangmanroad.core.data.HoneyTip
 import com.nangmanroad.core.data.Product
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.TipStatus
+import com.nangmanroad.core.sync.Limits
 import com.nangmanroad.core.ui.Avatar
 import com.nangmanroad.core.ui.CarCampingBadge
 import com.nangmanroad.core.ui.Palette
@@ -420,7 +421,7 @@ private fun CommentComposer(replyingTo: String?, onCancelReply: () -> Unit, onSe
                 }
                 BasicTextField(
                     value = text,
-                    onValueChange = { text = it },
+                    onValueChange = { if (it.length <= Limits.COMMENT) text = it },
                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = Palette.TextPrimary),
                     cursorBrush = SolidColor(Palette.TextPrimary),
                     maxLines = 4,

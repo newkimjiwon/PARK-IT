@@ -55,6 +55,7 @@ import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.Visibility
+import com.nangmanroad.core.sync.Limits
 import com.nangmanroad.core.map.MapCamera
 import com.nangmanroad.core.map.PhotoMap
 import com.nangmanroad.core.ui.Palette
@@ -65,7 +66,7 @@ import com.nangmanroad.phone.DraftTip
 import com.nangmanroad.phone.PhoneUiState
 import com.nangmanroad.phone.PhoneViewModel
 import com.nangmanroad.phone.ShareDraft
-import com.nangmanroad.phone.data.Regions
+import com.nangmanroad.core.data.Regions
 import com.nangmanroad.phone.ui.components.Chip
 import com.nangmanroad.phone.ui.components.PrimaryButton
 import com.nangmanroad.phone.ui.components.SecondaryButton
@@ -240,8 +241,8 @@ private fun draftMarker(draft: ShareDraft, at: LatLng) = Spot(
 @Composable
 private fun StoryStep(draft: ShareDraft, actions: PhoneViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        LabeledField("제목", draft.title, "예: 파도 소리만 들리는 작은 해변") { title -> actions.updateDraft { it.copy(title = title) } }
-        LabeledField("경험", draft.story, "무엇을 보고 어떤 시간을 보냈는지 적어 주세요", minHeight = 120) { story -> actions.updateDraft { it.copy(story = story) } }
+        LabeledField("제목", draft.title, "예: 파도 소리만 들리는 작은 해변", maxLength = Limits.TITLE) { title -> actions.updateDraft { it.copy(title = title) } }
+        LabeledField("경험", draft.story, "무엇을 보고 어떤 시간을 보냈는지 적어 주세요", minHeight = 120, maxLength = Limits.STORY) { story -> actions.updateDraft { it.copy(story = story) } }
         Text("해시태그 대신 실제 경험을 들려주세요. 아래 분류는 지도에서 찾기 쉽게 해 줘요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Category.entries.forEach { category ->
@@ -249,7 +250,7 @@ private fun StoryStep(draft: ShareDraft, actions: PhoneViewModel) {
             }
         }
         CarCampingQuestion(draft, actions)
-        LabeledField("언제 가면 좋아요? (선택)", draft.bestTime, "예: 맑은 날 일몰 30분 전부터, 가을 새벽 물안개") { bestTime ->
+        LabeledField("언제 가면 좋아요? (선택)", draft.bestTime, "예: 맑은 날 일몰 30분 전부터, 가을 새벽 물안개", maxLength = Limits.BEST_TIME) { bestTime ->
             actions.updateDraft { it.copy(bestTime = bestTime) }
         }
     }
@@ -279,6 +280,7 @@ private fun CarCampingQuestion(draft: ShareDraft, actions: PhoneViewModel) {
                 "근거 (선택)",
                 draft.carCampingNote,
                 if (draft.carCamping == CarCamping.BANNED) "예: 공영주차장에 야간 주차 금지 안내판이 있어요" else "예: 관리인이 차박을 허용한다고 했어요",
+                maxLength = Limits.NOTE,
             ) { note -> actions.updateDraft { it.copy(carCampingNote = note) } }
         }
     }
@@ -309,7 +311,7 @@ private fun TipStep(draft: ShareDraft, actions: PhoneViewModel) {
                         Chip(status.label(), tip.status == status, { actions.updateDraft { it.copy(tips = it.tips + (kind to tip.copy(status = status))) } })
                     }
                 }
-                LabeledField("한 줄 꿀팁", tip.summary, placeholderFor(kind)) { summary ->
+                LabeledField("한 줄 꿀팁", tip.summary, placeholderFor(kind), maxLength = Limits.TIP_SUMMARY) { summary ->
                     actions.updateDraft { it.copy(tips = it.tips + (kind to tip.copy(summary = summary))) }
                 }
             }

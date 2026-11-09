@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.LinkOff
+import androidx.compose.material.icons.outlined.LocationOff
+import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -69,6 +71,26 @@ fun AccountScreen(state: AppUiState, actions: AppViewModel) {
                             color = if (state.online == false) Palette.Warning else Palette.TextTertiary,
                         )
                     }
+                }
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Palette.BackgroundRaised).padding(horizontal = 28.dp, vertical = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("파킷 위치를 시·군 중심으로만 보내기", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
+                        Text(
+                            "집 앞이나 회사 주차장에서 파킷해도 정확한 자리가 남지 않아요. 휴대폰에서 공유할 때도 '대략적인 위치'로 올라가요.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Palette.TextSecondary,
+                        )
+                    }
+                    ActionButton(
+                        text = if (state.approximateParkit) "켜짐" else "꺼짐",
+                        icon = if (state.approximateParkit) Icons.Outlined.LocationOff else Icons.Outlined.MyLocation,
+                        onClick = { actions.setApproximateParkit(!state.approximateParkit) },
+                        active = state.approximateParkit,
+                    )
                 }
                 ActionButton("연결 해제", Icons.Outlined.LinkOff, actions::unlinkAccount)
             } else {

@@ -51,7 +51,11 @@ enum class DeviceKind { PHONE, CAR }
 
 /** Demo sign-in: a nickname is enough. The server must not be exposed beyond development. */
 @Serializable
-data class SignInRequest(val nickname: String)
+data class SignInRequest(val nickname: String, val password: String = "")
+
+/** The seeded sample accounts (윤슬을따라 and friends) open with this; real accounts set their own. */
+const val DEMO_ACCOUNT_PASSWORD = "parkit-demo"
+const val MIN_PASSWORD_LENGTH = 6
 
 @Serializable
 data class Session(val token: String, val user: Author, val device: DeviceKind)

@@ -27,8 +27,8 @@ import com.nangmanroad.core.sync.UserState
 import com.nangmanroad.core.sync.list
 import com.nangmanroad.phone.data.CarCommand
 import com.nangmanroad.phone.data.CarDemoState
-import com.nangmanroad.phone.data.Region
-import com.nangmanroad.phone.data.Regions
+import com.nangmanroad.core.data.Region
+import com.nangmanroad.core.data.Regions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -193,10 +193,10 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
 
     // Account
 
-    fun signIn(nickname: String) {
+    fun signIn(nickname: String, password: String) {
         _state.update { it.copy(account = it.account.copy(busy = true, error = null)) }
         viewModelScope.launch {
-            repository.signIn(nickname)
+            repository.signIn(nickname, password)
                 .onSuccess { session ->
                     prefs.edit().putBoolean(KEY_OFFLINE, false).apply()
                     _state.update { it.copy(account = it.account.copy(busy = false, offline = false)) }
@@ -339,7 +339,8 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         val location = item.location ?: return toast("차량이 보낸 위치 정보가 없어요")
         _state.update {
             it.copy(
-                draft = ShareDraft(pin = location, region = Regions.nearest(location), parkitId = item.id),
+                // A car set to share only the city/county sends that region's centre; keep the post approximate too.
+                draft = ShareDraft(pin = location, region = Regions.nearest(location), parkitId = item.id, approximate = Regions.nearest(location).center == location),
                 stack = it.stack.filter { route -> route != PhoneRoute.Share } + PhoneRoute.Share,
             )
         }

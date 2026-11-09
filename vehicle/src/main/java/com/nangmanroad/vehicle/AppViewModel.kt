@@ -12,6 +12,7 @@ import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.Product
 import com.nangmanroad.core.data.SampleSpots
 import com.nangmanroad.core.data.Spot
+import com.nangmanroad.core.data.Regions
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.usableRangeKm
 import com.nangmanroad.core.data.distanceKm
@@ -97,6 +98,8 @@ data class AppUiState(
     val parkit: ParkitSuggestion? = null,
     /** Bumped when a 파킷 goes out, so the map plays the pin drop at the car's position. */
     val parkitPulse: Long? = null,
+    /** Send only the city/county centre with a 파킷, so a stop in front of home never pins the house. */
+    val approximateParkit: Boolean = false,
     val toast: ToastMessage? = null,
 ) {
     val saved: Set<String> get() = user.saved
@@ -126,6 +129,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = SpotRepository(application, localUser = Author("u-this-car", "이 차량", ""))
     private val driving = DrivingStateMonitor(application, viewModelScope)
     private val navigation = NavigationBridge(application)
+    private val settings = application.getSharedPreferences("vehicle_settings", Application.MODE_PRIVATE)
     private var pairingJob: Job? = null
 
     private val _state = MutableStateFlow(
@@ -134,6 +138,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             spots = repository.spots.value,
             session = repository.session.value,
             serverUrl = repository.serverUrl,
+            approximateParkit = settings.getBoolean(KEY_APPROXIMATE_PARKIT, false),
         ),
     )
     val state: StateFlow<AppUiState> = _state.asStateFlow()
@@ -274,6 +279,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun setApproximateParkit(on: Boolean) {
+        settings.edit().putBoolean(KEY_APPROXIMATE_PARKIT, on).apply()
+        _state.update { it.copy(approximateParkit = on) }
+    }
+
     fun unlinkAccount() {
         viewModelScope.launch {
             repository.signOut()
@@ -359,9 +369,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val near = _state.value.spot(suggestion.nearSpotId)
         val time = SimpleDateFormat("M월 d일 a h:mm", Locale.KOREA).format(Date(suggestion.at))
         val label = listOfNotNull("파킷", near?.title ?: nearestRegion(suggestion.location), time).joinToString(" · ")
+        val location = if (_state.value.approximateParkit) Regions.nearest(suggestion.location).center else suggestion.location
         viewModelScope.launch {
             if (near != null && near.id !in _state.value.user.visited) repository.toggle(UserList.VISITED, near.id, true)
-            repository.sendToPhone("$PARKIT_PREFIX${suggestion.at}", label, near?.id, suggestion.location)
+            repository.sendToPhone("$PARKIT_PREFIX${suggestion.at}", label, near?.id, location)
                 .onSuccess {
                     _state.update { it.copy(parkit = null, parkitPulse = System.currentTimeMillis()) }
                     toast(
@@ -408,6 +419,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private companion object {
+        const val KEY_APPROXIMATE_PARKIT = "approximate_parkit"
         const val DESTINATION_REFRESH_MS = 15_000L
         const val SYNC_REFRESH_MS = 10_000L
         const val PAIRING_POLL_MS = 2_000L

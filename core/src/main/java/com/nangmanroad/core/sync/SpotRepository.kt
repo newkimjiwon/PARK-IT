@@ -79,8 +79,8 @@ class SpotRepository(
         }
     }
 
-    suspend fun signIn(nickname: String): Result<Session> = remote {
-        client.signIn(nickname).also { adopt(it) }
+    suspend fun signIn(nickname: String, password: String): Result<Session> = remote {
+        client.signIn(nickname, password).also { adopt(it) }
     }
 
     /** Signs this device out; the account and its data stay on the server. */

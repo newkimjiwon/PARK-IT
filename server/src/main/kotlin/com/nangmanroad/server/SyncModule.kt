@@ -67,7 +67,10 @@ fun Application.syncModule(store: SyncStore) {
         }
 
         route("/api") {
-            post("/session") { call.respond(store.signIn(call.receive<SignInRequest>().nickname)) }
+            post("/session") {
+                val request = call.receive<SignInRequest>()
+                call.respond(store.signIn(request.nickname, request.password))
+            }
             delete("/session") {
                 call.bearerToken()?.let(store::signOut)
                 call.respond(HttpStatusCode.NoContent)

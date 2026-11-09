@@ -10,7 +10,9 @@ import com.nangmanroad.core.data.withConflictsFlagged
 import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.sync.Api
 import com.nangmanroad.core.sync.CarCampingReport
+import com.nangmanroad.core.sync.DEMO_ACCOUNT_PASSWORD
 import com.nangmanroad.core.sync.Limits
+import com.nangmanroad.core.sync.MIN_PASSWORD_LENGTH
 import com.nangmanroad.core.sync.DeviceKind
 import com.nangmanroad.core.sync.NewComment
 import com.nangmanroad.core.sync.NewPost
@@ -25,11 +27,14 @@ import com.nangmanroad.core.sync.UserList
 import com.nangmanroad.core.sync.UserState
 import kotlinx.serialization.Serializable
 import java.io.File
+import java.security.MessageDigest
 import java.security.SecureRandom
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-class UnauthorizedException : RuntimeException("로그인이 필요해요")
+class UnauthorizedException(message: String = "로그인이 필요해요") : RuntimeException(message)
 
 /** Too many wrong pairing codes in a short time; the client is told to wait. */
 class TooManyAttemptsException(message: String) : RuntimeException(message)
@@ -40,10 +45,13 @@ private data class StoredUser(
     val lists: Map<UserList, Set<String>> = emptyMap(),
     val carQueue: List<SentItem> = emptyList(),
     val phoneInbox: List<SentItem> = emptyList(),
+    /** PBKDF2 hash and salt, hex. Null for the seeded sample accounts, which open with the demo password. */
+    val passwordHash: String? = null,
+    val passwordSalt: String? = null,
 )
 
 @Serializable
-private data class StoredSession(val token: String, val userId: String, val device: DeviceKind, val createdAt: Long)
+private data class StoredSession(val token: String, val userId: String, val device: DeviceKind, val createdAt: Long, val lastUsedAt: Long = createdAt)
 
 @Serializable
 private data class StoredPost(val spot: Spot, val createdAt: Long)
@@ -101,12 +109,36 @@ class SyncStore(
 
     // Accounts
 
+    /**
+     * A new nickname creates an account with the given password; a known one must match. The
+     * seeded sample accounts have no hash and open with [DEMO_ACCOUNT_PASSWORD] only.
+     */
     @Synchronized
-    fun signIn(nickname: String): Session {
+    fun signIn(nickname: String, password: String): Session {
         val name = nickname.trim()
-        require(name.length in 2..20) { "닉네임은 2~20자로 정해 주세요" }
+        require(name.length in 2..Limits.NICKNAME) { "닉네임은 2~${Limits.NICKNAME}자로 정해 주세요" }
         val existing = snapshot.users.values.firstOrNull { it.author.name == name }
-        val user = existing ?: StoredUser(Author("u-${UUID.randomUUID().toString().take(8)}", name, "새로 낭만을 기록하기 시작했어요"))
+        val user = when {
+            existing == null -> {
+                require(password.length >= MIN_PASSWORD_LENGTH) { "비밀번호는 ${MIN_PASSWORD_LENGTH}자 이상으로 정해 주세요" }
+                val salt = newSalt()
+                StoredUser(
+                    Author("u-${UUID.randomUUID().toString().take(8)}", name, "새로 낭만을 기록하기 시작했어요"),
+                    passwordHash = hashPassword(password, salt),
+                    passwordSalt = salt,
+                )
+            }
+            existing.passwordHash == null -> {
+                if (!MessageDigest.isEqual(password.toByteArray(), DEMO_ACCOUNT_PASSWORD.toByteArray())) throw UnauthorizedException("비밀번호가 맞지 않아요")
+                existing
+            }
+            else -> {
+                val expected = existing.passwordHash.hexToBytes()
+                val actual = hashPassword(password, existing.passwordSalt.orEmpty()).hexToBytes()
+                if (!MessageDigest.isEqual(expected, actual)) throw UnauthorizedException("비밀번호가 맞지 않아요")
+                existing
+            }
+        }
         val session = StoredSession(newToken(), user.author.id, DeviceKind.PHONE, clock())
         update { it.copy(users = it.users + (user.author.id to user), sessions = it.sessions + (session.token to session)) }
         return Session(session.token, user.author, DeviceKind.PHONE)
@@ -115,9 +147,23 @@ class SyncStore(
     @Synchronized
     fun signOut(token: String) = update { it.copy(sessions = it.sessions - token) }
 
-    /** Returns the user id behind a bearer token, or throws [UnauthorizedException]. */
+    /**
+     * Returns the user id behind a bearer token, or throws [UnauthorizedException]. A token unused
+     * for [SESSION_TTL_MS] is dropped; use is recorded at most once an hour to spare the disk.
+     */
     @Synchronized
-    fun userFor(token: String?): String = snapshot.sessions[token]?.userId ?: throw UnauthorizedException()
+    fun userFor(token: String?): String {
+        val session = snapshot.sessions[token] ?: throw UnauthorizedException()
+        val now = clock()
+        if (now - session.lastUsedAt > SESSION_TTL_MS) {
+            update { it.copy(sessions = it.sessions - session.token) }
+            throw UnauthorizedException("오래 쓰지 않아 로그아웃됐어요. 다시 로그인해 주세요")
+        }
+        if (now - session.lastUsedAt > SESSION_TOUCH_MS) {
+            update { it.copy(sessions = it.sessions + (session.token to session.copy(lastUsedAt = now))) }
+        }
+        return session.userId
+    }
 
     @Synchronized
     fun state(userId: String): UserState {
@@ -420,6 +466,15 @@ class SyncStore(
 
     private fun newToken(): String = ByteArray(24).also(random::nextBytes).joinToString("") { "%02x".format(it) }
 
+    private fun newSalt(): String = ByteArray(16).also(random::nextBytes).joinToString("") { "%02x".format(it) }
+
+    private fun hashPassword(password: String, saltHex: String): String {
+        val spec = PBEKeySpec(password.toCharArray(), saltHex.hexToBytes(), PBKDF2_ITERATIONS, 256)
+        return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun String.hexToBytes(): ByteArray = chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+
     private fun update(transform: (Snapshot) -> Snapshot) {
         snapshot = transform(snapshot)
         save()
@@ -451,6 +506,9 @@ class SyncStore(
 
     companion object {
         const val PAIRING_TTL_MS = 10 * 60 * 1000L
+        const val SESSION_TTL_MS = 90L * 24 * 60 * 60 * 1000
+        const val SESSION_TOUCH_MS = 60 * 60 * 1000L
+        const val PBKDF2_ITERATIONS = 120_000
         const val MAX_CLAIM_ATTEMPTS = 5
         const val CLAIM_WINDOW_MS = 10 * 60 * 1000L
 

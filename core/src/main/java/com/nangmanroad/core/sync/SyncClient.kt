@@ -40,8 +40,8 @@ class SyncClient(
         install(ContentNegotiation) { json(Api.json) }
     }
 
-    suspend fun signIn(nickname: String): Session =
-        call(HttpMethod.Post, "/api/session", authorized = false) { jsonBody(SignInRequest(nickname)) }.body()
+    suspend fun signIn(nickname: String, password: String): Session =
+        call(HttpMethod.Post, "/api/session", authorized = false) { jsonBody(SignInRequest(nickname, password)) }.body()
 
     suspend fun signOut() {
         call(HttpMethod.Delete, "/api/session")

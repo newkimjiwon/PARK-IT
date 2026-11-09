@@ -19,6 +19,7 @@ import com.nangmanroad.core.sync.SignInRequest
 import com.nangmanroad.core.sync.ToggleRequest
 import com.nangmanroad.core.sync.UserList
 import com.nangmanroad.core.sync.CarCampingReport
+import com.nangmanroad.core.sync.DEMO_ACCOUNT_PASSWORD
 import com.nangmanroad.core.sync.UserState
 import com.nangmanroad.core.sync.isParkit
 import io.ktor.client.call.body
@@ -63,7 +64,7 @@ class SyncServerTest {
     @Test
     fun `sample author signs in to the seeded account`() {
         val store = SyncStore(folder.root)
-        val session = store.signIn("윤슬을따라")
+        val session = store.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD)
         assertEquals("u-yunseul", session.user.id)
         assertEquals(setOf("u-romance"), store.state(store.userFor(session.token)).following)
     }
@@ -71,8 +72,8 @@ class SyncServerTest {
     @Test
     fun `counts on a spot leave out the requester`() {
         val store = SyncStore(folder.root)
-        val me = store.userFor(store.signIn("윤슬을따라").token)
-        val other = store.userFor(store.signIn("새친구").token)
+        val me = store.userFor(store.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD).token)
+        val other = store.userFor(store.signIn("새친구", "test-pass").token)
         store.toggle(me, UserList.LIKED, "s-gangneung", on = true)
 
         assertEquals(324, store.spots(me).first { it.id == "s-gangneung" }.likeCount)
@@ -82,7 +83,7 @@ class SyncServerTest {
     @Test
     fun `car pairing links the car to the phone's account once`() {
         val store = SyncStore(folder.root)
-        val phone = store.signIn("윤슬을따라")
+        val phone = store.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD)
         val code = store.startPairing()
         assertEquals(PairingState.WAITING, store.pairingStatus(code.pairingId).state)
 
@@ -101,7 +102,7 @@ class SyncServerTest {
     fun `expired codes cannot be claimed`() {
         var now = 0L
         val store = SyncStore(folder.root) { now }
-        val phone = store.signIn("윤슬을따라")
+        val phone = store.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD)
         val code = store.startPairing()
         now += SyncStore.PAIRING_TTL_MS + 1
         val failure = runCatching { store.claimPairing(store.userFor(phone.token), code.code) }.exceptionOrNull()
@@ -111,7 +112,7 @@ class SyncServerTest {
     @Test
     fun `a published post keeps the author's car-camping answer`() {
         val store = SyncStore(folder.root)
-        val author = store.userFor(store.signIn("작성자").token)
+        val author = store.userFor(store.signIn("작성자", "test-pass").token)
         val banned = post("단속 주차장", Visibility.PUBLIC).copy(carCamping = CarCamping.BANNED, carCampingNote = " 야간 주차 금지 안내판 ", bestTime = " 맑은 날 일몰 ")
         val spot = store.createPost(author, banned)
         assertEquals(CarCamping.BANNED, spot.carCamping)
@@ -124,8 +125,8 @@ class SyncServerTest {
     @Test
     fun `car-camping reports update the badge and disagreement falls back to check`() {
         val store = SyncStore(folder.root)
-        val first = store.userFor(store.signIn("첫째").token)
-        val second = store.userFor(store.signIn("둘째").token)
+        val first = store.userFor(store.signIn("첫째", "test-pass").token)
+        val second = store.userFor(store.signIn("둘째", "test-pass").token)
         val banned = store.reportCarCamping(first, "s-taean", CarCampingReport(CarCamping.BANNED, " 입구에 금지 안내판 "))
         assertEquals(CarCamping.BANNED, banned.carCamping)
         assertEquals("입구에 금지 안내판", banned.carCampingNote)
@@ -140,8 +141,8 @@ class SyncServerTest {
     @Test
     fun `lifting a ban takes two visitors and one person cannot vote twice`() {
         val store = SyncStore(folder.root)
-        val first = store.userFor(store.signIn("첫째").token)
-        val second = store.userFor(store.signIn("둘째").token)
+        val first = store.userFor(store.signIn("첫째", "test-pass").token)
+        val second = store.userFor(store.signIn("둘째", "test-pass").token)
         // 강릉 is banned in the sample data. One visitor saying "allowed" only flags it for checking.
         val once = store.reportCarCamping(first, "s-gangneung", CarCampingReport(CarCamping.ALLOWED))
         assertEquals(CarCamping.CHECK, once.carCamping)
@@ -158,7 +159,7 @@ class SyncServerTest {
     fun `too many wrong pairing codes lock the account for a while`() {
         var now = 1_700_000_000_000L
         val store = SyncStore(folder.root, clock = { now })
-        val me = store.userFor(store.signIn("윤슬을따라").token)
+        val me = store.userFor(store.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD).token)
         store.startPairing()
         repeat(5) { assertFailsWith<NoSuchElementException> { store.claimPairing(me, "000000") } }
         assertFailsWith<TooManyAttemptsException> { store.claimPairing(me, "000000") }
@@ -169,17 +170,46 @@ class SyncServerTest {
     @Test
     fun `over-long text is refused with a clear message`() {
         val store = SyncStore(folder.root)
-        val me = store.userFor(store.signIn("윤슬을따라").token)
+        val me = store.userFor(store.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD).token)
         val error = assertFailsWith<IllegalArgumentException> { store.createPost(me, post("x".repeat(61), Visibility.PUBLIC)) }
         assertTrue(error.message!!.contains("60자"))
         assertFailsWith<IllegalArgumentException> { store.addComment(me, "s-gangneung", NewComment("y".repeat(501), isQuestion = false)) }
     }
 
     @Test
+    fun `passwords are required, hashed and checked`() {
+        val store = SyncStore(folder.root)
+        // The seeded demo account opens only with the demo password.
+        assertFailsWith<UnauthorizedException> { store.signIn("윤슬을따라", "wrong-pass") }
+        assertEquals("u-yunseul", store.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD).user.id)
+        // A new nickname needs a real password and then keeps it.
+        assertFailsWith<IllegalArgumentException> { store.signIn("새사람", "123") }
+        val created = store.signIn("새사람", "secret-7")
+        assertEquals(created.user.id, store.signIn("새사람", "secret-7").user.id)
+        assertFailsWith<UnauthorizedException> { store.signIn("새사람", "secret-8") }
+        // The password itself never lands in the state file.
+        val saved = folder.root.resolve("state.json").readText()
+        assertTrue("secret-7" !in saved)
+    }
+
+    @Test
+    fun `sessions expire after ninety idle days`() {
+        var now = 1_700_000_000_000L
+        val store = SyncStore(folder.root, clock = { now })
+        val token = store.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD).token
+        now += 89L * 24 * 60 * 60 * 1000
+        store.userFor(token)   // use keeps it alive
+        now += 89L * 24 * 60 * 60 * 1000
+        store.userFor(token)
+        now += 91L * 24 * 60 * 60 * 1000
+        assertFailsWith<UnauthorizedException> { store.userFor(token) }
+    }
+
+    @Test
     fun `follower-only posts reach followers and nobody else`() {
         val store = SyncStore(folder.root)
-        val author = store.userFor(store.signIn("작성자").token)
-        val stranger = store.userFor(store.signIn("지나가는사람").token)
+        val author = store.userFor(store.signIn("작성자", "test-pass").token)
+        val stranger = store.userFor(store.signIn("지나가는사람", "test-pass").token)
         val spot = store.createPost(author, post("숨은 해변", Visibility.FOLLOWERS))
 
         assertTrue(store.spots(author).any { it.id == spot.id })
@@ -191,7 +221,7 @@ class SyncServerTest {
     @Test
     fun `replies attach to their comment and new comments come first`() {
         val store = SyncStore(folder.root)
-        val me = store.userFor(store.signIn("윤슬을따라").token)
+        val me = store.userFor(store.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD).token)
         store.addComment(me, "s-gangneung", NewComment("다녀왔어요", isQuestion = false))
         val spot = store.addComment(me, "s-gangneung", NewComment("저도 궁금해요", isQuestion = false, parentId = "c-gn-1"))
 
@@ -202,7 +232,7 @@ class SyncServerTest {
     @Test
     fun `state survives a restart`() {
         val first = SyncStore(folder.root)
-        val token = first.signIn("윤슬을따라").token
+        val token = first.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD).token
         val me = first.userFor(token)
         val spot = first.createPost(me, post("다시 켜도 남는 장소", Visibility.PUBLIC))
         first.sendToCar(me, SendRequest(spot.id, spot.title, spot.id))
@@ -216,7 +246,7 @@ class SyncServerTest {
     @Test
     fun `a 파킷 keeps where the car parked across a restart`() {
         val first = SyncStore(folder.root)
-        val me = first.userFor(first.signIn("윤슬을따라").token)
+        val me = first.userFor(first.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD).token)
         val parked = LatLng(37.7519, 128.8761)
         first.sendToPhone(me, SendRequest("${PARKIT_PREFIX}1700000000000", "파킷 · 강원 강릉시 근처 · 11월 8일 오후 9:40", null, parked))
 
@@ -237,7 +267,7 @@ class SyncServerTest {
 
         val session = client.post("/api/session") {
             contentType(ContentType.Application.Json)
-            setBody(SignInRequest("윤슬을따라"))
+            setBody(SignInRequest("윤슬을따라", DEMO_ACCOUNT_PASSWORD))
         }.body<Session>()
         val state = client.post("/api/state/toggle") {
             bearerAuth(session.token)
