@@ -56,3 +56,10 @@ fun arrivalLabel(arrivalPercent: Int): String = when {
     arrivalPercent < ARRIVAL_COMFORT_PERCENT -> "도착 시 배터리 약 $arrivalPercent% · 돌아올 땐 충전"
     else -> "도착 시 배터리 약 $arrivalPercent%"
 }
+
+/**
+ * The single head-unit filter: places the car can round-trip on its battery (when it knows the
+ * pack) and where the night is not banned. One toggle instead of a row of chips to read while parked.
+ */
+fun List<Spot>.goableNow(here: LatLng, usableRangeKm: Double?): List<Spot> =
+    withinRoundTrip(here, usableRangeKm).filter { it.carCamping != CarCamping.BANNED }

@@ -23,6 +23,7 @@ import com.nangmanroad.core.data.usableRangeKm
 import com.nangmanroad.core.data.arrivalLabel
 import com.nangmanroad.core.data.arrivalPercent
 import com.nangmanroad.core.data.withinRoundTrip
+import com.nangmanroad.core.data.goableNow
 import com.nangmanroad.core.data.KoreaZone
 import com.nangmanroad.core.data.formatClock
 import com.nangmanroad.core.data.sunPlan
@@ -185,6 +186,10 @@ class SpotLogicTest {
         val reachable = spots.withinRoundTrip(DefaultLocation, full).map { it.id }
         assertTrue("s-yangpyeong" in reachable && "s-gangneung" !in reachable)
         assertEquals(spots.size, spots.withinRoundTrip(DefaultLocation, null).size)
+        // The car's one toggle also drops places where the night is banned, battery known or not.
+        val goable = spots.goableNow(DefaultLocation, null).map { it.id }
+        assertTrue("s-gangneung" !in goable && "s-taean" in goable)
+        assertTrue("s-gangneung" !in spots.goableNow(DefaultLocation, full).map { it.id })
     }
 
     @Test

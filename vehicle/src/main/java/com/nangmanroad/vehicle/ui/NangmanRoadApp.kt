@@ -28,7 +28,6 @@ import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.PhoneAndroid
-import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -105,12 +104,11 @@ private fun SideRail(state: AppUiState, actions: AppViewModel) {
     ) {
         ParkItMark(size = 44.dp, modifier = Modifier.padding(bottom = 12.dp))
         RailButton(Icons.Outlined.Map, "지도", state.screen == Screen.Map, onClick = actions::showMap)
-        val shortcutTabs = setOf(AlbumTab.SAVED, AlbumTab.FROM_PHONE)
-        RailButton(Icons.Outlined.PhotoLibrary, "앨범", onAlbum && state.albumTab !in shortcutTabs) {
-            actions.showAlbum(if (state.albumTab in shortcutTabs) AlbumTab.RECOMMENDED else null)
-        }
         RailButton(Icons.Outlined.BookmarkBorder, "저장", onAlbum && state.albumTab == AlbumTab.SAVED) {
             actions.showAlbum(AlbumTab.SAVED)
+        }
+        RailButton(Icons.Outlined.CheckCircle, "다녀온 곳", onAlbum && state.albumTab == AlbumTab.VISITED) {
+            actions.showAlbum(AlbumTab.VISITED)
         }
         RailButton(Icons.Outlined.PhoneAndroid, "휴대폰", onAlbum && state.albumTab == AlbumTab.FROM_PHONE, badge = state.fromPhone.size) {
             actions.showAlbum(AlbumTab.FROM_PHONE)

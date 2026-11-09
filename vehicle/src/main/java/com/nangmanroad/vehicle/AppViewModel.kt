@@ -84,7 +84,7 @@ data class AppUiState(
     val onlyRoundTrip: Boolean = false,
     val query: String = "",
     val feedSort: FeedSort = FeedSort.POPULAR,
-    val albumTab: AlbumTab = AlbumTab.RECOMMENDED,
+    val albumTab: AlbumTab = AlbumTab.SAVED,
     val visibleSpotIds: Set<String>? = null,
     val here: LatLng = DefaultLocation,
     val hereFromNavigation: Boolean = false,

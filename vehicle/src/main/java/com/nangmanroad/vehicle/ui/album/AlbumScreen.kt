@@ -57,6 +57,8 @@ import com.nangmanroad.core.ui.Palette
 
 private val aspects = listOf(0.78f, 1.0f, 0.68f, 1.2f, 0.9f)
 
+private val carTabs = listOf(AlbumTab.SAVED, AlbumTab.VISITED, AlbumTab.FROM_PHONE)
+
 @Composable
 fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
     val spots = SpotQueries.album(state.spots, state.albumTab, state.saved, state.liked, state.following, state.here, state.fromPhone, state.visited)
@@ -69,9 +71,10 @@ fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
     ) {
         item(span = StaggeredGridItemSpan.FullLine) {
             Column(Modifier.padding(bottom = 4.dp)) {
-                Text("앨범", style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
+                Text("내 장소", style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
                 Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    AlbumTab.entries.forEach { tab ->
+                    // The feed belongs to the phone; the car keeps only what is mine: saved, been to, sent over.
+                    carTabs.forEach { tab ->
                         TextTab(
                             text = tab.label,
                             selected = state.albumTab == tab,

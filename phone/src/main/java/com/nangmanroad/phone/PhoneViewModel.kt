@@ -55,7 +55,7 @@ enum class ProfileTab(val label: String) { SHARED("공유한 장소"), SAVED("�
 
 data class DraftTip(val status: TipStatus = TipStatus.PREPARE, val summary: String = "")
 
-/** The post being written in the six-step share flow. */
+/** The post being written in the three-step share flow. */
 data class ShareDraft(
     val step: Int = 0,
     val photos: List<String> = emptyList(),
@@ -81,17 +81,15 @@ data class ShareDraft(
 ) {
     val fromCar: Boolean get() = parkitId != null
 
+    /** Photos, then the place, then the words; tips and gear are optional extras on the last step. */
     fun canContinue(): Boolean = when (step) {
         0 -> photos.isNotEmpty() && !importing
         1 -> region != null
-        2 -> title.isNotBlank() && category != null
-        3 -> tips.isNotEmpty() && tips.values.all { it.summary.isNotBlank() }
-        STEP_COUNT - 1 -> !publishing
-        else -> true
+        else -> title.isNotBlank() && category != null && tips.values.all { it.summary.isNotBlank() } && !publishing
     }
 
     companion object {
-        const val STEP_COUNT = 6
+        const val STEP_COUNT = 3
     }
 }
 

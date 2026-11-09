@@ -39,17 +39,13 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.BatteryChargingFull
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.WbSunny
-import androidx.compose.material.icons.outlined.WbTwilight
 import androidx.compose.material.icons.outlined.Directions
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.TipsAndUpdates
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -81,34 +77,30 @@ import com.nangmanroad.core.ui.CarCampingBadge
 import com.nangmanroad.core.data.FeedSort
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.SpotQueries
-import com.nangmanroad.core.data.SunMoment
 import com.nangmanroad.core.data.at
 import com.nangmanroad.core.data.formatClock
 import com.nangmanroad.core.data.sunMoment
 import com.nangmanroad.core.data.sunTimesToday
 import com.nangmanroad.core.data.distanceKm
+import com.nangmanroad.core.data.goableNow
 import com.nangmanroad.core.data.reach
-import com.nangmanroad.core.data.withinRoundTrip
 import com.nangmanroad.core.ui.color
 import com.nangmanroad.core.data.formatKm
 import com.nangmanroad.vehicle.ui.components.ActionButton
 import com.nangmanroad.vehicle.ui.components.EmptyState
 import com.nangmanroad.vehicle.ui.components.Hairline
 import com.nangmanroad.vehicle.ui.components.TextTab
-import com.nangmanroad.core.ui.FacilityFilterRow
 import com.nangmanroad.core.ui.ToggleChip
-import com.nangmanroad.core.ui.FacilityStrip
 import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.vehicle.ui.feed.SpotCard
-import com.nangmanroad.vehicle.ui.feed.Stat
 import com.nangmanroad.vehicle.ui.theme.Dimens
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.tabular
 
 @Composable
 fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
-    val matching = SpotQueries.matching(state.spots, state.category, state.query, state.facilities)
-        .let { if (state.onlyRoundTrip) it.withinRoundTrip(state.here, state.usableRangeKm) else it }
+    val matching = SpotQueries.matching(state.spots, state.category, state.query)
+        .let { if (state.onlyRoundTrip) it.goableNow(state.here, state.usableRangeKm) else it }
     val selected = state.spot(state.selectedSpotId)?.takeIf { it in matching }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -127,11 +119,15 @@ fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
                 ) {
                     SearchField(query = state.query, onQueryChange = actions::setQuery)
                     CategoryFilters(selected = state.category, onSelect = actions::setCategory)
-                    FacilityFilterRow(selected = state.facilities, onToggle = actions::toggleFacility, modifier = Modifier.padding(bottom = 8.dp)) {
-                        // Only a car that reports its pack can promise a round trip.
-                        if (state.usableRangeKm != null) {
-                            ToggleChip(Icons.Outlined.BatteryChargingFull, "지금 배터리로 왕복", state.onlyRoundTrip, actions::toggleOnlyRoundTrip, onClickLabel = "지금 배터리로 왕복 가능한 곳만")
-                        }
+                    // One question while parked: where can we actually go tonight? Facility chips live on the phone.
+                    Row(Modifier.padding(bottom = 8.dp)) {
+                        ToggleChip(
+                            icon = Icons.Outlined.CheckCircle,
+                            label = if (state.usableRangeKm != null) "지금 갈 수 있는 곳만 · 배터리 ${state.battery!!.percent}%" else "지금 갈 수 있는 곳만",
+                            on = state.onlyRoundTrip,
+                            onToggle = actions::toggleOnlyRoundTrip,
+                            onClickLabel = "배터리로 왕복 가능하고 차박이 금지되지 않은 곳만",
+                        )
                     }
                 }
                 Hairline()
@@ -264,64 +260,37 @@ private fun PreviewCard(
                 .size(152.dp)
                 .clip(RoundedCornerShape(12.dp)),
         )
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                // The region shrinks first so the badge and its freshness never wrap.
-                Text(
-                    "${spot.category.label} · ${spot.region}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Palette.TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                CarCampingBadge(spot.carCamping, iconSize = 20.dp, stale = spot.carCampingStale)
-                spot.carCampingCheckedDaysAgo?.let {
-                    Text(carCampingCheckedLabel(it), style = MaterialTheme.typography.labelMedium, color = if (spot.carCampingStale) Palette.Warning else Palette.TextTertiary, maxLines = 1, softWrap = false)
-                }
-            }
+        // Three lines, readable in a glance from the driver's seat: what, may we, and how far/when.
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(spot.title, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.NearMe, contentDescription = null, tint = Palette.Coral, modifier = Modifier.size(20.dp))
-                Text(
-                    distanceLabel(state, spot),
-                    style = MaterialTheme.typography.bodyMedium.tabular(),
-                    color = Palette.TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            // The battery answers before the charger question comes up: there and back, or not.
-            state.usableRangeKm?.let { range ->
-                val verdict = reach(distanceKm(state.here, spot.location), range)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                CarCampingBadge(spot.carCamping, iconSize = 20.dp, stale = spot.carCampingStale)
+                state.usableRangeKm?.let { range ->
+                    val verdict = reach(distanceKm(state.here, spot.location), range)
                     Icon(Icons.Outlined.BatteryChargingFull, contentDescription = null, tint = verdict.color(), modifier = Modifier.size(20.dp))
+                    Text(verdict.label, style = MaterialTheme.typography.bodyMedium.tabular(), color = verdict.color(), maxLines = 1, softWrap = false)
+                }
+                spot.carCampingCheckedDaysAgo?.let {
                     Text(
-                        "${verdict.label} · 배터리 ${state.battery!!.percent}%",
-                        style = MaterialTheme.typography.bodyMedium.tabular(),
-                        color = verdict.color(),
+                        carCampingCheckedLabel(it),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (spot.carCampingStale) Palette.Warning else Palette.TextTertiary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
                 }
             }
-            // "When to go" is what separates a scenic spot from a pin: the author's own words, if any.
-            if (spot.bestTime.isNotBlank()) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Outlined.Schedule, contentDescription = "가기 좋은 때", tint = Palette.TextSecondary, modifier = Modifier.size(20.dp))
-                    Text(spot.bestTime, style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Stat(Icons.Outlined.FavoriteBorder, state.likeCount(spot).toString())
-                Stat(Icons.Outlined.TipsAndUpdates, "꿀팁 ${spot.tips.size}")
-                // A sunset place is only worth the drive before the sun goes: say when that is.
-                spot.category.sunMoment?.let { moment ->
-                    sunTimesToday(spot.location)?.let { sun ->
-                        Stat(if (moment == SunMoment.SUNSET) Icons.Outlined.WbTwilight else Icons.Outlined.WbSunny, "${moment.label} ${formatClock(sun.at(moment))}")
-                    }
-                }
-                FacilityStrip(spot.tips, iconSize = 24.dp)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Outlined.NearMe, contentDescription = null, tint = Palette.Coral, modifier = Modifier.size(20.dp))
+                val sun = spot.category.sunMoment?.let { moment -> sunTimesToday(spot.location)?.let { "${moment.label} ${formatClock(it.at(moment))}" } }
+                Text(
+                    listOfNotNull(distanceLabel(state, spot), spot.region, sun).joinToString(" · "),
+                    style = MaterialTheme.typography.bodyMedium.tabular(),
+                    color = Palette.TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
         Column(Modifier.width(280.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

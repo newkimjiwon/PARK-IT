@@ -77,11 +77,8 @@ import java.util.UUID
 
 private val stepTitles = listOf(
     "사진을 골라주세요",
-    "장소를 알려주세요",
+    "어디였나요?",
     "어떤 곳이었나요?",
-    "방문 꿀팁을 나눠주세요",
-    "챙겨 간 준비물이 있나요?",
-    "누구에게 보여줄까요?",
 )
 
 /** Sample landscapes for trying the flow on an emulator with an empty gallery. */
@@ -110,10 +107,7 @@ fun ShareFlow(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewModel) {
             when (draft.step) {
                 0 -> item { PhotoStep(draft, actions) }
                 1 -> item { PlaceStep(draft, actions) }
-                2 -> item { StoryStep(draft, actions) }
-                3 -> item { TipStep(draft, actions) }
-                4 -> item { ItemStep(draft, state, actions) }
-                else -> item { PublishStep(draft, actions) }
+                else -> item { StoryStep(draft, state, actions) }
             }
         }
         val last = draft.step == ShareDraft.STEP_COUNT - 1
@@ -121,7 +115,6 @@ fun ShareFlow(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewModel) {
             text = when {
                 last && draft.publishing -> "올리는 중…"
                 last -> "공유하기"
-                draft.step == 4 && draft.products.isEmpty() -> "건너뛰기"
                 else -> "다음 단계"
             },
             onClick = { if (last) actions.publish() else actions.draftNext() },
@@ -224,6 +217,16 @@ private fun PlaceStep(draft: ShareDraft, actions: PhoneViewModel) {
         draft.region?.let {
             Text("선택한 지역: ${it.address}", style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
         }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Chip("정확한 위치", !draft.approximate, { actions.updateDraft { it.copy(approximate = false) } })
+            Chip("시·군까지만", draft.approximate, { actions.updateDraft { it.copy(approximate = true) } })
+            Text(
+                if (draft.approximate) "지도에는 시·군 중심에 표시돼요" else "찍은 위치 그대로 표시돼요",
+                style = MaterialTheme.typography.bodySmall,
+                color = Palette.TextSecondary,
+            )
+        }
+        CarCampingQuestion(draft, actions)
     }
 }
 
@@ -239,7 +242,10 @@ private fun draftMarker(draft: ShareDraft, at: LatLng) = Spot(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun StoryStep(draft: ShareDraft, actions: PhoneViewModel) {
+private fun StoryStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewModel) {
+    var showTips by rememberSaveable { mutableStateOf(draft.tips.isNotEmpty()) }
+    var showItems by rememberSaveable { mutableStateOf(draft.products.isNotEmpty()) }
+    var showAudience by rememberSaveable { mutableStateOf(draft.visibility != Visibility.PUBLIC) }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         LabeledField("제목", draft.title, "예: 파도 소리만 들리는 작은 해변", maxLength = Limits.TITLE) { title -> actions.updateDraft { it.copy(title = title) } }
         LabeledField("경험", draft.story, "무엇을 보고 어떤 시간을 보냈는지 적어 주세요", minHeight = 120, maxLength = Limits.STORY) { story -> actions.updateDraft { it.copy(story = story) } }
@@ -249,10 +255,25 @@ private fun StoryStep(draft: ShareDraft, actions: PhoneViewModel) {
                 Chip(category.label, draft.category == category, { actions.updateDraft { it.copy(category = category) } })
             }
         }
-        CarCampingQuestion(draft, actions)
         LabeledField("언제 가면 좋아요? (선택)", draft.bestTime, "예: 맑은 날 일몰 30분 전부터, 가을 새벽 물안개", maxLength = Limits.BEST_TIME) { bestTime ->
             actions.updateDraft { it.copy(bestTime = bestTime) }
         }
+        // Everything below is optional, so it stays folded until asked for: the post can go out now.
+        Text("더 쓰기", style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Chip(if (draft.tips.isEmpty()) "방문 꿀팁" else "방문 꿀팁 ${draft.tips.size}", showTips, { showTips = !showTips })
+            Chip(if (draft.products.isEmpty()) "준비물" else "준비물 ${draft.products.size}", showItems, { showItems = !showItems })
+            Chip(draft.visibility.label, showAudience, { showAudience = !showAudience })
+        }
+        if (showTips) TipStep(draft, actions)
+        if (showItems) ItemStep(draft, state, actions)
+        if (showAudience) PublishStep(draft, actions)
+        Text(
+            "사진 ${draft.photos.size}장 · 꿀팁 ${draft.tips.size}개 · 준비물 ${draft.products.size}개 · ${draft.visibility.label}" +
+                if (draft.approximate) " · 시·군까지만" else "",
+            style = MaterialTheme.typography.bodySmall,
+            color = Palette.TextTertiary,
+        )
     }
 }
 
@@ -290,7 +311,7 @@ private fun CarCampingQuestion(draft: ShareDraft, actions: PhoneViewModel) {
 @Composable
 private fun TipStep(draft: ShareDraft, actions: PhoneViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("다음 방문자가 꼭 알아야 할 정보를 골라 한 줄씩 적어 주세요.", style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary)
+        Text("다음 방문자가 알아야 할 것이 있다면 골라 한 줄씩 적어 주세요. 없으면 그냥 공유해도 돼요.", style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             TipKind.entries.forEach { kind ->
                 val chosen = kind in draft.tips
@@ -391,25 +412,6 @@ private fun PublishStep(draft: ShareDraft, actions: PhoneViewModel) {
             Visibility.entries.forEach { visibility ->
                 Chip(visibility.label, draft.visibility == visibility, { actions.updateDraft { it.copy(visibility = visibility) } })
             }
-        }
-        Text("위치 공개", style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Chip("정확한 위치", !draft.approximate, { actions.updateDraft { it.copy(approximate = false) } })
-            Chip("시·군까지만", draft.approximate, { actions.updateDraft { it.copy(approximate = true) } })
-        }
-        Text(
-            if (draft.approximate) "지도에는 ${draft.region?.short ?: "지역"} 중심에 표시돼요. 숨은 명소를 지키고 싶을 때 좋아요." else "찍은 위치 그대로 지도에 표시돼요.",
-            style = MaterialTheme.typography.bodySmall,
-            color = Palette.TextSecondary,
-        )
-        Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).border(1.dp, Palette.Hairline, RoundedCornerShape(10.dp)).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text("미리보기", style = MaterialTheme.typography.labelMedium, color = Palette.TextSecondary)
-            Text(draft.title, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary)
-            Text("${draft.region?.short} · ${draft.category?.label}", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
-            Text("사진 ${draft.photos.size}장 · 꿀팁 ${draft.tips.size}개 · 준비물 ${draft.products.size}개", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
         }
     }
 }
