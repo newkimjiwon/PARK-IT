@@ -338,7 +338,14 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         _state.update {
             it.copy(
                 // A car set to share only the city/county sends that region's centre; keep the post approximate too.
-                draft = ShareDraft(pin = location, region = Regions.nearest(location), parkitId = item.id, approximate = Regions.nearest(location).center == location),
+                draft = ShareDraft(
+                    pin = location,
+                    region = Regions.nearest(location),
+                    parkitId = item.id,
+                    approximate = Regions.nearest(location).center == location,
+                    // What the driver said at the wheel becomes the first line of the story.
+                    story = item.note,
+                ),
                 stack = it.stack.filter { route -> route != PhoneRoute.Share } + PhoneRoute.Share,
             )
         }

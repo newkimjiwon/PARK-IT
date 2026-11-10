@@ -140,13 +140,13 @@ class SpotRepository(
         return remote { _state.value = client.removeFromCar(id) }
     }
 
-    suspend fun sendToPhone(id: String, label: String, spotId: String?, location: LatLng? = null): Result<Unit> {
+    suspend fun sendToPhone(id: String, label: String, spotId: String?, location: LatLng? = null, note: String = ""): Result<Unit> {
         if (!signedIn) {
             users.phoneOutbox = users.phoneOutbox + id
             _state.value = localState()
             return Result.success(Unit)
         }
-        return remote { _state.value = client.sendToPhone(SendRequest(id, label, spotId, location)) }
+        return remote { _state.value = client.sendToPhone(SendRequest(id, label, spotId, location, note)) }
     }
 
     suspend fun removeFromPhone(id: String): Result<Unit> {

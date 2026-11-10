@@ -444,7 +444,10 @@ class SyncStore(
         update { it.copy(users = it.users + (userId to transform(user))) }
     }
 
-    private fun SendRequest.toItem() = SentItem(id, label, spotId, clock(), location)
+    private fun SendRequest.toItem(): SentItem {
+        require(note.length <= Limits.NOTE) { "메모는 ${Limits.NOTE}자까지예요" }
+        return SentItem(id, label, spotId, clock(), location, note.trim())
+    }
 
     private fun NewTip.checkLength() {
         require(summary.length <= Limits.TIP_SUMMARY) { "한 줄 꿀팁은 ${Limits.TIP_SUMMARY}자까지예요" }

@@ -13,6 +13,8 @@ naverMapSdk = "3.24.0"
 junit = "4.13.2"
 vehicleSdk = "2.3.2"
 naviHelperSdk = "3.0.5"
+# Speech SDKs: ON_DEVICE mode runs on the car's own engine and needs no My Project registration.
+speechSdk = "3.3.1"
 kotlinxSerialization = "1.7.1"
 ktor = "2.3.12"
 slf4j = "2.0.13"
@@ -36,6 +38,8 @@ naver-map-sdk = { group = "com.naver.maps", name = "map-sdk", version.ref = "nav
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 pleos-vehicle = { module = "ai.pleos.playground:Vehicle", version.ref = "vehicleSdk" }
 pleos-navihelper = { module = "ai.pleos.playground:NaviHelper", version.ref = "naviHelperSdk" }
+pleos-tts = { module = "ai.pleos.playground:TextToSpeech", version.ref = "speechSdk" }
+pleos-stt = { module = "ai.pleos.playground:SpeechToText", version.ref = "speechSdk" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }

@@ -42,6 +42,7 @@ import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Directions
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PushPin
@@ -68,7 +69,9 @@ import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.map.PhotoMap
 import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
+import com.nangmanroad.vehicle.ListenPurpose
 import com.nangmanroad.vehicle.ParkitSuggestion
+import com.nangmanroad.vehicle.VoiceUi
 import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.carCampingCheckedLabel
 import com.nangmanroad.core.data.carCampingStale
@@ -117,7 +120,7 @@ fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
                         .padding(start = Dimens.Gutter, top = Dimens.Gutter, end = Dimens.Gutter),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    SearchField(query = state.query, onQueryChange = actions::setQuery)
+                    SearchField(query = state.query, onQueryChange = actions::setQuery, voice = state.voice, onMic = actions::listenForSearch)
                     CategoryFilters(selected = state.category, onSelect = actions::setCategory)
                     // One question while parked: where can we actually go tonight? Facility chips live on the phone.
                     Row(Modifier.padding(bottom = 8.dp)) {
@@ -175,8 +178,9 @@ fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
 }
 
 @Composable
-private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
+private fun SearchField(query: String, onQueryChange: (String) -> Unit, voice: VoiceUi, onMic: () -> Unit) {
     val focus = LocalFocusManager.current
+    val listening = voice.listening == ListenPurpose.SEARCH
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -189,10 +193,23 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
     ) {
         Icon(Icons.Outlined.Search, contentDescription = null, tint = Palette.TextSecondary, modifier = Modifier.size(28.dp))
         Box(Modifier.weight(1f)) {
-            if (query.isEmpty()) {
-                Text("장소, 지역, 작성자 검색", style = MaterialTheme.typography.bodyLarge, color = Palette.TextTertiary)
+            if (listening) {
+                // While the microphone is open the field shows what it hears instead of the typed text.
+                Text(
+                    voice.heard.ifBlank { "듣고 있어요. '태안 노을'처럼 말해 보세요" },
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (voice.heard.isBlank()) Palette.TextSecondary else Palette.TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            } else if (query.isEmpty()) {
+                Text(
+                    if (voice.canListen) "장소, 지역, 작성자 검색 · 말로도 찾아요" else "장소, 지역, 작성자 검색",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Palette.TextTertiary,
+                )
             }
-            BasicTextField(
+            if (!listening) BasicTextField(
                 value = query,
                 onValueChange = onQueryChange,
                 singleLine = true,
@@ -203,7 +220,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        if (query.isNotEmpty()) {
+        if (query.isNotEmpty() && !listening) {
             Icon(
                 Icons.Outlined.Close,
                 contentDescription = "검색어 지우기",
@@ -212,6 +229,19 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
                     .size(48.dp)
                     .clip(RoundedCornerShape(Dimens.ControlRadius))
                     .clickable(role = Role.Button) { onQueryChange("") }
+                    .padding(10.dp),
+            )
+        }
+        if (voice.canListen) {
+            Icon(
+                Icons.Outlined.Mic,
+                contentDescription = if (listening) "말하기 끝내기" else "말로 검색",
+                tint = Palette.TextPrimary,
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(Dimens.ControlRadius))
+                    .background(if (listening) Palette.SurfaceHigh else Palette.Surface)
+                    .clickable(role = Role.Button, onClick = onMic)
                     .padding(10.dp),
             )
         }
@@ -322,6 +352,9 @@ private fun ParkitBannerHost(state: AppUiState, actions: AppViewModel, modifier:
     ) {
         ParkitBanner(
             nearSpot = state.spot(shown?.nearSpotId),
+            note = shown?.note.orEmpty(),
+            voice = state.voice,
+            onNote = actions::listenForParkitNote,
             onSend = actions::sendParkit,
             onDismiss = actions::dismissParkit,
             modifier = Modifier
@@ -337,7 +370,16 @@ private fun ParkitBannerHost(state: AppUiState, actions: AppViewModel, modifier:
  * action the moment is about, as 길 안내 does on the preview card.
  */
 @Composable
-private fun ParkitBanner(nearSpot: Spot?, onSend: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+private fun ParkitBanner(
+    nearSpot: Spot?,
+    note: String,
+    voice: VoiceUi,
+    onNote: () -> Unit,
+    onSend: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val listening = voice.listening == ListenPurpose.PARKIT_NOTE
     val shape = RoundedCornerShape(14.dp)
     Row(
         modifier = modifier
@@ -358,12 +400,41 @@ private fun ParkitBanner(nearSpot: Spot?, onSend: () -> Unit, onDismiss: () -> U
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                if (nearSpot != null) "방문 완료로 표시하고, 꿀팁이 맞았는지 휴대폰에서 알려줘요" else "방금 세운 곳을 휴대폰으로 보내 사진과 꿀팁을 더해요",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Palette.TextSecondary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+            when {
+                // A spoken line goes with the place, so the post on the phone starts with the moment itself.
+                listening -> Text(
+                    voice.heard.ifBlank { "듣고 있어요. 이곳에 대해 한마디 남겨 주세요" }.let { if (voice.heard.isBlank()) it else "“$it”" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Palette.TextPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                note.isNotBlank() -> Text(
+                    "메모 “$note”",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Palette.TextPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                else -> Text(
+                    if (nearSpot != null) "방문 완료로 표시하고, 꿀팁이 맞았는지 휴대폰에서 알려줘요" else "방금 세운 곳을 휴대폰으로 보내 사진과 꿀팁을 더해요",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Palette.TextSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        if (voice.canListen) {
+            ActionButton(
+                text = when {
+                    listening -> "듣는 중"
+                    note.isNotBlank() -> "다시 말하기"
+                    else -> "말로 메모"
+                },
+                icon = Icons.Outlined.Mic,
+                onClick = onNote,
+                active = listening,
             )
         }
         ActionButton("파킷하기", Icons.Outlined.PushPin, onSend, primary = true)

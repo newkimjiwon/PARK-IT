@@ -72,7 +72,7 @@ import com.nangmanroad.core.ui.CarCampingBadge
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.core.ui.SpotPhoto
-import com.nangmanroad.core.ui.byImportance
+import com.nangmanroad.core.data.byImportance
 import com.nangmanroad.core.ui.color
 import com.nangmanroad.core.ui.icon
 import com.nangmanroad.core.ui.label

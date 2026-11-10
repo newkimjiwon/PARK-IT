@@ -177,3 +177,17 @@ fun Spot.hasFacility(kind: TipKind): Boolean =
         TipStatus.GOOD, TipStatus.PREPARE -> true
         TipStatus.NEEDS_CHECK, null -> false
     }
+
+/** Problems first, then things to prepare, then the reassuring ones. */
+fun List<HoneyTip>.byImportance(): List<HoneyTip> = sortedWith(
+    compareBy<HoneyTip> { it.status != TipStatus.NEEDS_CHECK }
+        .thenBy { it.status != TipStatus.PREPARE }
+        .thenByDescending { it.helpfulCount },
+)
+
+/**
+ * The few tips worth knowing before pulling in: anything to check or prepare, most important
+ * first. The driving screen shows these and the voice guide reads the same ones.
+ */
+fun Spot.arrivalTips(limit: Int = 3): List<HoneyTip> =
+    tips.filter { it.status != TipStatus.GOOD }.byImportance().take(limit)

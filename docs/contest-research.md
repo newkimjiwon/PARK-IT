@@ -126,7 +126,7 @@ Vehicle 객체에서 `getDoor()`, `getHvac()` 같은 메서드로 도메인 객�
 
 ## 확인이 필요한 것
 
-- [ ] **TTS·STT·FusedLocation을 공모전에서 쓸 수 있는가?** Playground 문서는 "준비 중", 공모전 사이트는 "사용 가능"으로 안내합니다. Playground에 로그인해 SDK 상태를 확인하고, 그래도 불분명하면 `appdevchallenge@hyundai-partners.com`에 문의합니다.
+- [ ] **TTS·STT·FusedLocation을 공모전에서 쓸 수 있는가?** Playground 문서는 "준비 중", 공모전 사이트는 "사용 가능"으로 안내합니다. Playground에 로그인해 SDK 상태를 확인하고, 그래도 불분명하면 `appdevchallenge@hyundai-partners.com`에 문의합니다. 2026-11-10 기준 TTS·STT 3.3.1은 Pleos Maven에서 받을 수 있고 차량 앱에 `ON_DEVICE` 모드로 넣었습니다. 다만 에뮬레이터 2.1.0에는 온디바이스 음성 모델이 없어 소리가 나지 않습니다([차량 앱 문서](vehicle-app.md#음성-texttospeech-speechtotext)). 문의할 때 모델이 든 에뮬레이터나 심사 환경도 함께 묻습니다.
 - [ ] **심사용 GitHub 계정**은 아직 공지되지 않았습니다. 공지사항을 확인합니다.
 - [ ] **Playground 가입과 프로젝트 생성**: TTS·STT 서버 모드를 쓰려면 프로젝트의 클라이언트 ID와 시크릿이 필요합니다. 시크릿은 저장소에 올리지 않습니다.
 - [ ] **팀 구성**: 시상 부문(대학생/일반)과 팀원 정보를 확정합니다.

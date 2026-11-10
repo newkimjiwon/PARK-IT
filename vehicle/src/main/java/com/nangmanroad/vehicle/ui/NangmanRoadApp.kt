@@ -64,7 +64,12 @@ fun NangmanRoadApp(state: AppUiState, actions: AppViewModel) {
     Box(Modifier.fillMaxSize().background(Palette.Background)) {
         Crossfade(targetState = state.showDrivingView, label = "drivingMode") { driving ->
             if (driving) {
-                DrivingScreen(state, onExitPreview = { actions.setDrivingPreview(false) })
+                DrivingScreen(
+                    state,
+                    onExitPreview = { actions.setDrivingPreview(false) },
+                    onToggleBriefing = actions::toggleBriefing,
+                    onListen = actions::listenForCommand,
+                )
             } else {
                 Row(Modifier.fillMaxSize()) {
                     SideRail(state, actions)

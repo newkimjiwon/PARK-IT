@@ -12,6 +12,7 @@ import com.nangmanroad.core.sync.NewComment
 import com.nangmanroad.core.sync.NewPost
 import com.nangmanroad.core.sync.NewTip
 import com.nangmanroad.core.sync.PARKIT_PREFIX
+import com.nangmanroad.core.sync.Limits
 import com.nangmanroad.core.sync.PairingState
 import com.nangmanroad.core.sync.SendRequest
 import com.nangmanroad.core.sync.Session
@@ -248,13 +249,26 @@ class SyncServerTest {
         val first = SyncStore(folder.root)
         val me = first.userFor(first.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD).token)
         val parked = LatLng(37.7519, 128.8761)
-        first.sendToPhone(me, SendRequest("${PARKIT_PREFIX}1700000000000", "파킷 · 강원 강릉시 근처 · 11월 8일 오후 9:40", null, parked))
+        first.sendToPhone(
+            me,
+            SendRequest("${PARKIT_PREFIX}1700000000000", "파킷 · 강원 강릉시 근처 · 11월 8일 오후 9:40", null, parked, note = " 화장실이 깨끗하고 조용해요 "),
+        )
 
         val inbox = SyncStore(folder.root).state(me).phoneInbox
         val item = inbox.single()
         assertTrue(item.isParkit)
         assertEquals(parked, item.location)
         assertEquals(null, item.spotId)
+        assertEquals("화장실이 깨끗하고 조용해요", item.note)
+    }
+
+    @Test
+    fun `a spoken 파킷 note longer than the limit is refused`() {
+        val store = SyncStore(folder.root)
+        val me = store.userFor(store.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD).token)
+        assertFailsWith<IllegalArgumentException> {
+            store.sendToPhone(me, SendRequest("${PARKIT_PREFIX}1", "파킷", null, LatLng(37.0, 127.0), note = "가".repeat(Limits.NOTE + 1)))
+        }
     }
 
     @Test

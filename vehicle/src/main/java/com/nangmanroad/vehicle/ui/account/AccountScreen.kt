@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.VolumeOff
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material.icons.outlined.LocationOff
@@ -92,6 +94,7 @@ fun AccountScreen(state: AppUiState, actions: AppViewModel) {
                         active = state.approximateParkit,
                     )
                 }
+                VoiceGuidanceRow(state, actions)
                 ActionButton("연결 해제", Icons.Outlined.LinkOff, actions::unlinkAccount)
             } else {
                 Text("휴대폰 계정과 연결하기", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
@@ -101,8 +104,45 @@ fun AccountScreen(state: AppUiState, actions: AppViewModel) {
                     color = Palette.TextSecondary,
                 )
                 PairingCodeCard(state, actions)
+                VoiceGuidanceRow(state, actions)
             }
         }
+    }
+}
+
+/** Spoken guidance works without an account, so it sits under both the linked and the pairing view. */
+@Composable
+private fun VoiceGuidanceRow(state: AppUiState, actions: AppViewModel) {
+    val voice = state.voice
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Palette.BackgroundRaised).padding(horizontal = 28.dp, vertical = 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("음성 안내", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
+            Text(
+                "출발할 때 남은 거리, 도착 시 배터리, 일몰, 차박 여부와 꿀팁을 읽어 줘요. 1km 남으면 꿀팁을 한 번 더, 휴대폰에서 장소가 오면 알려 줘요.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Palette.TextSecondary,
+            )
+            Text(
+                when {
+                    voice.canSpeak && voice.canListen -> "Pleos 음성 합성·인식 연결됨 · 주행 화면의 '말하기'로 물어볼 수 있어요"
+                    voice.problem != null -> voice.problem
+                    voice.canSpeak -> "Pleos 음성 합성 연결됨 · 음성 인식은 쓸 수 없어요"
+                    else -> "이 차량에서는 Pleos 음성 서비스에 연결할 수 없어요"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (voice.canSpeak) Palette.TextTertiary else Palette.Warning,
+            )
+        }
+        ActionButton(
+            text = if (voice.guidance) "켜짐" else "꺼짐",
+            icon = if (voice.guidance) Icons.AutoMirrored.Outlined.VolumeUp else Icons.AutoMirrored.Outlined.VolumeOff,
+            onClick = { actions.setVoiceGuidance(!voice.guidance) },
+            active = voice.guidance,
+        )
     }
 }
 

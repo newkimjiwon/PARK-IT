@@ -81,6 +81,9 @@ fun NotificationsScreen(state: PhoneUiState, actions: PhoneViewModel) {
                     Icon(if (item.isParkit) Icons.Outlined.PushPin else Icons.Outlined.DirectionsCar, null, tint = Palette.TextSecondary, modifier = Modifier.size(22.dp))
                     Column(Modifier.weight(1f)) {
                         Text(item.label, style = MaterialTheme.typography.bodyMedium, color = Palette.TextPrimary)
+                        if (item.note.isNotBlank()) {
+                            Text("“${item.note}”", style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary)
+                        }
                         Text(
                             when {
                                 newPlace -> "눌러서 이 위치로 장소 공유 시작"

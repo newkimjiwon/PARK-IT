@@ -25,12 +25,13 @@ object SpotQueries {
         /** Facilities the place must have, as reported by visitors; empty means no restriction. */
         facilities: Set<TipKind> = emptySet(),
     ): List<Spot> {
-        val needle = query.trim()
+        // Every word has to land somewhere, so "태안 노을" (typed or spoken) finds the 태안 sunset place.
+        val words = query.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
         return spots.filter { spot ->
+            val fields = listOf(spot.title, spot.region, spot.address, spot.author.name, spot.category.label)
             (category == null || spot.category == category) &&
                 facilities.all { spot.hasFacility(it) } &&
-                (needle.isEmpty() || listOf(spot.title, spot.region, spot.address, spot.author.name, spot.category.label)
-                    .any { it.contains(needle, ignoreCase = true) })
+                words.all { word -> fields.any { it.contains(word, ignoreCase = true) } }
         }
     }
 

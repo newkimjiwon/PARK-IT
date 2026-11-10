@@ -72,13 +72,6 @@ fun TipStatus.label(): String = when (this) {
     TipStatus.NEEDS_CHECK -> "확인 필요"
 }
 
-/** Problems first, then things to prepare, then the reassuring ones. */
-fun List<HoneyTip>.byImportance(): List<HoneyTip> = sortedWith(
-    compareBy<HoneyTip> { it.status != TipStatus.NEEDS_CHECK }
-        .thenBy { it.status != TipStatus.PREPARE }
-        .thenByDescending { it.helpfulCount },
-)
-
 /**
  * Facility icons in a row, coloured by what visitors reported: green fine, amber prepare, red
  * check, and dim when nothing is known. Camping apps answer "is there a toilet?" on the list

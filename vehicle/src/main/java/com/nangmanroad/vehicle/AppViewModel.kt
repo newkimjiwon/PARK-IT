@@ -11,10 +11,12 @@ import com.nangmanroad.core.data.FeedSort
 import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.Product
 import com.nangmanroad.core.data.SampleSpots
+import com.nangmanroad.core.data.SpotQueries
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.Regions
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.usableRangeKm
+import com.nangmanroad.core.sync.Limits
 import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.sync.PARKIT_PREFIX
 import com.nangmanroad.core.sync.PairingCode
@@ -30,14 +32,35 @@ import com.nangmanroad.vehicle.pleos.EvBatteryStatus
 import com.nangmanroad.vehicle.pleos.DrivingStateMonitor
 import com.nangmanroad.vehicle.pleos.NaviEvent
 import com.nangmanroad.vehicle.pleos.NavigationBridge
+import com.nangmanroad.vehicle.pleos.Heard
+import com.nangmanroad.vehicle.pleos.VoiceGuide
+import com.nangmanroad.vehicle.pleos.VoiceInput
+import com.nangmanroad.vehicle.voice.COMMAND_HELP
+import com.nangmanroad.vehicle.voice.NO_DESTINATION
+import com.nangmanroad.vehicle.voice.TripFacts
+import com.nangmanroad.vehicle.voice.VoiceCommand
+import com.nangmanroad.vehicle.voice.arrivalReminder
+import com.nangmanroad.vehicle.voice.batteryReadout
+import com.nangmanroad.vehicle.voice.carCampingReadout
+import com.nangmanroad.vehicle.voice.departureBriefing
+import com.nangmanroad.vehicle.voice.etaReadout
+import com.nangmanroad.vehicle.voice.parkitPrompt
+import com.nangmanroad.vehicle.voice.parseCommand
+import com.nangmanroad.vehicle.voice.phoneSentAnnouncement
+import com.nangmanroad.vehicle.voice.searchQueryFromSpeech
+import com.nangmanroad.vehicle.voice.sunReadout
+import com.nangmanroad.vehicle.voice.tipsReadout
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -66,7 +89,32 @@ data class PairingUi(val code: PairingCode? = null, val error: String? = null)
  * Where the car just stopped, offered as a "파킷": a new place to post from the phone, or, when it is
  * [nearSpotId], a visit to a known spot whose tips the phone can confirm.
  */
-data class ParkitSuggestion(val location: LatLng, val at: Long, val nearSpotId: String?)
+data class ParkitSuggestion(
+    val location: LatLng,
+    val at: Long,
+    val nearSpotId: String?,
+    /** A line the driver said into the microphone; it travels with the 파킷 and opens the phone's story. */
+    val note: String = "",
+)
+
+/** Why the microphone is open, so the right screen shows what it hears. */
+enum class ListenPurpose { SEARCH, COMMAND, PARKIT_NOTE }
+
+/** The Pleos speech services as the screens need them. */
+data class VoiceUi(
+    /** Spoken guidance on departure, near arrival and when the phone sends a place. Asking always answers. */
+    val guidance: Boolean = true,
+    val canSpeak: Boolean = false,
+    val canListen: Boolean = false,
+    /** Why the car cannot speak or listen even though the Pleos speech service answered, e.g. no on-device model. */
+    val problem: String? = null,
+    val speaking: Boolean = false,
+    val listening: ListenPurpose? = null,
+    /** Words heard so far in the current turn, or the last turn's words until the next one starts. */
+    val heard: String = "",
+    /** Which microphone [heard] came from, so the driving screen never shows a map search. */
+    val heardFor: ListenPurpose? = null,
+)
 
 data class AppUiState(
     val user: UserState,
@@ -101,6 +149,7 @@ data class AppUiState(
     /** Send only the city/county centre with a 파킷, so a stop in front of home never pins the house. */
     val approximateParkit: Boolean = false,
     val toast: ToastMessage? = null,
+    val voice: VoiceUi = VoiceUi(),
 ) {
     val saved: Set<String> get() = user.saved
     val liked: Set<String> get() = user.liked
@@ -119,6 +168,9 @@ data class AppUiState(
 
     fun spot(id: String?): Spot? = id?.let { wanted -> spots.firstOrNull { it.id == wanted } }
 
+    /** The known place the car is heading to; after a restart only the navigation remembers it, so match by name. */
+    val routedSpot: Spot? get() = spot(routedSpotId) ?: spots.firstOrNull { it.title == destination?.name }
+
     fun likeCount(spot: Spot): Int = spot.likeCount + if (spot.id in liked) 1 else 0
 
     fun saveCount(spot: Spot): Int = spot.saveCount + if (spot.id in saved) 1 else 0
@@ -129,8 +181,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = SpotRepository(application, localUser = Author("u-this-car", "이 차량", ""))
     private val driving = DrivingStateMonitor(application, viewModelScope)
     private val navigation = NavigationBridge(application)
+    private val voiceGuide = VoiceGuide(application)
+    private val voiceInput = VoiceInput(application, viewModelScope)
     private val settings = application.getSharedPreferences("vehicle_settings", Application.MODE_PRIVATE)
     private var pairingJob: Job? = null
+    private var briefingJob: Job? = null
+    /** What "다시 듣기" repeats: the last departure briefing or arrival reminder. */
+    private var lastBriefing: String? = null
+    /** The destination whose one-kilometre reminder has been read, so it is read once per trip. */
+    private var remindedFor: String? = null
 
     private val _state = MutableStateFlow(
         AppUiState(
@@ -139,6 +198,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             session = repository.session.value,
             serverUrl = repository.serverUrl,
             approximateParkit = settings.getBoolean(KEY_APPROXIMATE_PARKIT, false),
+            voice = VoiceUi(guidance = settings.getBoolean(KEY_VOICE_GUIDANCE, true)),
         ),
     )
     val state: StateFlow<AppUiState> = _state.asStateFlow()
@@ -154,6 +214,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 // Moving off drops a pending suggestion; stopping after a drive is the moment to 파킷.
                 _state.update { it.copy(drivingState = drivingState, parkit = if (drivingState == DrivingState.DRIVING) null else it.parkit) }
                 if (previous == DrivingState.DRIVING && drivingState == DrivingState.PARKED) suggestParkit()
+                if (previous != DrivingState.DRIVING && drivingState == DrivingState.DRIVING) {
+                    // A note half-said at the 파킷 banner has nowhere to go once the car moves.
+                    if (_state.value.voice.listening == ListenPurpose.PARKIT_NOTE) voiceInput.cancel()
+                    briefOnDeparture()
+                }
                 previous = drivingState
             }
         }
@@ -167,7 +232,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         viewModelScope.launch {
-            navigation.destination.collect { destination -> _state.update { it.copy(destination = destination) } }
+            navigation.destination.collect { destination ->
+                _state.update { it.copy(destination = destination) }
+                remindNearArrival()
+            }
         }
         viewModelScope.launch {
             navigation.events.collect { event ->
@@ -200,12 +268,37 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     val before = current.fromPhone
                     repository.refresh()
                     val arrived = _state.value.fromPhone.firstOrNull { it !in before }
-                    arrived?.let { id -> _state.value.spot(id)?.let { toast("휴대폰에서 '${it.title}'을(를) 보냈어요") } }
+                    arrived?.let { id ->
+                        _state.value.spot(id)?.let {
+                            toast("휴대폰에서 '${it.title}'을(를) 보냈어요")
+                            announce(phoneSentAnnouncement(it.title))
+                        }
+                    }
                 }
             }
         }
+        viewModelScope.launch { voiceGuide.ready.collect { ready -> updateVoice { it.copy(canSpeak = ready) } } }
+        viewModelScope.launch { voiceGuide.speaking.collect { speaking -> updateVoice { it.copy(speaking = speaking) } } }
+        viewModelScope.launch { voiceInput.ready.collect { ready -> updateVoice { it.copy(canListen = ready) } } }
+        viewModelScope.launch {
+            combine(voiceGuide.problem, voiceInput.problem) { speak, listen -> listOfNotNull(speak, listen) }.collect { problems ->
+                if (problems.isEmpty()) return@collect
+                // Say once why the speaker or microphone buttons just went away.
+                val message = if (problems.size == 2) "이 차량에는 Pleos 음성 모델이 없어 음성 안내와 인식을 쓸 수 없어요" else problems.single()
+                updateVoice { it.copy(problem = message) }
+                toast(message)
+            }
+        }
+        viewModelScope.launch {
+            voiceInput.partial.collect { words -> if (_state.value.voice.listening != null) updateVoice { it.copy(heard = words) } }
+        }
+        viewModelScope.launch {
+            voiceInput.listening.collect { on -> if (!on) updateVoice { it.copy(listening = null) } }
+        }
         driving.start()
         navigation.start()
+        voiceGuide.start()
+        voiceInput.start()
     }
 
     fun openSpot(spotId: String) = _state.update {
@@ -356,9 +449,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             ?.takeIf { distanceKm(it.location, current.here) <= NEAR_SPOT_KM }
             ?.id
         _state.update { it.copy(parkit = ParkitSuggestion(current.here, System.currentTimeMillis(), near)) }
+        if (!manual) announce(parkitPrompt(current.spot(near)?.title, canTakeNote = current.voice.canListen))
     }
 
-    fun dismissParkit() = _state.update { it.copy(parkit = null) }
+    fun dismissParkit() {
+        if (_state.value.voice.listening == ListenPurpose.PARKIT_NOTE) voiceInput.cancel()
+        _state.update { it.copy(parkit = null) }
+    }
 
     /**
      * Hands the parked position to the phone, where photos and tips turn it into a post. A known
@@ -372,7 +469,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val location = if (_state.value.approximateParkit) Regions.nearest(suggestion.location).center else suggestion.location
         viewModelScope.launch {
             if (near != null && near.id !in _state.value.user.visited) repository.toggle(UserList.VISITED, near.id, true)
-            repository.sendToPhone("$PARKIT_PREFIX${suggestion.at}", label, near?.id, location)
+            repository.sendToPhone("$PARKIT_PREFIX${suggestion.at}", label, near?.id, location, suggestion.note)
                 .onSuccess {
                     _state.update { it.copy(parkit = null, parkitPulse = System.currentTimeMillis()) }
                     toast(
@@ -401,7 +498,142 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setDrivingPreview(enabled: Boolean) = _state.update { it.copy(drivingPreview = enabled) }
+    fun setDrivingPreview(enabled: Boolean) {
+        _state.update { it.copy(drivingPreview = enabled) }
+        // The preview stands in for pulling away, so it gets the same spoken briefing.
+        if (enabled) briefOnDeparture() else if (_state.value.drivingState != DrivingState.DRIVING) quietDown()
+    }
+
+    // Voice
+
+    fun setVoiceGuidance(on: Boolean) {
+        settings.edit().putBoolean(KEY_VOICE_GUIDANCE, on).apply()
+        updateVoice { it.copy(guidance = on) }
+        if (!on) voiceGuide.stop()
+    }
+
+    /** The driving screen's speaker button: stop if talking, otherwise say the briefing again. */
+    fun toggleBriefing() {
+        if (_state.value.voice.speaking) {
+            voiceGuide.stop()
+            return
+        }
+        reply(lastBriefing ?: departureBriefing(tripFacts()) ?: NO_DESTINATION)
+    }
+
+    /** Microphone on the map's search field: the spoken words become the search. */
+    fun listenForSearch() = listen(ListenPurpose.SEARCH) { heard ->
+        val query = searchQueryFromSpeech(heard)
+        if (query.isEmpty()) return@listen toast("무엇을 찾을지 다시 말해 주세요")
+        _state.update { it.copy(query = query) }
+        val current = _state.value
+        val found = SpotQueries.matching(current.spots, current.category, query)
+        if (found.isEmpty()) toast("'$query'에 맞는 장소가 없어요") else selectSpot(found.first().id)
+    }
+
+    /** Microphone on the driving screen: a few spoken questions, answered out loud. */
+    fun listenForCommand() = listen(ListenPurpose.COMMAND) { heard ->
+        val trip = tripFacts()
+        when (parseCommand(heard)) {
+            VoiceCommand.STOP -> voiceGuide.stop()
+            VoiceCommand.REPEAT -> reply(lastBriefing ?: departureBriefing(trip) ?: NO_DESTINATION)
+            VoiceCommand.TIPS -> reply(tipsReadout(trip.spot))
+            VoiceCommand.BATTERY -> reply(batteryReadout(trip))
+            VoiceCommand.SUN -> reply(sunReadout(trip))
+            VoiceCommand.CAR_CAMPING -> reply(carCampingReadout(trip.spot))
+            VoiceCommand.ETA -> reply(etaReadout(trip))
+            VoiceCommand.UNKNOWN -> reply(COMMAND_HELP)
+        }
+    }
+
+    /** Microphone on the 파킷 banner: one spoken line to send along with the place. */
+    fun listenForParkitNote() = listen(ListenPurpose.PARKIT_NOTE) { heard ->
+        val note = heard.trim().take(Limits.NOTE)
+        _state.update { current -> current.copy(parkit = current.parkit?.copy(note = note)) }
+    }
+
+    /** Tapping the microphone again ends the turn early with what was heard so far. */
+    fun finishListening() = voiceInput.finishListening()
+
+    private fun listen(purpose: ListenPurpose, onWords: (String) -> Unit) {
+        if (_state.value.voice.listening == purpose) return finishListening()
+        // The speakers would talk straight into the microphone.
+        voiceGuide.stop()
+        updateVoice { it.copy(listening = purpose, heard = "", heardFor = purpose) }
+        voiceInput.listen { heard ->
+            updateVoice { it.copy(listening = null) }
+            when (heard) {
+                is Heard.Words -> {
+                    updateVoice { it.copy(heard = heard.text) }
+                    onWords(heard.text)
+                }
+                Heard.Silence -> {
+                    if (purpose == ListenPurpose.COMMAND) reply("잘 듣지 못했어요. $COMMAND_HELP") else toast("잘 듣지 못했어요. 다시 말해 주세요")
+                }
+                is Heard.Failed -> toast(heard.reason)
+            }
+        }
+    }
+
+    /**
+     * Pulling away (or opening the driving preview): wait a moment for the navigation to report the
+     * route, then read the driving screen out loud. Nothing is said without somewhere to go.
+     */
+    private fun briefOnDeparture() {
+        briefingJob?.cancel()
+        briefingJob = viewModelScope.launch {
+            navigation.refresh()
+            withTimeoutOrNull(ROUTE_WAIT_MS) { _state.first { it.destination != null } }
+            val text = departureBriefing(tripFacts()) ?: return@launch
+            lastBriefing = text
+            remindedFor = null
+            announce(text)
+        }
+    }
+
+    /** About a kilometre out, read the tips again while there is still time to act on them. */
+    private fun remindNearArrival() {
+        val current = _state.value
+        val destination = current.destination ?: return
+        if (!current.showDrivingView || remindedFor == destination.name) return
+        if (destination.remainMeters !in 1..ARRIVAL_REMINDER_METERS) return
+        remindedFor = destination.name
+        val text = arrivalReminder(tripFacts())
+        lastBriefing = text
+        announce(text)
+    }
+
+    private fun tripFacts(): TripFacts {
+        val current = _state.value
+        return TripFacts(
+            spot = current.routedSpot,
+            destinationName = current.destination?.name,
+            remainMeters = current.destination?.remainMeters,
+            remainSeconds = current.destination?.remainSeconds,
+            batteryPercent = current.battery?.percent,
+            capacityKwh = current.battery?.capacityKwh,
+            here = current.here,
+            now = System.currentTimeMillis(),
+        )
+    }
+
+    /** Something the car volunteers; muted when the driver turned guidance off. */
+    private fun announce(text: String) {
+        if (_state.value.voice.guidance) voiceGuide.say(text)
+    }
+
+    /** An answer to something the driver asked for, so it is spoken whatever the guidance setting. */
+    private fun reply(text: String) {
+        voiceGuide.say(text)
+        if (!_state.value.voice.canSpeak) toast(text)
+    }
+
+    private fun quietDown() {
+        briefingJob?.cancel()
+        voiceGuide.stop()
+    }
+
+    private fun updateVoice(transform: (VoiceUi) -> VoiceUi) = _state.update { it.copy(voice = transform(it.voice)) }
 
     fun toast(text: String) = _state.update { it.copy(toast = ToastMessage(text)) }
 
@@ -410,6 +642,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         driving.stop()
         navigation.stop()
+        voiceInput.release()
+        voiceGuide.release()
     }
 
     private fun Screen.base(): Screen = when (this) {
@@ -420,6 +654,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private companion object {
         const val KEY_APPROXIMATE_PARKIT = "approximate_parkit"
+        const val KEY_VOICE_GUIDANCE = "voice_guidance"
+        /** How long the departure briefing waits for the navigation to report the route. */
+        const val ROUTE_WAIT_MS = 4_000L
+        const val ARRIVAL_REMINDER_METERS = 1_000
         const val DESTINATION_REFRESH_MS = 15_000L
         const val SYNC_REFRESH_MS = 10_000L
         const val PAIRING_POLL_MS = 2_000L

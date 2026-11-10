@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.StopCircle
 import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.PauseCircle
@@ -33,10 +36,10 @@ import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.data.ARRIVAL_COMFORT_PERCENT
 import com.nangmanroad.core.data.ARRIVAL_LOW_PERCENT
 import com.nangmanroad.core.data.CarCamping
+import com.nangmanroad.core.data.arrivalTips
 import com.nangmanroad.core.data.arrivalLabel
 import com.nangmanroad.core.data.arrivalPercent
 import com.nangmanroad.core.data.carCampingStale
-import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.formatDuration
 import com.nangmanroad.core.data.formatMeters
 import com.nangmanroad.core.data.SunMoment
@@ -45,12 +48,13 @@ import com.nangmanroad.core.data.formatClock
 import com.nangmanroad.core.data.sunMoment
 import com.nangmanroad.core.data.sunTimesToday
 import com.nangmanroad.core.ui.Palette
-import com.nangmanroad.core.ui.byImportance
 import com.nangmanroad.core.ui.color
 import com.nangmanroad.core.ui.icon
 import com.nangmanroad.core.ui.label
 import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.vehicle.AppUiState
+import com.nangmanroad.vehicle.ListenPurpose
+import com.nangmanroad.vehicle.VoiceUi
 import com.nangmanroad.vehicle.pleos.DrivingState
 import com.nangmanroad.vehicle.ui.components.ActionButton
 
@@ -59,11 +63,15 @@ import com.nangmanroad.vehicle.ui.components.ActionButton
  * short tips, readable in a one-to-two-second glance. The numbers are the biggest thing on screen.
  */
 @Composable
-fun DrivingScreen(state: AppUiState, onExitPreview: () -> Unit) {
+fun DrivingScreen(
+    state: AppUiState,
+    onExitPreview: () -> Unit,
+    onToggleBriefing: () -> Unit,
+    onListen: () -> Unit,
+) {
     val destination = state.destination
-    // After a restart only the navigation app remembers the route, so match it back by name.
-    val routed = state.spot(state.routedSpotId) ?: state.spots.firstOrNull { it.title == destination?.name }
-    val tips = routed?.tips?.filter { it.status != TipStatus.GOOD }?.byImportance()?.take(3).orEmpty()
+    val routed = state.routedSpot
+    val tips = routed?.arrivalTips().orEmpty()
 
     Box(
         Modifier
@@ -79,7 +87,10 @@ fun DrivingScreen(state: AppUiState, onExitPreview: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(Modifier.size(12.dp).clip(CircleShape).background(Palette.Coral))
                 Text("주행 중", style = MaterialTheme.typography.titleMedium, color = Palette.TextSecondary)
+                Spacer(Modifier.weight(1f))
+                VoiceControls(state.voice, onToggleBriefing, onListen)
             }
+            HeardLine(state.voice)
             if (destination != null || routed != null) {
                 Row(
                     modifier = Modifier
@@ -228,6 +239,46 @@ fun DrivingScreen(state: AppUiState, onExitPreview: () -> Unit) {
             }
         }
     }
+}
+
+/**
+ * Two big buttons instead of anything to read: hear the briefing again (or stop it), and ask a
+ * question out loud. Each shows only when the car's speech service answered.
+ */
+@Composable
+private fun VoiceControls(voice: VoiceUi, onToggleBriefing: () -> Unit, onListen: () -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (voice.canSpeak) {
+            ActionButton(
+                text = if (voice.speaking) "그만 듣기" else "다시 듣기",
+                icon = if (voice.speaking) Icons.Outlined.StopCircle else Icons.AutoMirrored.Outlined.VolumeUp,
+                onClick = onToggleBriefing,
+                active = voice.speaking,
+            )
+        }
+        if (voice.canListen) {
+            val listening = voice.listening == ListenPurpose.COMMAND
+            ActionButton(
+                text = if (listening) "듣는 중" else "말하기",
+                icon = Icons.Outlined.Mic,
+                onClick = onListen,
+                active = listening,
+            )
+        }
+    }
+}
+
+/** The words the microphone caught, so the driver can tell a misheard question from a wrong answer. */
+@Composable
+private fun HeardLine(voice: VoiceUi) {
+    if (voice.heardFor != ListenPurpose.COMMAND) return
+    val listening = voice.listening == ListenPurpose.COMMAND
+    val text = when {
+        listening && voice.heard.isBlank() -> "듣고 있어요. '꿀팁 알려 줘', '배터리 얼마나 남았어'처럼 말해 보세요"
+        voice.heard.isNotBlank() -> "“${voice.heard}”"
+        else -> return
+    }
+    Text(text, style = MaterialTheme.typography.titleMedium, color = if (listening) Palette.TextPrimary else Palette.TextSecondary)
 }
 
 /** "일몰 오후 5:23 · 40분 전 도착", or that the sun will already be gone (or up) when we get there. */
