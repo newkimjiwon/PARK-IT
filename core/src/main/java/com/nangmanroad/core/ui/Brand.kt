@@ -35,7 +35,7 @@ fun ParkItMark(size: Dp = 40.dp, modifier: Modifier = Modifier) {
         modifier = modifier
             .size(size)
             .clip(RoundedCornerShape(size / 4))
-            .background(Palette.Accent),
+            .background(Palette.Pine),
         contentAlignment = Alignment.Center,
     ) {
         Image(

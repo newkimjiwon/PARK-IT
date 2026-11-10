@@ -157,7 +157,7 @@ fun DrivingScreen(
                 Spacer(Modifier.height(40.dp))
                 Text("도착 전에 알아두세요", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
                 Spacer(Modifier.height(12.dp))
-                Rule(Palette.Sage)
+                Rule(Palette.Rule)
                 // Three numbered columns split by rules, like a timetable; only the status word is coloured.
                 Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
                     tips.forEachIndexed { index, tip ->
@@ -201,7 +201,7 @@ private fun Rule(color: Color, thickness: Int = 1) {
 
 @Composable
 private fun VerticalRule(modifier: Modifier = Modifier) {
-    Box(modifier.width(1.dp).fillMaxHeight().background(Palette.Sage))
+    Box(modifier.width(1.dp).fillMaxHeight().background(Palette.Rule))
 }
 
 /**

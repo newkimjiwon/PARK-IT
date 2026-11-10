@@ -190,7 +190,7 @@ private fun CarSheet(car: CarDemoState) {
             }
         }
         Spacer(Modifier.height(10.dp))
-        Box(Modifier.fillMaxWidth().height(3.dp).background(Palette.Leaf)) {
+        Box(Modifier.fillMaxWidth().height(3.dp).background(Palette.Track)) {
             Box(Modifier.fillMaxWidth(car.batteryPercent / 100f).height(3.dp).background(Palette.TextPrimary))
         }
         Text(

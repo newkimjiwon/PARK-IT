@@ -45,9 +45,9 @@ import com.nangmanroad.phone.ui.components.Hairline
 import com.nangmanroad.phone.ui.components.TextTab
 import com.nangmanroad.phone.ui.map.PhoneMapStyle
 
-private val SharedTint = Palette.Warning
-private val SavedTint = Palette.Info
-private val VisitedTint = Palette.Success
+private val SharedTint get() = Palette.Warning
+private val SavedTint get() = Palette.Info
+private val VisitedTint get() = Palette.Success
 
 @Composable
 fun ProfileScreen(state: PhoneUiState, actions: PhoneViewModel) {
@@ -176,7 +176,7 @@ private fun Legend(color: Color, label: String) {
 @Composable
 private fun MiniCard(spot: Spot, onClick: () -> Unit) {
     Column(Modifier.clip(RoundedCornerShape(3.dp)).clickable(role = Role.Button, onClick = onClick), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        SpotPhoto(spot.photos.first(), spot.title, Modifier.fillMaxWidth().aspectRatio(0.85f).clip(RoundedCornerShape(3.dp)))
+        SpotPhoto(spot.photos.first(), spot.title, Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(3.dp)))
         Text(spot.title, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(spot.region, style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
     }

@@ -55,7 +55,6 @@ import com.nangmanroad.vehicle.ui.components.TextTab
 import com.nangmanroad.vehicle.ui.feed.SpotCard
 import com.nangmanroad.core.ui.Palette
 
-private val aspects = listOf(0.78f, 1.0f, 0.68f, 1.2f, 0.9f)
 
 private val carTabs = listOf(AlbumTab.SAVED, AlbumTab.VISITED, AlbumTab.FROM_PHONE)
 
@@ -132,7 +131,6 @@ fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
                 spot = spot,
                 likeCount = state.likeCount(spot),
                 saved = spot.id in state.saved,
-                photoAspect = aspects[(spot.id.hashCode() and 0x7fffffff) % aspects.size],
                 onOpen = { actions.openSpot(spot.id) },
                 onToggleSave = { actions.toggleSave(spot.id) },
             )

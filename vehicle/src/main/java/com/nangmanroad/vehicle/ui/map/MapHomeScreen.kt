@@ -274,7 +274,7 @@ private fun PreviewCard(
         modifier = modifier
             .clip(shape)
             .background(Palette.BackgroundRaised.copy(alpha = 0.97f))
-            .border(1.dp, Palette.Sage, shape)
+            .border(1.dp, Palette.Rule, shape)
             .clickable(role = Role.Button, onClickLabel = "자세히 보기", onClick = onOpen)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -487,7 +487,6 @@ private fun FeedPanel(state: AppUiState, spots: List<Spot>, actions: AppViewMode
                 spot = spot,
                 likeCount = state.likeCount(spot),
                 saved = spot.id in state.saved,
-                photoAspect = if (spot.id.hashCode() % 2 == 0) 0.8f else 1.05f,
                 onOpen = { actions.openSpot(spot.id) },
                 onToggleSave = { actions.toggleSave(spot.id) },
             )

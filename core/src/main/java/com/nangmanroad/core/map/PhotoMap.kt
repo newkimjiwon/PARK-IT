@@ -90,7 +90,7 @@ val naverMapsAvailable: Boolean get() = BuildConfig.NAVER_NCP_KEY_ID.isNotBlank(
  * The map that shows places as their own photos. Nearby photos merge into one marker with a count;
  * tapping a merged marker zooms in, tapping a single one selects it.
  *
- * With a NAVER Maps key this is a real road map in its day style; without one it falls back to the
+ * With a NAVER Maps key this is a real road map (night or day to match the theme); without one it falls back to the
  * hand-drawn Canvas map so the apps still build and run.
  */
 @Composable
@@ -328,7 +328,7 @@ internal fun BoxScope.MapControls(style: PhotoMapStyle, onZoomIn: () -> Unit, on
             .padding(style.controlsPadding)
             .clip(RoundedCornerShape(4.dp))
             .background(Palette.BackgroundRaised.copy(alpha = 0.96f))
-            .border(1.dp, Palette.Sage, RoundedCornerShape(4.dp)),
+            .border(1.dp, Palette.Rule, RoundedCornerShape(4.dp)),
     ) {
         MapButton(Icons.Outlined.Add, "확대", style.buttonSize, onZoomIn)
         MapButton(Icons.Outlined.Remove, "축소", style.buttonSize, onZoomOut)

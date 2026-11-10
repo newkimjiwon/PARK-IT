@@ -42,7 +42,6 @@ fun SpotCard(
     spot: Spot,
     likeCount: Int,
     saved: Boolean,
-    photoAspect: Float,
     onOpen: () -> Unit,
     onToggleSave: () -> Unit,
     modifier: Modifier = Modifier,
@@ -58,7 +57,8 @@ fun SpotCard(
                 contentDescription = spot.title,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(photoAspect)
+                    // Every photo frame is square, so grids line up into a steady rhythm.
+                    .aspectRatio(1f)
                     .clip(RoundedCornerShape(Dimens.PhotoRadius)),
             )
             Box(

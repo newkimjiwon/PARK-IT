@@ -2,6 +2,7 @@ package com.nangmanroad.vehicle.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.TextStyle
@@ -51,7 +52,7 @@ private val AppTypography = Typography(
 @Composable
 fun NangmanRoadTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = lightColorScheme(
+        colorScheme = (if (Palette.dark) darkColorScheme() else lightColorScheme()).copy(
             primary = Palette.Accent,
             onPrimary = Palette.OnAccent,
             secondary = Palette.TextPrimary,

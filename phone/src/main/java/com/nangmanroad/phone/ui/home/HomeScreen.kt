@@ -164,7 +164,7 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
             Modifier
                 .padding(horizontal = 16.dp)
                 .fillMaxWidth()
-                .aspectRatio(0.86f)
+                .aspectRatio(1f)
                 .clip(RoundedCornerShape(4.dp))
                 .clickable(role = Role.Button, onClickLabel = "${spot.title} 보기") { actions.openSpot(spot.id) },
         ) {
@@ -265,7 +265,7 @@ private fun NearbyCard(spot: Spot, state: PhoneUiState, onClick: () -> Unit) {
             .clickable(role = Role.Button, onClick = onClick),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Box(Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(4.dp))) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(4.dp))) {
             SpotPhoto(spot.photos.first(), spot.title, Modifier.fillMaxSize())
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.6f to Color.Transparent, 1f to Palette.Background.copy(alpha = 0.8f))))
             PhotoChip(distanceFromHere(state.here, spot), Modifier.align(Alignment.BottomStart).padding(8.dp))

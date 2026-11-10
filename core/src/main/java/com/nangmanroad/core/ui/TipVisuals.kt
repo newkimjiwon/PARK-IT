@@ -148,7 +148,7 @@ fun ToggleChip(
             .heightIn(min = height)
             .clip(RoundedCornerShape(3.dp))
             .background(if (on) Palette.TextPrimary else Color.Transparent)
-            .border(1.dp, if (on) Palette.TextPrimary else Palette.Sage, RoundedCornerShape(3.dp))
+            .border(1.dp, if (on) Palette.TextPrimary else Palette.Rule, RoundedCornerShape(3.dp))
             .clickable(role = Role.Checkbox, onClickLabel = onClickLabel, onClick = onToggle)
             .padding(horizontal = height / 3),
         verticalAlignment = Alignment.CenterVertically,

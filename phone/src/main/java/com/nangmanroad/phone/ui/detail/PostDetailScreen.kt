@@ -175,7 +175,7 @@ fun PostDetailScreen(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
 @Composable
 private fun Gallery(spot: Spot, onBack: () -> Unit) {
     val pager = rememberPagerState(pageCount = { spot.photos.size })
-    Box(Modifier.fillMaxWidth().aspectRatio(0.9f)) {
+    Box(Modifier.fillMaxWidth().aspectRatio(1f)) {
         HorizontalPager(pager, Modifier.fillMaxSize()) { page -> SpotPhoto(spot.photos[page], "${spot.title} 사진 ${page + 1}", Modifier.fillMaxSize()) }
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.6f to Color.Transparent, 1f to Palette.Background)))
         Box(

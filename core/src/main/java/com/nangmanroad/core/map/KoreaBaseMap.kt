@@ -77,7 +77,7 @@ internal object KoreaBaseMap {
         City("속초", LatLng(38.20, 128.59), false),
     )
 
-    private val labelStyle = TextStyle(color = Palette.MapLabel, fontSize = 18.sp)
+    private val labelStyle get() = TextStyle(color = Palette.MapLabel, fontSize = 18.sp)
 
     fun DrawScope.drawBaseMap(camera: MapCamera, measurer: TextMeasurer) {
         drawRect(Palette.MapSea)

@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -98,7 +99,7 @@ fun SpotDetailScreen(spot: Spot, state: AppUiState, actions: AppViewModel) {
                 contentPadding = PaddingValues(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
-                item { PhotoGallery(spot, onBack = actions::back, modifier = Modifier.fillMaxWidth().height(560.dp)) }
+                item { PhotoGallery(spot, onBack = actions::back, modifier = Modifier.fillMaxWidth().height(900.dp)) }
                 detailBody(spot, state, actions, tab, horizontalPadding = 28.dp) { tab = it }
             }
         }
@@ -137,62 +138,60 @@ private fun LazyListScope.detailBody(
 @Composable
 private fun PhotoGallery(spot: Spot, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val pager = rememberPagerState(pageCount = { spot.photos.size })
-    Box(modifier.background(Palette.Background)) {
-        HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { page ->
-            SpotPhoto(spot.photos[page], contentDescription = "${spot.title} 사진 ${page + 1}", modifier = Modifier.fillMaxSize())
-        }
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(Brush.verticalGradient(0.5f to Color.Transparent, 1f to Palette.Background.copy(alpha = 0.92f))),
-        )
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(24.dp)
-                .heightIn(min = Dimens.TouchTarget)
-                .clip(RoundedCornerShape(Dimens.ControlRadius))
-                .background(Palette.Scrim)
-                .clickable(role = Role.Button, onClick = onBack)
-                .padding(horizontal = 22.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null, tint = Palette.TextPrimary, modifier = Modifier.size(30.dp))
-            Text("돌아가기", style = MaterialTheme.typography.labelLarge, color = Palette.TextPrimary)
-        }
-        Text(
-            "${pager.currentPage + 1} / ${spot.photos.size}",
-            style = MaterialTheme.typography.labelLarge.tabular(),
-            color = Palette.TextPrimary,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(24.dp)
-                .clip(RoundedCornerShape(Dimens.ControlRadius))
-                .background(Palette.Scrim)
-                .padding(horizontal = 18.dp, vertical = 10.dp),
-        )
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(36.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text("${spot.province} · ${spot.category.label}", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
-            Text(spot.title, style = MaterialTheme.typography.displaySmall, color = Palette.TextPrimary)
-            Text("“${spot.story}”", style = MaterialTheme.typography.bodyLarge, color = Palette.TextPrimary.copy(alpha = 0.86f))
+    // A square photo on top and the caption set beneath it, like a plate in a printed guide.
+    Column(modifier) {
+        Box(Modifier.fillMaxWidth().weight(1f, fill = false).aspectRatio(1f)) {
+            HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { page ->
+                SpotPhoto(spot.photos[page], contentDescription = "${spot.title} 사진 ${page + 1}", modifier = Modifier.fillMaxSize())
+            }
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(24.dp)
+                    .heightIn(min = Dimens.TouchTarget)
+                    .clip(RoundedCornerShape(Dimens.ControlRadius))
+                    .background(Palette.Scrim)
+                    .clickable(role = Role.Button, onClick = onBack)
+                    .padding(horizontal = 22.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = null, tint = Palette.TextPrimary, modifier = Modifier.size(30.dp))
+                Text("돌아가기", style = MaterialTheme.typography.labelLarge, color = Palette.TextPrimary)
+            }
+            Text(
+                "${pager.currentPage + 1} / ${spot.photos.size}",
+                style = MaterialTheme.typography.labelLarge.tabular(),
+                color = Palette.TextPrimary,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(24.dp)
+                    .clip(RoundedCornerShape(Dimens.ControlRadius))
+                    .background(Palette.Scrim)
+                    .padding(horizontal = 18.dp, vertical = 10.dp),
+            )
             if (spot.photos.size > 1) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    Modifier.align(Alignment.BottomStart).padding(24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     repeat(spot.photos.size) { index ->
                         Box(
                             Modifier
                                 .size(width = 28.dp, height = 4.dp)
-                                .clip(CircleShape)
-                                .background(if (index == pager.currentPage) Palette.TextPrimary else Palette.TextPrimary.copy(alpha = 0.3f)),
+                                .background(if (index == pager.currentPage) Palette.Mist else Palette.Mist.copy(alpha = 0.4f)),
                         )
                     }
                 }
             }
+        }
+        Column(
+            modifier = Modifier.padding(horizontal = 36.dp, vertical = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("${spot.province} · ${spot.category.label}", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
+            Text(spot.title, style = MaterialTheme.typography.displaySmall, color = Palette.TextPrimary)
+            Text("“${spot.story}”", style = MaterialTheme.typography.bodyLarge, color = Palette.TextSecondary)
         }
     }
 }

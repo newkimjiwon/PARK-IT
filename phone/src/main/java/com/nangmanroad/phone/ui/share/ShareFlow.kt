@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -130,7 +131,7 @@ private fun PhotoStep(draft: ShareDraft, actions: PhoneViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("첫 번째 사진이 지도 마커와 대표 사진이 돼요.", style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary)
         if (draft.photos.isNotEmpty()) {
-            SpotPhoto(draft.photos.first(), "대표 사진", Modifier.fillMaxWidth().height(260.dp).clip(RoundedCornerShape(4.dp)))
+            SpotPhoto(draft.photos.first(), "대표 사진", Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(4.dp)))
         }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             items(draft.photos, key = { it }) { photo ->
@@ -164,7 +165,7 @@ private fun PhotoStep(draft: ShareDraft, actions: PhoneViewModel) {
             items(samplePhotos) { photo ->
                 val chosen = photo in draft.photos
                 Box(Modifier.clickable(role = Role.Checkbox) { if (chosen) actions.removeDraftPhoto(photo) else actions.addSamplePhoto(photo) }) {
-                    SpotPhoto(photo, null, Modifier.size(width = 96.dp, height = 120.dp).clip(RoundedCornerShape(4.dp)))
+                    SpotPhoto(photo, null, Modifier.size(104.dp).clip(RoundedCornerShape(4.dp)))
                     if (chosen) Icon(Icons.Outlined.CheckCircle, "선택됨", tint = Palette.TextPrimary, modifier = Modifier.align(Alignment.TopEnd).padding(6.dp))
                 }
             }
