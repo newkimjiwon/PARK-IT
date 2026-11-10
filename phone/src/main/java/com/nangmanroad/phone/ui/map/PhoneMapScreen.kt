@@ -92,14 +92,14 @@ fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
                         .align(Alignment.BottomCenter)
                         .padding(16.dp)
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(4.dp))
                         .background(Palette.BackgroundRaised)
                         .clickable(role = Role.Button, onClickLabel = "자세히 보기") { actions.openSpot(selected.id) }
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    SpotPhoto(selected.photos.first(), selected.title, Modifier.size(84.dp).clip(RoundedCornerShape(8.dp)))
+                    SpotPhoto(selected.photos.first(), selected.title, Modifier.size(84.dp).clip(RoundedCornerShape(3.dp)))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(selected.category.label, style = MaterialTheme.typography.labelMedium, color = Palette.TextSecondary)
                         Text(selected.title, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -109,7 +109,7 @@ fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
                     Box(
                         Modifier
                             .size(44.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(4.dp))
                             .background(Palette.Surface)
                             .clickable(role = Role.Button, onClickLabel = if (saved) "저장 취소" else "저장") { actions.toggleSave(selected.id) },
                         contentAlignment = Alignment.Center,

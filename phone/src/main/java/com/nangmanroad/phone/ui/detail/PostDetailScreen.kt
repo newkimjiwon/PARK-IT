@@ -298,7 +298,7 @@ private fun TipRow(tip: HoneyTip, helpful: Boolean, onHelpful: () -> Unit, modif
                     style = MaterialTheme.typography.labelLarge.tabular(),
                     color = if (helpful) Palette.TextPrimary else Palette.TextSecondary,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(3.dp))
                         .background(if (helpful) Palette.SurfaceHigh else Palette.Surface)
                         .clickable(role = Role.Button, onClick = onHelpful)
                         .padding(horizontal = 10.dp, vertical = 6.dp),
@@ -313,7 +313,7 @@ private fun ProductRow(product: Product, saved: Boolean, onSave: () -> Unit, mod
     val context = LocalContext.current
     Column(modifier.fillMaxWidth().padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            SpotPhoto(product.imageUrl, null, Modifier.size(88.dp).clip(RoundedCornerShape(8.dp)))
+            SpotPhoto(product.imageUrl, null, Modifier.size(88.dp).clip(RoundedCornerShape(3.dp)))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(product.name, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, modifier = Modifier.weight(1f, fill = false))
@@ -359,7 +359,7 @@ private fun CommentThread(comment: Comment, onReply: () -> Unit, modifier: Modif
             color = Palette.TextSecondary,
             modifier = Modifier
                 .padding(start = 42.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(3.dp))
                 .clickable(role = Role.Button, onClick = onReply)
                 .padding(vertical = 4.dp, horizontal = 2.dp),
         )
@@ -408,7 +408,7 @@ private fun CommentComposer(replyingTo: String?, onCancelReply: () -> Unit, onSe
             Box(
                 Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(4.dp))
                     .background(Palette.Surface)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
@@ -431,7 +431,7 @@ private fun CommentComposer(replyingTo: String?, onCancelReply: () -> Unit, onSe
             Box(
                 Modifier
                     .size(44.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(4.dp))
                     .background(if (text.isBlank()) Palette.Surface else Palette.TextPrimary)
                     .clickable(enabled = text.isNotBlank(), role = Role.Button, onClickLabel = "보내기") {
                         onSend(text, question && replyingTo == null)

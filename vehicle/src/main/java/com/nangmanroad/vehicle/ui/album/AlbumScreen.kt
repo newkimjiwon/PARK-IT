@@ -155,7 +155,7 @@ private fun SunPlanStrip(plans: List<Pair<Spot, SunPlan>>, state: AppUiState, ac
                     modifier = Modifier
                         .widthIn(min = 420.dp, max = 560.dp)
                         .heightIn(min = Dimens.TouchTarget)
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(4.dp))
                         .background(Palette.Surface)
                         .clickable(role = Role.Button, onClickLabel = "${spot.title} 보기") { actions.openSpot(spot.id) }
                         .padding(horizontal = 20.dp, vertical = 16.dp),
@@ -192,7 +192,7 @@ private fun TravelStrip(summary: TravelSummary) {
     Row(
         modifier = Modifier
             .padding(bottom = 8.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(4.dp))
             .background(Palette.Surface)
             .padding(horizontal = 24.dp, vertical = 18.dp),
         verticalAlignment = Alignment.CenterVertically,

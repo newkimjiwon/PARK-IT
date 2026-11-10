@@ -2,6 +2,7 @@ package com.nangmanroad.core.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
@@ -82,7 +83,12 @@ fun FacilityStrip(tips: List<HoneyTip>, modifier: Modifier = Modifier, iconSize:
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(gap)) {
         FacilityKinds.forEach { kind ->
             val status = tips.facilityStatus(kind)
-            val tint = status?.color() ?: Palette.TextTertiary.copy(alpha = 0.55f)
+            // Colour is kept for what needs attention; a confirmed facility is plain ink, an unknown one faint.
+            val tint = when (status) {
+                null -> Palette.TextTertiary.copy(alpha = 0.45f)
+                TipStatus.GOOD -> Palette.TextSecondary
+                else -> status.color()
+            }
             val description = "${kind.label} ${status?.label() ?: "정보 없음"}"
             Icon(
                 kind.icon(),
@@ -123,7 +129,7 @@ fun FacilityFilterRow(
     }
 }
 
-/** One filter chip: light on dark when pressed, surface-coloured otherwise. */
+/** One filter chip: ink-filled when pressed, a 1px outline otherwise. */
 @Composable
 fun ToggleChip(
     icon: ImageVector,
@@ -140,8 +146,9 @@ fun ToggleChip(
     Row(
         modifier = modifier
             .heightIn(min = height)
-            .clip(RoundedCornerShape(height / 2))
-            .background(if (on) Palette.TextPrimary else Palette.Surface)
+            .clip(RoundedCornerShape(3.dp))
+            .background(if (on) Palette.TextPrimary else Color.Transparent)
+            .border(1.dp, if (on) Palette.TextPrimary else Palette.Sage, RoundedCornerShape(3.dp))
             .clickable(role = Role.Checkbox, onClickLabel = onClickLabel, onClick = onToggle)
             .padding(horizontal = height / 3),
         verticalAlignment = Alignment.CenterVertically,

@@ -33,7 +33,7 @@ import com.nangmanroad.vehicle.ui.theme.Dimens
 
 /**
  * A text tab: white with an underline when selected, grey otherwise. Used for filters, sort orders
- * and section tabs so the coral accent stays free for route guidance.
+ * and section tabs so the pine accent stays free for route guidance.
  */
 @Composable
 fun TextTab(
@@ -80,7 +80,7 @@ fun TextTab(
 }
 
 /**
- * Large, clearly labelled button. Only the screen's main action is [primary] (coral). [active]
+ * Large, clearly labelled button. Only the screen's main action is [primary] (the pine accent). [active]
  * marks a toggled state such as saved or liked with a lighter fill; the icon carries the state.
  */
 @Composable
@@ -93,11 +93,11 @@ fun ActionButton(
     active: Boolean = false,
 ) {
     val container = when {
-        primary -> Palette.Coral
+        primary -> Palette.Accent
         active -> Palette.SurfaceHigh
         else -> Palette.Surface
     }
-    val content = if (primary) Palette.OnCoral else Palette.TextPrimary
+    val content = if (primary) Palette.OnAccent else Palette.TextPrimary
     Row(
         modifier = modifier
             .heightIn(min = Dimens.TouchTarget)
@@ -130,7 +130,7 @@ fun Marker(text: String, modifier: Modifier = Modifier, color: Color = Palette.T
         style = MaterialTheme.typography.labelSmall,
         color = color,
         modifier = modifier
-            .border(1.dp, Palette.SurfaceHigh, RoundedCornerShape(6.dp))
+            .border(1.dp, Palette.SurfaceHigh, RoundedCornerShape(3.dp))
             .padding(horizontal = 8.dp, vertical = 2.dp),
     )
 }

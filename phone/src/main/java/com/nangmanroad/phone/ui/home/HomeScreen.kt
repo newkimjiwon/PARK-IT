@@ -153,7 +153,7 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                     style = MaterialTheme.typography.labelLarge,
                     color = Palette.TextPrimary,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(4.dp))
                         .clickable(role = Role.Button) { actions.toggleFollow(spot.author.id) }
                         .padding(horizontal = 10.dp, vertical = 8.dp),
                 )
@@ -165,7 +165,7 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                 .padding(horizontal = 16.dp)
                 .fillMaxWidth()
                 .aspectRatio(0.86f)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(4.dp))
                 .clickable(role = Role.Button, onClickLabel = "${spot.title} 보기") { actions.openSpot(spot.id) },
         ) {
             HorizontalPager(pager, Modifier.fillMaxSize()) { page ->
@@ -181,7 +181,7 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(16.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(4.dp))
                         .background(Palette.Scrim)
                         .padding(horizontal = 10.dp, vertical = 4.dp),
                 )
@@ -189,13 +189,13 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
             Column(Modifier.align(Alignment.BottomStart).padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     PhotoChip("${spot.province} · ${spot.category.label}")
-                    CarCampingBadge(spot.carCamping, Modifier.background(Palette.Scrim, RoundedCornerShape(8.dp)), iconSize = 14.dp, stale = spot.carCampingStale)
+                    CarCampingBadge(spot.carCamping, Modifier.background(Palette.Scrim, RoundedCornerShape(3.dp)), iconSize = 14.dp, stale = spot.carCampingStale)
                     if (spot.tips.isNotEmpty()) PhotoChip("꿀팁 ${spot.tips.size}", accent = true)
                 }
                 // Facilities on their own line so the five icons never get clipped by the chips.
                 FacilityStrip(
                     spot.tips,
-                    Modifier.clip(RoundedCornerShape(8.dp)).background(Palette.Scrim).padding(horizontal = 8.dp, vertical = 5.dp),
+                    Modifier.clip(RoundedCornerShape(3.dp)).background(Palette.Scrim).padding(horizontal = 8.dp, vertical = 5.dp),
                     iconSize = 16.dp,
                     gap = 8.dp,
                 )
@@ -228,7 +228,7 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
 private fun Action(icon: ImageVector, label: String?, onClick: () -> Unit) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(4.dp))
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -261,11 +261,11 @@ private fun NearbyCard(spot: Spot, state: PhoneUiState, onClick: () -> Unit) {
     Column(
         Modifier
             .width(150.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(4.dp))
             .clickable(role = Role.Button, onClick = onClick),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Box(Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(12.dp))) {
+        Box(Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(4.dp))) {
             SpotPhoto(spot.photos.first(), spot.title, Modifier.fillMaxSize())
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.6f to Color.Transparent, 1f to Palette.Background.copy(alpha = 0.8f))))
             PhotoChip(distanceFromHere(state.here, spot), Modifier.align(Alignment.BottomStart).padding(8.dp))
@@ -275,14 +275,14 @@ private fun NearbyCard(spot: Spot, state: PhoneUiState, onClick: () -> Unit) {
     }
 }
 
-/** A small translucent label that sits on a photo; [accent] gives it the coral used for tips. */
+/** A small label on a photo: a light veil, or solid ink when [accent] marks the tip count. */
 @Composable
 private fun PhotoChip(text: String, modifier: Modifier = Modifier, accent: Boolean = false, icon: ImageVector? = null) {
-    val color = if (accent) Palette.OnCoral else Palette.TextPrimary
+    val color = if (accent) Palette.Background else Palette.TextPrimary
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (accent) Palette.Coral.copy(alpha = 0.92f) else Palette.Scrim)
+            .clip(RoundedCornerShape(3.dp))
+            .background(if (accent) Palette.TextPrimary.copy(alpha = 0.9f) else Palette.Scrim)
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Palette.Coral, for the launcher icon background. -->
-    <color name="parkit_coral">#FF957C</color>
+    <!-- Palette.Pine, for the launcher icon background; the glyph is Palette.Mist. -->
+    <color name="parkit_brand">#3F5C55</color>
 </resources>

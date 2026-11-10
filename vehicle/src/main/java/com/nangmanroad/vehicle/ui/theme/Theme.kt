@@ -2,7 +2,7 @@ package com.nangmanroad.vehicle.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -15,9 +15,9 @@ import com.nangmanroad.core.ui.Pretendard
 object Dimens {
     val TouchTarget = 64.dp
     val Gutter = 24.dp
-    /** Buttons, fields and panels. Kept small to sit with the square-ish Pleos system UI. */
-    val ControlRadius = 10.dp
-    val PhotoRadius = 8.dp
+    /** Buttons, fields and panels: nearly square, edges drawn with 1px rules rather than shadows. */
+    val ControlRadius = 4.dp
+    val PhotoRadius = 2.dp
     val RailWidth = 104.dp
 }
 
@@ -29,10 +29,13 @@ private fun style(size: Int, line: Int, weight: FontWeight = FontWeight.Normal, 
     letterSpacing = tracking.sp,
 )
 
+// Swiss-style contrast: a few very large, tight headings over small, plain body text.
 private val AppTypography = Typography(
-    displaySmall = style(44, 54, FontWeight.SemiBold, -0.9),
-    headlineLarge = style(38, 48, FontWeight.SemiBold, -0.7),
-    headlineMedium = style(32, 42, FontWeight.SemiBold, -0.5),
+    /** The remaining distance on the driving screen; nothing else is this big. */
+    displayLarge = style(112, 116, FontWeight.Bold, -3.5),
+    displaySmall = style(48, 56, FontWeight.Bold, -1.2),
+    headlineLarge = style(40, 48, FontWeight.Bold, -0.9),
+    headlineMedium = style(32, 40, FontWeight.SemiBold, -0.6),
     headlineSmall = style(28, 36, FontWeight.SemiBold, -0.4),
     titleLarge = style(26, 34, FontWeight.SemiBold, -0.3),
     titleMedium = style(23, 30, FontWeight.SemiBold, -0.2),
@@ -48,9 +51,9 @@ private val AppTypography = Typography(
 @Composable
 fun NangmanRoadTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = Palette.Coral,
-            onPrimary = Palette.OnCoral,
+        colorScheme = lightColorScheme(
+            primary = Palette.Accent,
+            onPrimary = Palette.OnAccent,
             secondary = Palette.TextPrimary,
             background = Palette.Background,
             onBackground = Palette.TextPrimary,

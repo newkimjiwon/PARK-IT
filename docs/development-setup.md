@@ -140,13 +140,15 @@ $env:ANDROID_HOME = 'C:\실제\Android\sdk\경로'
 naver.ncpKeyId=여기에_키_ID
 ```
 
-명령줄에서 한 번만 넣으려면 `-Pnangmanroad.naverKeyId=키_ID`를 붙입니다. 키는 저장소에 올리지 않습니다. 지도는 야간 모드의 내비게이션 지도 스타일로 표시되며, 설정은 `core/src/main/java/com/nangmanroad/core/map/NaverPhotoMap.kt`에 있습니다.
+명령줄에서 한 번만 넣으려면 `-Pnangmanroad.naverKeyId=키_ID`를 붙입니다. 키는 저장소에 올리지 않습니다. 지도는 내비게이션 지도 스타일의 주간 모드로 표시되며, 설정은 `core/src/main/java/com/nangmanroad/core/map/NaverPhotoMap.kt`에 있습니다.
 
 2026-11-08 Windows에서 확인한 내용입니다.
 
 - 콘솔의 인증 정보에는 키가 **Client ID (X-NCP-APIGW-API-KEY-ID)** 로 표시됩니다. 이 값을 그대로 `naver.ncpKeyId`에 넣으면 됩니다. SDK에는 `NcpKeyClient`로 전달하며(기본값), 예전 AI·NAVER API 방식의 키라면 `local.properties`에 `naver.clientType=legacy`를 추가합니다.
 - 앱 로그에 `NAVER Maps auth failed: 401`이 나오면 콘솔의 Android 앱 패키지 이름을 확인한 뒤 **Application 수정 화면에서 그대로 저장**을 한 번 눌러 보세요. 등록 직후에는 패키지 목록이 모바일 인증 서버에 반영되지 않아 401이 나다가, 다시 저장하고 앱을 다시 빌드·설치하니 해결되었습니다. 키가 살아 있는지는 Web 서비스 URL에 `http://localhost:포트`를 잠시 추가하고 `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=키` 를 불러오는 HTML로 확인할 수 있습니다.
 - 429가 나오면 Dynamic Map이 선택되지 않았거나 한도를 넘은 것입니다. 한도 설정의 "한도 초과 사용"은 허용안함으로 두면 과금 대신 차단됩니다.
+- 키를 처음 넣거나 바꾼 뒤에는 `sh gradlew :core:clean`을 먼저 실행하고 빌드합니다. 키는 빌드할 때 상수로 코드에 들어가는데, 증분 빌드는 그 코드를 다시 컴파일하지 않아 예전 값(키가 없던 때의 Canvas 지도)이 남습니다. 2026-11-10 macOS에서 확인했습니다.
+- 콘솔에서 Client ID 옆의 40자짜리 값은 Client Secret입니다. 앱에는 넣지 않습니다.
 
 ## 6. 휴대폰 에뮬레이터 준비
 

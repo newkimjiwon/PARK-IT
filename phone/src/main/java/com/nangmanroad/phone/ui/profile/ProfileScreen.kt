@@ -87,7 +87,7 @@ fun ProfileScreen(state: PhoneUiState, actions: PhoneViewModel) {
                     style = MaterialTheme.typography.labelLarge,
                     color = Palette.TextSecondary,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(3.dp))
                         .clickable(role = Role.Button, onClick = actions::signOut)
                         .padding(horizontal = 10.dp, vertical = 8.dp),
                 )
@@ -123,7 +123,7 @@ fun ProfileScreen(state: PhoneUiState, actions: PhoneViewModel) {
                             else -> SavedTint
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(300.dp).clip(RoundedCornerShape(8.dp)),
+                    modifier = Modifier.fillMaxWidth().height(300.dp).clip(RoundedCornerShape(3.dp)),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     Legend(SharedTint, "내가 공유한 장소")
@@ -175,8 +175,8 @@ private fun Legend(color: Color, label: String) {
 
 @Composable
 private fun MiniCard(spot: Spot, onClick: () -> Unit) {
-    Column(Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onClick), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        SpotPhoto(spot.photos.first(), spot.title, Modifier.fillMaxWidth().aspectRatio(0.85f).clip(RoundedCornerShape(8.dp)))
+    Column(Modifier.clip(RoundedCornerShape(3.dp)).clickable(role = Role.Button, onClick = onClick), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        SpotPhoto(spot.photos.first(), spot.title, Modifier.fillMaxWidth().aspectRatio(0.85f).clip(RoundedCornerShape(3.dp)))
         Text(spot.title, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(spot.region, style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
     }

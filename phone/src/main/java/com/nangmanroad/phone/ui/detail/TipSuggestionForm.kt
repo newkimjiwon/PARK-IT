@@ -51,8 +51,8 @@ fun TipSuggestionForm(onCancel: () -> Unit, onSubmit: (TipKind, TipStatus, Strin
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .border(1.dp, Palette.Hairline, RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(4.dp))
+            .border(1.dp, Palette.Hairline, RoundedCornerShape(4.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -98,7 +98,7 @@ fun LabeledField(
             Modifier
                 .fillMaxWidth()
                 .heightIn(min = minHeight.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(4.dp))
                 .background(Palette.Surface)
                 .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {

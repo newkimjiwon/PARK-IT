@@ -47,7 +47,7 @@ fun Chip(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
 ) {
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(3.dp)
     Row(
         modifier = modifier
             .heightIn(min = 40.dp)
@@ -107,7 +107,7 @@ fun Hairline(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().height(1.dp).background(Palette.Hairline))
 }
 
-/** The screen's one main action, in coral. */
+/** The screen's one main action, in the pine accent. */
 @Composable
 fun PrimaryButton(
     text: String,
@@ -119,14 +119,14 @@ fun PrimaryButton(
     Row(
         modifier = modifier
             .heightIn(min = 52.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (enabled) Palette.Coral else Palette.Surface)
+            .clip(RoundedCornerShape(4.dp))
+            .background(if (enabled) Palette.Accent else Palette.Surface)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
-        val tint = if (enabled) Palette.OnCoral else Palette.TextTertiary
+        val tint = if (enabled) Palette.OnAccent else Palette.TextTertiary
         if (icon != null) Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
         Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = tint)
     }
@@ -146,7 +146,7 @@ fun SecondaryButton(
     Row(
         modifier = modifier
             .heightIn(min = 44.dp)
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(4.dp))
             .background(if (active) Palette.SurfaceHigh else container)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
@@ -167,7 +167,7 @@ fun Tag(text: String, color: Color, modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.labelMedium,
         color = color,
         modifier = modifier
-            .border(1.dp, Palette.SurfaceHigh, RoundedCornerShape(5.dp))
+            .border(1.dp, Palette.SurfaceHigh, RoundedCornerShape(3.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp),
     )
 }
@@ -207,7 +207,7 @@ fun IconCircle(icon: ImageVector, label: String, onClick: () -> Unit, modifier: 
                     .padding(top = 9.dp, end = 10.dp)
                     .size(8.dp)
                     .clip(CircleShape)
-                    .background(Palette.Coral),
+                    .background(Palette.Accent),
             )
         }
     }

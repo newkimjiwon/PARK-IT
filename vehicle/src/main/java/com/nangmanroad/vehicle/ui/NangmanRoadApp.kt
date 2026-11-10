@@ -53,6 +53,7 @@ import com.nangmanroad.vehicle.ui.map.MapHomeScreen
 import com.nangmanroad.vehicle.ui.theme.Dimens
 import com.nangmanroad.core.ui.ParkItMark
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.paperGrain
 import kotlinx.coroutines.delay
 
 @Composable
@@ -61,7 +62,7 @@ fun NangmanRoadApp(state: AppUiState, actions: AppViewModel) {
 
     BackHandler(enabled = state.screen != Screen.Map && !state.showDrivingView) { actions.back() }
 
-    Box(Modifier.fillMaxSize().background(Palette.Background)) {
+    Box(Modifier.fillMaxSize().background(Palette.Background).paperGrain()) {
         Crossfade(targetState = state.showDrivingView, label = "drivingMode") { driving ->
             if (driving) {
                 DrivingScreen(
@@ -176,7 +177,7 @@ private fun Toast(state: AppUiState, actions: AppViewModel, modifier: Modifier =
     AnimatedVisibility(visible = toast != null, enter = fadeIn(), exit = fadeOut(), modifier = modifier) {
         Row(
             modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(4.dp))
                 .background(Palette.SurfaceHigh)
                 .padding(horizontal = 32.dp, vertical = 20.dp),
             verticalAlignment = Alignment.CenterVertically,

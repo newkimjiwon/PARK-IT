@@ -130,12 +130,12 @@ private fun PhotoStep(draft: ShareDraft, actions: PhoneViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("첫 번째 사진이 지도 마커와 대표 사진이 돼요.", style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary)
         if (draft.photos.isNotEmpty()) {
-            SpotPhoto(draft.photos.first(), "대표 사진", Modifier.fillMaxWidth().height(260.dp).clip(RoundedCornerShape(10.dp)))
+            SpotPhoto(draft.photos.first(), "대표 사진", Modifier.fillMaxWidth().height(260.dp).clip(RoundedCornerShape(4.dp)))
         }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             items(draft.photos, key = { it }) { photo ->
                 Box {
-                    SpotPhoto(photo, null, Modifier.size(84.dp).clip(RoundedCornerShape(10.dp)))
+                    SpotPhoto(photo, null, Modifier.size(84.dp).clip(RoundedCornerShape(4.dp)))
                     Icon(
                         Icons.Outlined.Delete, "사진 빼기", tint = Palette.TextPrimary,
                         modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(28.dp).clip(CircleShape).background(Palette.Scrim)
@@ -147,8 +147,8 @@ private fun PhotoStep(draft: ShareDraft, actions: PhoneViewModel) {
                 Box(
                     Modifier
                         .size(84.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .border(1.dp, Palette.SurfaceHigh, RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(4.dp))
+                        .border(1.dp, Palette.SurfaceHigh, RoundedCornerShape(4.dp))
                         .clickable(role = Role.Button, onClickLabel = "기기에서 사진 고르기") {
                             picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                         },
@@ -164,7 +164,7 @@ private fun PhotoStep(draft: ShareDraft, actions: PhoneViewModel) {
             items(samplePhotos) { photo ->
                 val chosen = photo in draft.photos
                 Box(Modifier.clickable(role = Role.Checkbox) { if (chosen) actions.removeDraftPhoto(photo) else actions.addSamplePhoto(photo) }) {
-                    SpotPhoto(photo, null, Modifier.size(width = 96.dp, height = 120.dp).clip(RoundedCornerShape(10.dp)))
+                    SpotPhoto(photo, null, Modifier.size(width = 96.dp, height = 120.dp).clip(RoundedCornerShape(4.dp)))
                     if (chosen) Icon(Icons.Outlined.CheckCircle, "선택됨", tint = Palette.TextPrimary, modifier = Modifier.align(Alignment.TopEnd).padding(6.dp))
                 }
             }
@@ -179,7 +179,7 @@ private fun PlaceStep(draft: ShareDraft, actions: PhoneViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         if (draft.photoLocation != null) {
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Palette.Success.copy(alpha = 0.14f)).padding(12.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(Palette.Success.copy(alpha = 0.14f)).padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -188,7 +188,7 @@ private fun PlaceStep(draft: ShareDraft, actions: PhoneViewModel) {
             }
         } else if (draft.fromCar) {
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Palette.Success.copy(alpha = 0.14f)).padding(12.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(Palette.Success.copy(alpha = 0.14f)).padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -212,7 +212,7 @@ private fun PlaceStep(draft: ShareDraft, actions: PhoneViewModel) {
             onVisibleChange = {},
             style = PhoneMapStyle.copy(initialCamera = MapCamera(pin ?: PhoneMapStyle.initialCamera.center, if (pin != null) 2.5f else 0.9f), controlsPadding = PaddingValues(8.dp)),
             onMapTap = actions::dropPin,
-            modifier = Modifier.fillMaxWidth().height(320.dp).clip(RoundedCornerShape(10.dp)),
+            modifier = Modifier.fillMaxWidth().height(320.dp).clip(RoundedCornerShape(4.dp)),
         )
         draft.region?.let {
             Text("선택한 지역: ${it.address}", style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
@@ -248,8 +248,8 @@ private fun StoryStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneView
     var showAudience by rememberSaveable { mutableStateOf(draft.visibility != Visibility.PUBLIC) }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         LabeledField("제목", draft.title, "예: 파도 소리만 들리는 작은 해변", maxLength = Limits.TITLE) { title -> actions.updateDraft { it.copy(title = title) } }
-        LabeledField("경험", draft.story, "무엇을 보고 어떤 시간을 보냈는지 적어 주세요", minHeight = 120, maxLength = Limits.STORY) { story -> actions.updateDraft { it.copy(story = story) } }
-        Text("해시태그 대신 실제 경험을 들려주세요. 아래 분류는 지도에서 찾기 쉽게 해 줘요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+        LabeledField("경험", draft.story, "언제 갔고, 무엇이 좋았고, 무엇이 불편했는지", minHeight = 120, maxLength = Limits.STORY) { story -> actions.updateDraft { it.copy(story = story) } }
+        Text("분류를 고르면 지도와 홈의 필터에 잡혀요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Category.entries.forEach { category ->
                 Chip(category.label, draft.category == category, { actions.updateDraft { it.copy(category = category) } })
@@ -322,7 +322,7 @@ private fun TipStep(draft: ShareDraft, actions: PhoneViewModel) {
         }
         draft.tips.forEach { (kind, tip) ->
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).border(1.dp, Palette.Hairline, RoundedCornerShape(10.dp)).padding(14.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).border(1.dp, Palette.Hairline, RoundedCornerShape(4.dp)).padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -362,7 +362,7 @@ private fun ItemStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewM
         Text("직접 써 본 캠핑·여행 용품이 있다면 추천해 주세요. 없으면 건너뛰어도 돼요.", style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary)
         draft.products.forEach { product ->
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).border(1.dp, Palette.Hairline, RoundedCornerShape(10.dp)).padding(14.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).border(1.dp, Palette.Hairline, RoundedCornerShape(4.dp)).padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
@@ -377,7 +377,7 @@ private fun ItemStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewM
             }
         }
         Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).border(1.dp, Palette.Hairline, RoundedCornerShape(10.dp)).padding(14.dp),
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).border(1.dp, Palette.Hairline, RoundedCornerShape(4.dp)).padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             LabeledField("준비물 이름", name, "예: 휴대용 무드 랜턴") { name = it }

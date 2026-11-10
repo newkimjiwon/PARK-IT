@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.paperGrain
 import com.nangmanroad.phone.PhoneRoute
 import com.nangmanroad.phone.PhoneTab
 import com.nangmanroad.phone.PhoneUiState
@@ -70,7 +71,7 @@ fun PhoneApp(state: PhoneUiState, actions: PhoneViewModel) {
         }
     }
 
-    Box(Modifier.fillMaxSize().background(Palette.Background)) {
+    Box(Modifier.fillMaxSize().background(Palette.Background).paperGrain()) {
         if (state.account.needsSignIn) {
             Box(Modifier.fillMaxSize().statusBarsPadding()) { SignInScreen(state.account, actions) }
             Toast(state, actions, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 40.dp))
@@ -116,7 +117,7 @@ private fun BottomBar(state: PhoneUiState, actions: PhoneViewModel) {
         Column(
             modifier = Modifier
                 .weight(1f)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(4.dp))
                 .clickable(role = Role.Tab) { actions.selectTab(PhoneTab.SHARE) }
                 .padding(vertical = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -125,7 +126,7 @@ private fun BottomBar(state: PhoneUiState, actions: PhoneViewModel) {
                 Modifier
                     .padding(vertical = 2.dp)
                     .size(width = 48.dp, height = 34.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(4.dp))
                     .background(Palette.TextPrimary),
                 contentAlignment = Alignment.Center,
             ) {
@@ -143,7 +144,7 @@ private fun androidx.compose.foundation.layout.RowScope.NavItem(icon: ImageVecto
     Column(
         modifier = Modifier
             .weight(1f)
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(4.dp))
             .clickable(role = Role.Tab, onClick = onClick)
             .padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -168,7 +169,7 @@ private fun Toast(state: PhoneUiState, actions: PhoneViewModel, modifier: Modifi
     AnimatedVisibility(visible = toast != null, enter = fadeIn(), exit = fadeOut(), modifier = modifier.padding(horizontal = 20.dp)) {
         Row(
             modifier = Modifier
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(4.dp))
                 .background(Palette.SurfaceHigh)
                 .padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,

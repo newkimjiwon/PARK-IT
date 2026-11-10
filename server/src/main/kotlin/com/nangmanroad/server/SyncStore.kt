@@ -123,7 +123,7 @@ class SyncStore(
                 require(password.length >= MIN_PASSWORD_LENGTH) { "비밀번호는 ${MIN_PASSWORD_LENGTH}자 이상으로 정해 주세요" }
                 val salt = newSalt()
                 StoredUser(
-                    Author("u-${UUID.randomUUID().toString().take(8)}", name, "새로 낭만을 기록하기 시작했어요"),
+                    Author("u-${UUID.randomUUID().toString().take(8)}", name, "아직 올린 장소가 없어요"),
                     passwordHash = hashPassword(password, salt),
                     passwordSalt = salt,
                 )

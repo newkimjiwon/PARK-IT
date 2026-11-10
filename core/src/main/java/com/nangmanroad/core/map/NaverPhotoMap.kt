@@ -54,7 +54,7 @@ private fun Projection.toScreen(point: LatLng): Offset = toScreenLocation(point.
 private fun Offset.inside(size: IntSize): Boolean = x >= 0f && y >= 0f && x <= size.width && y <= size.height
 
 /**
- * [PhotoMap] on a real NAVER map in night mode. The map draws the roads; the photo markers, the
+ * [PhotoMap] on a real NAVER map in its day style, to sit on the light sage screens. The map draws the roads; the photo markers, the
  * car's position and the controls stay our own composables laid over it, placed with the map's
  * projection, so they look exactly as they do on the Canvas map and animate the same way.
  */
@@ -118,7 +118,7 @@ internal fun NaverPhotoMap(
             cameraPositionState = camera,
             properties = MapProperties(
                 mapType = MapType.Navi,
-                isNightModeEnabled = true,
+                isNightModeEnabled = false,
                 isBuildingLayerGroupEnabled = false,
                 minZoom = 5.5,
                 maxZoom = 18.0,

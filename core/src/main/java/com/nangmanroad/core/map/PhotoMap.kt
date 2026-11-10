@@ -90,7 +90,7 @@ val naverMapsAvailable: Boolean get() = BuildConfig.NAVER_NCP_KEY_ID.isNotBlank(
  * The map that shows places as their own photos. Nearby photos merge into one marker with a count;
  * tapping a merged marker zooms in, tapping a single one selects it.
  *
- * With a NAVER Maps key this is a real road map in night mode; without one it falls back to the
+ * With a NAVER Maps key this is a real road map in its day style; without one it falls back to the
  * hand-drawn Canvas map so the apps still build and run.
  */
 @Composable
@@ -220,7 +220,7 @@ internal fun PhotoMarker(
     onClick: () -> Unit,
 ) {
     val size by animateDpAsState(if (selected) style.selectedMarkerSize else style.markerSize, label = "markerSize")
-    val corner = RoundedCornerShape(size * 0.14f)
+    val corner = RoundedCornerShape(size * 0.05f)
     val half = with(LocalDensity.current) { (size / 2).toPx() }
     Box(
         modifier = Modifier
@@ -234,9 +234,9 @@ internal fun PhotoMarker(
             contentDescription = null,
             modifier = Modifier
                 .fillMaxSize()
-                .shadow(if (selected) 18.dp else 10.dp, corner, ambientColor = Color.Black, spotColor = Color.Black)
+                .shadow(if (selected) 6.dp else 3.dp, corner)
                 .clip(corner)
-                .border(if (selected) 4.dp else 2.5f.dp, if (selected) Palette.Coral else tint ?: Color.White.copy(alpha = 0.92f), corner),
+                .border(if (selected) 4.dp else 2.5f.dp, if (selected) Palette.Accent else tint ?: Color.White.copy(alpha = 0.92f), corner),
         )
         if (count > 1) {
             Text(
@@ -245,9 +245,8 @@ internal fun PhotoMarker(
                 color = Palette.Background,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .offset(x = 12.dp, y = (-12).dp)
-                    .shadow(6.dp, CircleShape)
-                    .clip(CircleShape)
+                    .offset(x = 10.dp, y = (-10).dp)
+                    .clip(RoundedCornerShape(3.dp))
                     .background(Palette.TextPrimary)
                     .padding(horizontal = 12.dp, vertical = 2.dp),
             )
@@ -278,7 +277,7 @@ internal fun HereMarker(position: Offset) {
 }
 
 /**
- * The "파킷" moment, drawn above the markers: when [pulse] changes a coral pin drops onto the car's
+ * The "파킷" moment, drawn above the markers: when [pulse] changes a pine pin drops onto the car's
  * position with a bounce and a ring spreads out from it, so the name is something you can see
  * happen. Nothing is drawn while [pulse] is null or once the animation has finished.
  */
@@ -300,7 +299,7 @@ internal fun HerePulse(position: Offset, pulse: Long?) {
     val ringMax = with(density) { 90.dp.toPx() }
     Canvas(Modifier.fillMaxSize()) {
         drawCircle(
-            color = Palette.Coral.copy(alpha = (1f - ring.value) * 0.9f),
+            color = Palette.Accent.copy(alpha = (1f - ring.value) * 0.9f),
             radius = 14.dp.toPx() + ringMax * ring.value,
             center = position,
             style = Stroke(width = 3.dp.toPx()),
@@ -312,7 +311,7 @@ internal fun HerePulse(position: Offset, pulse: Long?) {
     Icon(
         Icons.Filled.PushPin,
         contentDescription = null,
-        tint = Palette.Coral,
+        tint = Palette.Accent,
         modifier = Modifier
             .offset { IntOffset((position.x - pinHalf).roundToInt(), (position.y - pinHalf - lift).roundToInt()) }
             .size(pinSize)
@@ -327,9 +326,9 @@ internal fun BoxScope.MapControls(style: PhotoMapStyle, onZoomIn: () -> Unit, on
         modifier = Modifier
             .align(Alignment.TopEnd)
             .padding(style.controlsPadding)
-            .shadow(10.dp, RoundedCornerShape(12.dp))
-            .clip(RoundedCornerShape(12.dp))
-            .background(Palette.BackgroundRaised.copy(alpha = 0.94f)),
+            .clip(RoundedCornerShape(4.dp))
+            .background(Palette.BackgroundRaised.copy(alpha = 0.96f))
+            .border(1.dp, Palette.Sage, RoundedCornerShape(4.dp)),
     ) {
         MapButton(Icons.Outlined.Add, "확대", style.buttonSize, onZoomIn)
         MapButton(Icons.Outlined.Remove, "축소", style.buttonSize, onZoomOut)

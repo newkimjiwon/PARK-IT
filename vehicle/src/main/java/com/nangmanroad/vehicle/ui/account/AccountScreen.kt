@@ -55,7 +55,7 @@ fun AccountScreen(state: AppUiState, actions: AppViewModel) {
             if (session != null) {
                 Text("휴대폰과 연결되어 있어요", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Palette.BackgroundRaised).padding(28.dp),
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(Palette.BackgroundRaised).padding(28.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
@@ -75,7 +75,7 @@ fun AccountScreen(state: AppUiState, actions: AppViewModel) {
                     }
                 }
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Palette.BackgroundRaised).padding(horizontal = 28.dp, vertical = 20.dp),
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(Palette.BackgroundRaised).padding(horizontal = 28.dp, vertical = 20.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
@@ -115,7 +115,7 @@ fun AccountScreen(state: AppUiState, actions: AppViewModel) {
 private fun VoiceGuidanceRow(state: AppUiState, actions: AppViewModel) {
     val voice = state.voice
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Palette.BackgroundRaised).padding(horizontal = 28.dp, vertical = 20.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(Palette.BackgroundRaised).padding(horizontal = 28.dp, vertical = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
@@ -151,7 +151,7 @@ private fun PairingCodeCard(state: AppUiState, actions: AppViewModel) {
     val pairing = state.pairing
     val code = pairing?.code
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Palette.BackgroundRaised).padding(36.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(Palette.BackgroundRaised).padding(36.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(28.dp),
     ) {

@@ -4,52 +4,43 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.StopCircle
-import androidx.compose.material.icons.outlined.BatteryChargingFull
-import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.outlined.PauseCircle
-import androidx.compose.material.icons.outlined.WbSunny
-import androidx.compose.material.icons.outlined.WbTwilight
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.data.ARRIVAL_COMFORT_PERCENT
 import com.nangmanroad.core.data.ARRIVAL_LOW_PERCENT
 import com.nangmanroad.core.data.CarCamping
-import com.nangmanroad.core.data.arrivalTips
+import com.nangmanroad.core.data.SunMoment
 import com.nangmanroad.core.data.arrivalLabel
 import com.nangmanroad.core.data.arrivalPercent
+import com.nangmanroad.core.data.arrivalTips
+import com.nangmanroad.core.data.at
 import com.nangmanroad.core.data.carCampingStale
+import com.nangmanroad.core.data.formatClock
 import com.nangmanroad.core.data.formatDuration
 import com.nangmanroad.core.data.formatMeters
-import com.nangmanroad.core.data.SunMoment
-import com.nangmanroad.core.data.at
-import com.nangmanroad.core.data.formatClock
 import com.nangmanroad.core.data.sunMoment
 import com.nangmanroad.core.data.sunTimesToday
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.color
-import com.nangmanroad.core.ui.icon
 import com.nangmanroad.core.ui.label
 import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.vehicle.AppUiState
@@ -60,7 +51,11 @@ import com.nangmanroad.vehicle.ui.components.ActionButton
 
 /**
  * While the car can move: no photos, feeds or scrolling, just the destination and at most three
- * short tips, readable in a one-to-two-second glance. The numbers are the biggest thing on screen.
+ * short tips, readable in a one-to-two-second glance.
+ *
+ * Laid out like a printed timetable rather than a stack of cards: the remaining distance is by far
+ * the largest thing on screen, everything else is small labelled text on the plain ground, and
+ * sections are split by 1px rules. Colour appears only where it carries a warning.
  */
 @Composable
 fun DrivingScreen(
@@ -76,169 +71,137 @@ fun DrivingScreen(
     Box(
         Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Palette.Background, Palette.BackgroundRaised)))
-            .padding(horizontal = 56.dp, vertical = 48.dp),
-        contentAlignment = Alignment.Center,
+            .padding(horizontal = 72.dp, vertical = 44.dp),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        Column(
-            modifier = Modifier.widthIn(max = 1160.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(32.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.size(12.dp).clip(CircleShape).background(Palette.Coral))
-                Text("주행 중", style = MaterialTheme.typography.titleMedium, color = Palette.TextSecondary)
+        Column(Modifier.widthIn(max = 1240.dp).fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("주행 중", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
                 Spacer(Modifier.weight(1f))
                 VoiceControls(state.voice, onToggleBriefing, onListen)
             }
+            Spacer(Modifier.height(16.dp))
+            Rule(Palette.TextPrimary, thickness = 2)
             HeardLine(state.voice)
+            Spacer(Modifier.height(28.dp))
+
             if (destination != null || routed != null) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Palette.Surface.copy(alpha = 0.6f))
-                        .padding(horizontal = 40.dp, vertical = 36.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(32.dp),
-                ) {
-                    Box(
-                        Modifier.size(96.dp).clip(CircleShape).background(Palette.Coral.copy(alpha = 0.16f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(Icons.Outlined.Flag, contentDescription = null, tint = Palette.Coral, modifier = Modifier.size(52.dp))
-                    }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    destination?.name ?: routed?.title.orEmpty(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Palette.TextSecondary,
+                )
+                if (destination != null) {
+                    Row(verticalAlignment = Alignment.Bottom) {
                         Text(
-                            destination?.name ?: routed?.title.orEmpty(),
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = Palette.TextSecondary,
+                            formatMeters(destination.remainMeters),
+                            style = MaterialTheme.typography.displayLarge.tabular(),
+                            color = Palette.TextPrimary,
                         )
-                        if (destination != null) {
-                            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(28.dp)) {
-                                Text(
-                                    formatMeters(destination.remainMeters),
-                                    style = MaterialTheme.typography.displaySmall.tabular(),
-                                    color = Palette.TextPrimary,
-                                )
-                                Text(
-                                    "${formatDuration(destination.remainSeconds)} 남음",
-                                    style = MaterialTheme.typography.headlineMedium.tabular(),
-                                    color = Palette.TextPrimary,
-                                    modifier = Modifier.padding(bottom = 4.dp),
-                                )
-                                Spacer(Modifier.weight(1f))
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text("도착 예정", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
-                                    Text(
-                                        arrivalTime(destination.remainSeconds),
-                                        style = MaterialTheme.typography.headlineMedium.tabular(),
-                                        color = Palette.TextPrimary,
-                                    )
-                                }
+                        Spacer(Modifier.width(56.dp))
+                        Figure("남은 시간", formatDuration(destination.remainSeconds), Modifier.padding(bottom = 18.dp))
+                        Spacer(Modifier.width(48.dp))
+                        Figure("도착 예정", arrivalTime(destination.remainSeconds), Modifier.padding(bottom = 18.dp))
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
+                        // What the navigation's road distance leaves in the pack: the number an EV driver watches.
+                        state.battery?.let { battery ->
+                            val left = arrivalPercent(battery.percent, battery.capacityKwh, destination.remainMeters / 1000.0)
+                            val tone = when {
+                                left < ARRIVAL_LOW_PERCENT -> Palette.Alert
+                                left < ARRIVAL_COMFORT_PERCENT -> Palette.Warning
+                                else -> Palette.TextPrimary
                             }
-                            // What the navigation's road distance leaves in the pack: the number an EV driver watches.
-                            state.battery?.let { battery ->
-                                val left = arrivalPercent(battery.percent, battery.capacityKwh, destination.remainMeters / 1000.0)
-                                val tone = when {
-                                    left < ARRIVAL_LOW_PERCENT -> Palette.Alert
-                                    left < ARRIVAL_COMFORT_PERCENT -> Palette.Warning
-                                    else -> Palette.Success
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Icon(Icons.Outlined.BatteryChargingFull, contentDescription = null, tint = tone, modifier = Modifier.size(28.dp))
-                                    Text(arrivalLabel(left), style = MaterialTheme.typography.titleMedium.tabular(), color = Palette.TextPrimary)
-                                }
-                            }
-                            // For a sunset or sunrise place, the one question is whether we make it in time.
-                            val moment = routed?.category?.sunMoment
-                            val sun = if (moment != null && routed != null) sunTimesToday(routed.location) else null
-                            if (moment != null && sun != null) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Icon(
-                                        if (moment == SunMoment.SUNSET) Icons.Outlined.WbTwilight else Icons.Outlined.WbSunny,
-                                        contentDescription = null,
-                                        tint = Palette.Warning,
-                                        modifier = Modifier.size(28.dp),
-                                    )
-                                    Text(
-                                        sunVerdict(moment, sun.at(moment), destination.remainSeconds),
-                                        style = MaterialTheme.typography.titleMedium.tabular(),
-                                        color = Palette.TextPrimary,
-                                    )
-                                }
-                            }
-                        } else {
-                            Text("내비게이션 안내를 따라가세요", style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
+                            Text(arrivalLabel(left), style = MaterialTheme.typography.titleMedium.tabular(), color = tone)
+                        }
+                        // For a sunset or sunrise place, the one question is whether we make it in time.
+                        val moment = routed?.category?.sunMoment
+                        val sun = if (moment != null && routed != null) sunTimesToday(routed.location) else null
+                        if (moment != null && sun != null) {
+                            if (state.battery != null) VerticalRule(Modifier.padding(horizontal = 24.dp))
+                            Text(
+                                sunVerdict(moment, sun.at(moment), destination.remainSeconds),
+                                style = MaterialTheme.typography.titleMedium.tabular(),
+                                color = Palette.TextPrimary,
+                            )
                         }
                     }
+                } else {
+                    Text("내비게이션 안내를 따라가세요", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
                 }
             } else {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    Icon(Icons.Outlined.PauseCircle, contentDescription = null, tint = Palette.TextSecondary, modifier = Modifier.size(64.dp))
-                    Text("정차하면 지도와 사진을 다시 볼 수 있어요", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
-                }
+                Text("정차하면 지도와 사진을 다시 볼 수 있어요", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
             }
+
             // Whether the night can be spent there is the one thing to know before arriving.
             if (routed != null && routed.carCamping != CarCamping.CHECK) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(routed.carCamping.color().copy(alpha = 0.14f))
-                        .padding(horizontal = 28.dp, vertical = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(18.dp),
-                ) {
-                    Icon(routed.carCamping.icon(), contentDescription = null, tint = routed.carCamping.color(), modifier = Modifier.size(44.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Spacer(Modifier.height(36.dp))
+                val tone = if (routed.carCampingStale) Palette.TextSecondary else routed.carCamping.color()
+                Row(Modifier.height(IntrinsicSize.Min)) {
+                    Box(Modifier.width(4.dp).fillMaxHeight().background(tone))
+                    Column(Modifier.padding(start = 20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             if (routed.carCampingStale) "${routed.carCamping.label} · 오래된 정보" else routed.carCamping.label,
                             style = MaterialTheme.typography.titleLarge,
-                            color = if (routed.carCampingStale) Palette.TextSecondary else routed.carCamping.color(),
+                            color = tone,
                         )
                         if (routed.carCampingNote.isNotBlank()) {
-                            Text(routed.carCampingNote, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
+                            Text(routed.carCampingNote, style = MaterialTheme.typography.bodyLarge, color = Palette.TextPrimary)
                         }
                     }
                 }
             }
+
             if (tips.isNotEmpty()) {
-                Text("도착 전에 알아두세요", style = MaterialTheme.typography.headlineSmall, color = Palette.TextPrimary)
-                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    tips.forEach { tip ->
-                        Row(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(Palette.Surface.copy(alpha = 0.6f)),
-                            verticalAlignment = Alignment.CenterVertically,
+                Spacer(Modifier.height(40.dp))
+                Text("도착 전에 알아두세요", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
+                Spacer(Modifier.height(12.dp))
+                Rule(Palette.Sage)
+                // Three numbered columns split by rules, like a timetable; only the status word is coloured.
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                    tips.forEachIndexed { index, tip ->
+                        if (index > 0) VerticalRule()
+                        Column(
+                            Modifier.weight(1f).padding(start = if (index > 0) 28.dp else 0.dp, end = 28.dp, top = 20.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            // A thin colour edge says "fine / prepare / check" before the words do.
-                            Box(Modifier.width(8.dp).height(128.dp).background(tip.status.color()))
-                            Row(
-                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 22.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(18.dp),
-                            ) {
-                                Icon(tip.kind.icon(), contentDescription = null, tint = tip.status.color(), modifier = Modifier.size(44.dp))
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(
-                                        "${tip.kind.label} · ${tip.status.label()}",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = Palette.TextSecondary,
-                                    )
-                                    Text(tip.summary, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary)
-                                }
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text("${index + 1}", style = MaterialTheme.typography.labelLarge.tabular(), color = Palette.TextTertiary)
+                                Text(tip.kind.label, style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
+                                Text(tip.status.label(), style = MaterialTheme.typography.labelLarge, color = tip.status.color())
                             }
+                            Text(tip.summary, style = MaterialTheme.typography.headlineSmall, color = Palette.TextPrimary)
                         }
                     }
                 }
             }
+
             if (state.drivingPreview && state.drivingState != DrivingState.DRIVING) {
+                Spacer(Modifier.height(40.dp))
                 ActionButton("미리보기 끝내기", null, onExitPreview)
             }
         }
     }
+}
+
+/** A small label over a number, for the figures beside the remaining distance. */
+@Composable
+private fun Figure(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
+        Text(value, style = MaterialTheme.typography.headlineMedium.tabular(), color = Palette.TextPrimary)
+    }
+}
+
+@Composable
+private fun Rule(color: Color, thickness: Int = 1) {
+    Box(Modifier.fillMaxWidth().height(thickness.dp).background(color))
+}
+
+@Composable
+private fun VerticalRule(modifier: Modifier = Modifier) {
+    Box(modifier.width(1.dp).fillMaxHeight().background(Palette.Sage))
 }
 
 /**
@@ -278,7 +241,12 @@ private fun HeardLine(voice: VoiceUi) {
         voice.heard.isNotBlank() -> "“${voice.heard}”"
         else -> return
     }
-    Text(text, style = MaterialTheme.typography.titleMedium, color = if (listening) Palette.TextPrimary else Palette.TextSecondary)
+    Text(
+        text,
+        style = MaterialTheme.typography.titleMedium,
+        color = if (listening) Palette.TextPrimary else Palette.TextSecondary,
+        modifier = Modifier.padding(top = 12.dp),
+    )
 }
 
 /** "일몰 오후 5:23 · 40분 전 도착", or that the sun will already be gone (or up) when we get there. */

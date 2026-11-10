@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/parkit_coral" />
+    <background android:drawable="@color/parkit_brand" />
     <foreground android:drawable="@drawable/ic_parkit_foreground" />
     <monochrome android:drawable="@drawable/ic_parkit_foreground" />
 </adaptive-icon>

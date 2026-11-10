@@ -80,7 +80,7 @@ fun SignInScreen(account: AccountUi, actions: PhoneViewModel) {
             color = Palette.TextSecondary,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(4.dp))
                 .clickable(role = Role.Button, onClick = actions::continueOffline)
                 .padding(horizontal = 12.dp, vertical = 10.dp),
         )

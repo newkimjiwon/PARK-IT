@@ -58,8 +58,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
@@ -271,13 +269,12 @@ private fun PreviewCard(
     modifier: Modifier = Modifier,
 ) {
     val saved = spot.id in state.saved
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(4.dp)
     Row(
         modifier = modifier
-            .shadow(24.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
             .clip(shape)
             .background(Palette.BackgroundRaised.copy(alpha = 0.97f))
-            .border(1.dp, Palette.Hairline, shape)
+            .border(1.dp, Palette.Sage, shape)
             .clickable(role = Role.Button, onClickLabel = "자세히 보기", onClick = onOpen)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -288,7 +285,7 @@ private fun PreviewCard(
             contentDescription = spot.title,
             modifier = Modifier
                 .size(152.dp)
-                .clip(RoundedCornerShape(12.dp)),
+                .clip(RoundedCornerShape(4.dp)),
         )
         // Three lines, readable in a glance from the driver's seat: what, may we, and how far/when.
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -312,7 +309,7 @@ private fun PreviewCard(
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.NearMe, contentDescription = null, tint = Palette.Coral, modifier = Modifier.size(20.dp))
+                Icon(Icons.Outlined.NearMe, contentDescription = null, tint = Palette.TextSecondary, modifier = Modifier.size(20.dp))
                 val sun = spot.category.sunMoment?.let { moment -> sunTimesToday(spot.location)?.let { "${moment.label} ${formatClock(it.at(moment))}" } }
                 Text(
                     listOfNotNull(distanceLabel(state, spot), spot.region, sun).joinToString(" · "),
@@ -366,7 +363,7 @@ private fun ParkitBannerHost(state: AppUiState, actions: AppViewModel, modifier:
 
 /**
  * Appears when the car has just stopped. A new place goes to the phone to become a post; a known
- * one is marked visited so the phone can ask whether its tips held up. Coral here marks the one
+ * one is marked visited so the phone can ask whether its tips held up. The accent here marks the one
  * action the moment is about, as 길 안내 does on the preview card.
  */
 @Composable
@@ -380,18 +377,17 @@ private fun ParkitBanner(
     modifier: Modifier = Modifier,
 ) {
     val listening = voice.listening == ListenPurpose.PARKIT_NOTE
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(4.dp)
     Row(
         modifier = modifier
-            .shadow(24.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
             .clip(shape)
             .background(Palette.BackgroundRaised.copy(alpha = 0.97f))
-            .border(1.dp, Palette.Coral.copy(alpha = 0.35f), shape)
+            .border(1.dp, Palette.Accent, shape)
             .padding(start = 24.dp, top = 16.dp, end = 16.dp, bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Icon(Icons.Outlined.PushPin, contentDescription = null, tint = Palette.Coral, modifier = Modifier.size(44.dp))
+        Icon(Icons.Outlined.PushPin, contentDescription = null, tint = Palette.Accent, modifier = Modifier.size(44.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 if (nearSpot != null) "'${nearSpot.title}'에 왔어요" else "여기, 파킷할까요?",

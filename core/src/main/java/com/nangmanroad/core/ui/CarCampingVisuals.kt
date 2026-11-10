@@ -1,6 +1,6 @@
 package com.nangmanroad.core.ui
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -36,7 +36,7 @@ fun CarCamping.icon(): ImageVector = when (this) {
 }
 
 /**
- * "차박 가능 / 현장 확인 / 차박 금지" as a tinted pill. The answer to the first question a 차박
+ * "차박 가능 / 현장 확인 / 차박 금지" as a small ruled stamp in the status colour. The answer to the first question a 차박
  * visitor has, so it sits next to the category on every card and above the route button.
  */
 @Composable
@@ -45,9 +45,8 @@ fun CarCampingBadge(status: CarCamping, modifier: Modifier = Modifier, iconSize:
     val color = if (stale) Palette.TextTertiary else status.color()
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (filled) color.copy(alpha = 0.18f) else Color.Transparent)
-            .padding(horizontal = if (filled) 8.dp else 0.dp, vertical = if (filled) 4.dp else 0.dp),
+            .then(if (filled) Modifier.border(1.dp, color.copy(alpha = 0.7f), RoundedCornerShape(2.dp)) else Modifier)
+            .padding(horizontal = if (filled) 7.dp else 0.dp, vertical = if (filled) 3.dp else 0.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {

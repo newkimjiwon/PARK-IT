@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.NangmanRoad" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">#FF111318</item>
-        <item name="android:statusBarColor">#FF111318</item>
-        <item name="android:navigationBarColor">#FF111318</item>
+    <style name="Theme.NangmanRoad" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FFF3F6F1</item>
+        <item name="android:statusBarColor">#FFF3F6F1</item>
+        <item name="android:navigationBarColor">#FFF3F6F1</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>

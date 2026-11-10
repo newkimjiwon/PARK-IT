@@ -28,14 +28,14 @@ const val BRAND_NAME = "PARK-IT"
 const val BRAND_NAME_KO = "파킷"
 const val BRAND_TAGLINE = "당신의 경험이 누군가의 목적지가 되는 곳"
 
-/** The launcher glyph (a P with a crescent moon) on a coral square: the one place coral marks identity rather than action. */
+/** The launcher glyph (a P with a crescent moon) in mist on a pine square; the accent here marks identity rather than action. */
 @Composable
 fun ParkItMark(size: Dp = 40.dp, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .size(size)
             .clip(RoundedCornerShape(size / 4))
-            .background(Palette.Coral),
+            .background(Palette.Accent),
         contentAlignment = Alignment.Center,
     ) {
         Image(
