@@ -2,6 +2,42 @@
 
 Pleos Connect 차량용 앱을 만들기 위한 팀 저장소입니다. 차박·드라이브 장소를 사진과 꿀팁으로 공유하는 차량 특화 SNS **PARK-IT(파킷)** 을 개발하고 있습니다. 슬로건은 "당신의 경험이 누군가의 목적지가 되는 곳"이며, 코드와 패키지 이름은 개발 초기 가칭인 낭만로드(`com.nangmanroad`)를 그대로 씁니다.
 
+## 화면 업데이트
+
+차량 지도 홈은 기존 사진 마커·2열 피드·하단 장소 카드를 그대로 사용합니다. 세이지 그린을 차콜·회색으로 바꾸고, 라이트·다크 모드 모두 코랄 계열로 길 안내와 선택한 장소를 강조했습니다. 이전 차량 캡처는 내장 간략 지도, 최신 캡처는 같은 앱의 네이버 지도 연결 상태입니다.
+
+[![PARK-IT 변경 전후 비교. 위에는 차량 메인 화면, 아래에는 휴대폰 홈과 변경 기능을 담았습니다.](docs/images/parkit-before-after.jpg)](docs/images/parkit-before-after.jpg)
+
+### 차량용 앱
+
+Pleos Connect Emulator 2.1.0에서 실행한 화면입니다. 사진 마커를 고르면 하단 카드에서 장소와 이동 조건을 확인하고 길 안내를 열 수 있습니다.
+
+<img src="docs/images/car-naver-dark.png" alt="차량 다크 모드에서 네이버 도로 지도와 파킷 사진 그리드가 열린 화면" width="100%">
+
+[라이트 모드](docs/images/car-naver-light.png) · [장소 상세](docs/images/car-naver-detail.png) · [난지캠핑장 공식 사진과 정보](docs/images/car-official-place.png) · [장소 도우미](docs/images/car-place-assistant.png)
+
+### 휴대폰 앱
+
+최신 휴대폰 APK를 세로 에뮬레이터 화면에서 실행했습니다. **가까운 곳**에서 난지캠핑장 사진을 보고, 장소 상세에서 **차량으로 보내기**와 **장소 도우미**를 열 수 있습니다. 도우미는 주차 안내와 출처를 보여 줍니다.
+
+<table>
+  <tr>
+    <td width="25%"><img src="docs/images/phone-current-home.jpg" alt="휴대폰 홈의 가까운 곳 탭에 표시된 난지캠핑장 사진"></td>
+    <td width="25%"><img src="docs/images/phone-current-map.jpg" alt="휴대폰 다크 모드의 네이버 지도와 사진 마커"></td>
+    <td width="25%"><img src="docs/images/phone-current-detail.jpg" alt="난지캠핑장 상세의 사진과 차량으로 보내기 버튼"></td>
+    <td width="25%"><img src="docs/images/phone-current-assistant.jpg" alt="휴대폰 장소 도우미의 난지캠핑장 주차 답변과 고캠핑 출처"></td>
+  </tr>
+  <tr>
+    <td><b>홈</b> · 가까운 곳</td>
+    <td><b>지도</b> · 사진 마커</td>
+    <td><b>장소 상세</b> · 차량으로 보내기</td>
+    <td><b>장소 도우미</b> · 주차 안내</td>
+  </tr>
+</table>
+
+[앱 사용 순서와 시연 영상 체크리스트](docs/demo.md)
+
+
 ## 현재 구현된 기능
 
 | 기능 | 현재 동작 |
@@ -17,7 +53,7 @@ Pleos Connect 차량용 앱을 만들기 위한 팀 저장소입니다. 차박·
 
 GitHub `main`의 `e218ee9`를 기준으로 비교합니다. 신청서의 사진 지도, 지역 피드, 휴대폰과 차량의 연동 흐름을 그대로 바탕으로 삼았습니다.
 
-| 영역 | GitHub `main` | 이번 작업본 |
+| 영역 | 변경 전 · `e218ee9` | 변경 후 · `d3b4f0e` |
 | --- | --- | --- |
 | 화면 | Sage Moon 배색, 사진 지도와 2열 사진 피드 | 차콜·회색과 코랄 배색. 사진 그리드, 하단 카드, “여기, 파킷할까요?” 문구 유지 |
 | 지도 | 네이버 지도 SDK 연동과 키가 없을 때의 간략 지도 | 로컬 설정에서 네이버 지도를 연결해 Pleos 실행 화면에 반영 |
@@ -25,16 +61,6 @@ GitHub `main`의 `e218ee9`를 기준으로 비교합니다. 신청서의 사진 
 | 배터리 | 직선거리를 보정해 왕복을 추정. 주행 화면에는 도착 예상 배터리 표시 | 같은 목적지의 남은 도로 경로를 받으면 차량 상세에 반영. 일부 시연 지역의 충전소 후보를 정차 중 상세에서 표시 |
 | 서버 | 변경할 때마다 `state.json` 저장 | 첫 실행에 기존 JSON을 읽고 SQLite에 이관. 사진 폴더와 기존 JSON은 보관 |
 | 정차 위치 | 위치·메모 전송, 휴대폰에서 초안 열기 | 계정별 기기 내 대기 목록, 연결 복구 후 재전송, 서버 중복 방지, 대략적 위치 설정 전달 |
-
-## 최신 실행 화면
-
-2026-11-12, Pleos Connect Emulator 2.1.0에서 네이버 지도가 연결된 차량 앱을 실행했습니다. 지도·사진 그리드와 하단 장소 카드의 배치는 유지하고, 차콜·회색 바탕에 코랄로 길 안내와 선택한 장소를 강조했습니다. 지도 위 장소와 사진은 시연용 데이터입니다.
-
-<img src="docs/images/car-naver-dark.png" alt="Pleos 다크 모드에서 네이버 도로 지도와 파킷 사진 그리드가 열린 화면" width="100%">
-
-[라이트 모드](docs/images/car-naver-light.png) · [차량 장소 상세](docs/images/car-naver-detail.png) · [난지캠핑장 공식 사진과 정보](docs/images/car-official-place.png) · [장소 도우미](docs/images/car-place-assistant.png)
-
-[앱 사용 순서와 시연 영상 체크리스트](docs/demo.md)
 
 ## 다음 검증과 확장
 
@@ -59,7 +85,7 @@ GitHub `main`의 `e218ee9`를 기준으로 비교합니다. 신청서의 사진 
 
 시연에서는 전송 후 목적지를 찾는 시간, 중복 전송 건수, 배터리 안내를 맞게 이해한 비율을 관찰합니다. [Android for Cars 디자인 가이드](https://developers.google.com/cars/design/design-foundations)
 
-## 기능별 화면
+## 이전 버전의 기능별 화면
 
 아래 화면은 2026-11-10에 샘플 계정으로 차량·휴대폰 연동 흐름을 캡처한 기록입니다. 당시 빌드는 내장 간략 지도를 사용했습니다. 차량 이미지는 헤드유닛에서 파킷 앱이 표시되는 영역을 잘라낸 것입니다.
 
