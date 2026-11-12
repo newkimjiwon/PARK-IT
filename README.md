@@ -18,6 +18,8 @@ Pleos Connect 차량용 앱을 만들기 위한 팀 저장소입니다. 차박·
 | 정차 위치 재전송 | 연결 복구 후 다시 보내는 흐름 구현. 서버 중복 방지 테스트 통과 | [파킷 전송 흐름](docs/images/updates/parkit-retry.jpg) |
 | SQLite 저장 | 기존 JSON 이관과 서버 재시작 후 보존 테스트 통과 | [데이터 저장 흐름](docs/images/updates/sqlite-storage.jpg) |
 
+[마지막 장 · 할 일](docs/images/updates/todo.jpg)
+
 ### 차량용 앱
 
 Pleos Connect Emulator 2.1.0에서 실행한 화면입니다. 사진 마커를 고르면 하단 카드에서 장소와 이동 조건을 확인하고 길 안내를 열 수 있습니다.
