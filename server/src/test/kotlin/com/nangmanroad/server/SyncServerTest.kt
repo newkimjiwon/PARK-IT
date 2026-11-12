@@ -6,7 +6,10 @@ import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.Visibility
+import com.nangmanroad.core.data.VisitCondition
 import com.nangmanroad.core.sync.Api
+import com.nangmanroad.core.sync.CarTransferProgress
+import com.nangmanroad.core.sync.CarTransferReceipt
 import com.nangmanroad.core.sync.DeviceKind
 import com.nangmanroad.core.sync.NewComment
 import com.nangmanroad.core.sync.NewPost
@@ -97,6 +100,47 @@ class SyncServerTest {
         assertEquals(DeviceKind.CAR, car.device)
         assertEquals(phone.user.id, store.userFor(car.token))
         assertEquals(PairingState.EXPIRED, store.pairingStatus(code.pairingId).state)
+    }
+
+    @Test
+    fun `car transfer receipts require a paired car and never move a transfer backwards`() {
+        var now = 1_000L
+        val store = SyncStore(folder.root, clock = { now })
+        val phone = store.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD)
+        val code = store.startPairing()
+        store.claimPairing(phone.user.id, code.code)
+        val car = assertNotNull(store.pairingStatus(code.pairingId).session)
+        val request = SendRequest("s-gangneung", "강릉", "s-gangneung")
+        val first = store.sendToCar(phone.user.id, request).carQueue.first()
+        val received = CarTransferReceipt(first.id, first.sentAt, CarTransferProgress.RECEIVED)
+
+        assertFailsWith<WrongDeviceException> { store.acknowledgeCarQueue(phone.token, listOf(received)) }
+        store.acknowledgeCarQueue(car.token, listOf(received))
+        assertEquals(CarTransferProgress.RECEIVED, store.state(phone.user.id).carQueue.first().carProgress)
+
+        val started = received.copy(progress = CarTransferProgress.GUIDANCE_STARTED)
+        store.acknowledgeCarQueue(car.token, listOf(started, received))
+        store.acknowledgeCarQueue(car.token, listOf(received))
+        assertEquals(CarTransferProgress.GUIDANCE_STARTED, store.state(phone.user.id).carQueue.first().carProgress)
+
+        now += 1
+        store.sendToCar(phone.user.id, request)
+        store.acknowledgeCarQueue(car.token, listOf(started))
+        assertEquals(CarTransferProgress.SENT, store.state(phone.user.id).carQueue.first().carProgress)
+        store.removeFromCar(phone.user.id, first.id)
+        store.acknowledgeCarQueue(car.token, listOf(received))
+        assertTrue(store.state(phone.user.id).carQueue.none { it.id == first.id })
+    }
+
+    @Test
+    fun `published visit conditions survive a server restart`() {
+        val store = SyncStore(folder.root)
+        val phone = store.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD)
+        val conditions = setOf(VisitCondition.FREE_PARKING, VisitCondition.PETS_ALLOWED)
+        val created = store.createPost(phone.user.id, post("방문 조건", Visibility.PUBLIC).copy(visitConditions = conditions))
+        assertEquals(conditions, created.visitConditions)
+        val reopened = SyncStore(folder.root)
+        assertEquals(conditions, reopened.spots(phone.user.id).first { it.id == created.id }.visitConditions)
     }
 
     @Test

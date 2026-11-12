@@ -42,7 +42,12 @@ import com.nangmanroad.phone.ui.components.SecondaryButton
 /** Inline form for adding a visitor tip to someone else's post. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun TipSuggestionForm(onCancel: () -> Unit, onSubmit: (TipKind, TipStatus, String, String) -> Unit) {
+fun TipSuggestionForm(
+    onCancel: () -> Unit,
+    fieldChange: Boolean = false,
+    onSubmit: (TipKind, TipStatus, String, String) -> Unit,
+) {
+    var change by rememberSaveable { mutableStateOf("시설 변경") }
     var kind by rememberSaveable { mutableStateOf(TipKind.TOILET) }
     var status by rememberSaveable { mutableStateOf(TipStatus.PREPARE) }
     var summary by rememberSaveable { mutableStateOf("") }
@@ -56,18 +61,37 @@ fun TipSuggestionForm(onCancel: () -> Unit, onSubmit: (TipKind, TipStatus, Strin
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("어떤 정보를 알려 주실 건가요?", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TipKind.entries.forEach { Chip(it.label, kind == it, { kind = it }, icon = it.icon()) }
+        Text(
+            if (fieldChange) "현장 변경 제보" else "어떤 정보를 알려 주실 건가요?",
+            style = MaterialTheme.typography.titleMedium,
+            color = Palette.TextPrimary,
+        )
+        if (fieldChange) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("장소 폐쇄", "시설 변경", "이용 불가").forEach { Chip(it, change == it, { change = it }) }
+            }
+        } else {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                TipKind.entries.forEach { Chip(it.label, kind == it, { kind = it }, icon = it.icon()) }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(TipStatus.GOOD, TipStatus.PREPARE).forEach { Chip(it.label(), status == it, { status = it }) }
+            }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(TipStatus.GOOD, TipStatus.PREPARE).forEach { Chip(it.label(), status == it, { status = it }) }
-        }
-        LabeledField("한 줄 요약", summary, "예: 화장실이 없어요", maxLength = Limits.TIP_SUMMARY) { summary = it }
+        val summaryLimit = if (fieldChange) Limits.TIP_SUMMARY - change.length - 2 else Limits.TIP_SUMMARY
+        LabeledField("한 줄 요약", summary, "예: 화장실이 없어요", maxLength = summaryLimit) { summary = it }
         LabeledField("자세히 (선택)", detail, "예: 가장 가까운 화장실은 차로 5분 거리 휴게소에 있어요", maxLength = Limits.TIP_DETAIL) { detail = it }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SecondaryButton("취소", onCancel, Modifier.weight(1f))
-            PrimaryButton("제보하기", { onSubmit(kind, status, summary, detail) }, Modifier.weight(1f), enabled = summary.isNotBlank())
+            PrimaryButton(
+                "제보하기",
+                {
+                    if (fieldChange) onSubmit(TipKind.CAUTION, TipStatus.NEEDS_CHECK, "$change: ${summary.trim()}", detail)
+                    else onSubmit(kind, status, summary, detail)
+                },
+                Modifier.weight(1f),
+                enabled = summary.isNotBlank() && summary.length <= summaryLimit,
+            )
         }
     }
 }

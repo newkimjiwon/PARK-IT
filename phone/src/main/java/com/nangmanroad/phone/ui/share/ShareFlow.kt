@@ -56,6 +56,7 @@ import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.Visibility
+import com.nangmanroad.core.data.VisitCondition
 import com.nangmanroad.core.sync.Limits
 import com.nangmanroad.core.map.MapCamera
 import com.nangmanroad.core.map.PhotoMap
@@ -228,6 +229,17 @@ private fun PlaceStep(draft: ShareDraft, actions: PhoneViewModel) {
             )
         }
         CarCampingQuestion(draft, actions)
+        Text("직접 확인한 방문 조건", style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(VisitCondition.entries) { condition ->
+                Chip(condition.label, condition in draft.visitConditions, onClick = {
+                    actions.updateDraft {
+                        val confirmed = if (condition in it.visitConditions) it.visitConditions - condition else it.visitConditions + condition
+                        it.copy(visitConditions = confirmed)
+                    }
+                })
+            }
+        }
     }
 }
 

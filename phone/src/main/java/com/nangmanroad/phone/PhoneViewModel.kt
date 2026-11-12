@@ -1,6 +1,12 @@
 package com.nangmanroad.phone
 
+import android.Manifest
 import android.app.Application
+import android.content.pm.PackageManager
+import android.location.LocationManager
+import android.os.CancellationSignal
+import androidx.core.content.ContextCompat
+import androidx.core.location.LocationManagerCompat
 import android.content.Context
 import android.media.ExifInterface
 import android.net.Uri
@@ -17,6 +23,7 @@ import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.Visibility
+import com.nangmanroad.core.data.VisitCondition
 import com.nangmanroad.core.sync.NewPost
 import com.nangmanroad.core.sync.NewTip
 import com.nangmanroad.core.sync.SentItem
@@ -37,6 +44,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.coroutines.resume
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
@@ -76,6 +86,7 @@ data class ShareDraft(
     val carCampingNote: String = "",
     /** "언제 가면 좋아요?" in the author's words; optional. */
     val bestTime: String = "",
+    val visitConditions: Set<VisitCondition> = emptySet(),
     /** Set when the car's 파킷 started this draft; that inbox item is cleared once the post is up. */
     val parkitId: String? = null,
 ) {
@@ -116,6 +127,7 @@ data class PhoneUiState(
     val homeTab: HomeTab = HomeTab.FOR_YOU,
     /** Facilities a place must have (visitor-confirmed) to appear in the home feed. */
     val facilities: Set<TipKind> = emptySet(),
+    val visitConditions: Set<VisitCondition> = emptySet(),
     val mapCategory: Category? = null,
     val mapSelectedId: String? = null,
     val profileTab: ProfileTab = ProfileTab.SHARED,
@@ -124,6 +136,8 @@ data class PhoneUiState(
     val draft: ShareDraft? = null,
     val toast: ToastMessage? = null,
     val here: LatLng = DefaultLocation,
+    val usesDeviceLocation: Boolean = false,
+    val locating: Boolean = false,
 ) {
     val me: Author get() = user.user
     val saved: Set<String> get() = user.saved
@@ -189,6 +203,46 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         if (visible) viewModelScope.launch { repository.refresh() }
     }
 
+    fun useCurrentLocation() {
+        if (_state.value.locating) return
+        val context = getApplication<Application>()
+        val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (!fine && !coarse) {
+            toast("위치 권한이 없어요. 서울 기준으로 가까운 곳을 보여드려요.")
+            return
+        }
+        _state.update { it.copy(locating = true) }
+        viewModelScope.launch {
+            val manager = context.getSystemService(LocationManager::class.java)
+            val providers = if (fine) listOf("fused", LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+                else listOf("fused", LocationManager.NETWORK_PROVIDER)
+            val position: LatLng? = if (manager == null) null else providers.asSequence()
+                .filter { it in manager.allProviders && manager.isProviderEnabled(it) }
+                .firstNotNullOfOrNull { provider ->
+                    withTimeoutOrNull(5_000) {
+                        suspendCancellableCoroutine<LatLng?> { continuation ->
+                            val signal = CancellationSignal()
+                            continuation.invokeOnCancellation { signal.cancel() }
+                            try {
+                                LocationManagerCompat.getCurrentLocation(manager, provider, signal, ContextCompat.getMainExecutor(context)) {
+                                    continuation.resume(it?.let { fix -> LatLng(fix.latitude, fix.longitude) })
+                                }
+                            } catch (_: SecurityException) {
+                                continuation.resume(null)
+                            } catch (_: IllegalArgumentException) {
+                                continuation.resume(null)
+                            }
+                        }
+                    }
+                }
+            _state.update {
+                it.copy(here = position ?: DefaultLocation, usesDeviceLocation = position != null, locating = false)
+            }
+            if (position == null) toast("현재 위치를 찾지 못했어요. 위치 설정을 확인해 주세요.")
+        }
+    }
+
     // Account
 
     fun signIn(nickname: String, password: String) {
@@ -235,6 +289,10 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setHomeTab(tab: HomeTab) = _state.update { it.copy(homeTab = tab) }
+
+    fun toggleVisitCondition(condition: VisitCondition) = _state.update {
+        it.copy(visitConditions = if (condition in it.visitConditions) it.visitConditions - condition else it.visitConditions + condition)
+    }
 
     fun toggleFacility(kind: TipKind) = _state.update {
         it.copy(facilities = if (kind in it.facilities) it.facilities - kind else it.facilities + kind)
@@ -419,6 +477,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
             products = draft.products,
             visibility = draft.visibility,
             approximateLocation = draft.approximate,
+            visitConditions = draft.visitConditions,
             carCamping = draft.carCamping,
             carCampingNote = draft.carCampingNote.trim(),
             bestTime = draft.bestTime.trim(),
@@ -442,7 +501,17 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
 
     // Car (simulated)
 
-    fun requestCarCommand(command: CarCommand) = _state.update { it.copy(car = it.car.copy(pending = command)) }
+    fun requestCarCommand(command: CarCommand) = _state.update {
+        if (it.car.processing != null) it else it.copy(car = it.car.copy(pending = command))
+    }
+
+    fun toggleDemoAuxBattery() = _state.update {
+        it.copy(car = it.car.copy(lowAuxBatteryExample = !it.car.lowAuxBatteryExample))
+    }
+
+    fun toggleDemoCo2() = _state.update {
+        it.copy(car = it.car.copy(highCo2Example = !it.car.highCo2Example, freshAir = false))
+    }
 
     fun cancelCarCommand() = _state.update { it.copy(car = it.car.copy(pending = null)) }
 

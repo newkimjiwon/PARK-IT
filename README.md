@@ -2,6 +2,8 @@
 
 Pleos Connect 차량용 앱을 만들기 위한 팀 저장소입니다. 차박, 드라이브 장소를 사진과 꿀팁으로 공유하는 차량 특화 SNS **PARK-IT(파킷)** 을 개발하고 있습니다. 슬로건은 "당신의 경험이 누군가의 목적지가 되는 곳"이며, 코드와 패키지 이름은 개발 초기 가칭인 낭만로드(`com.nangmanroad`)를 그대로 씁니다.
 
+**최근 변경** 차량 수신과 길 안내 시작 상태, 휴대폰 GPS 주변 검색과 방문 조건 필터, 현장 변경 제보, 정차 후 쉬어가기 체크리스트를 추가했습니다. 휴대폰의 수면 모드와 12V 배터리 및 공기질 표시는 데모입니다. 브라우저가 없는 기기에서 외부 링크를 누르면 안내를 표시합니다.
+
 <a name="실행-화면"></a>
 
 ## 화면
@@ -109,6 +111,8 @@ Pleos 헤드유닛에서는 왼쪽 클러스터 옆 창에 앱이 열립니다. 
 화면이 바뀌면 스크린샷도 같이 바꿉니다. 같은 화면을 띄운 뒤 `scripts/capture-screenshot.sh <기기> <파일 이름> <car|car-full|phone>`을 실행하면 `docs/images/`의 같은 이름 파일이 바뀝니다. 차량 앱 창 자르기와 크기 조절까지 스크립트가 하고, macOS에서만 동작합니다. 자세한 내용은 [외장 SSD 개발 환경](docs/local-environment-mac.md#readme-스크린샷)을 참고하세요.
 
 ## 시작하기
+
+**Windows에서 한 번에 실행** Android SDK와 Pleos 에뮬레이터를 설정한 뒤 PowerShell에서 `powershell.exe -ExecutionPolicy Bypass -File .\scripts\run-windows.ps1`을 실행합니다. 서버와 두 앱을 빌드하고, 차량은 메인 화면에, 휴대폰은 세로 보조 화면에 엽니다. 현재 개발 PC에서는 현대차 폴더의 `PARK-IT 실행.cmd`를 더블클릭하면 됩니다.
 
 [개발 환경 설치 및 샘플 실행 안내](docs/development-setup.md)를 따라 Android Studio, JDK 17, Android SDK, Pleos 전용 에뮬레이터와 휴대폰 에뮬레이터를 설치합니다. 도구를 모두 외장 SSD에 둔 개발용 Mac의 경로, 환경 변수, 가상 기기 설정은 [외장 SSD 개발 환경](docs/local-environment-mac.md)에 정리했습니다.
 

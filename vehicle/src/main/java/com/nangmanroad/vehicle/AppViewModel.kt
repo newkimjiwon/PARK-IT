@@ -26,6 +26,8 @@ import com.nangmanroad.core.sync.Limits
 import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.sync.PARKIT_PREFIX
 import com.nangmanroad.core.sync.Api
+import com.nangmanroad.core.sync.CarTransferProgress
+import com.nangmanroad.core.sync.CarTransferReceipt
 import com.nangmanroad.core.sync.SendRequest
 import com.nangmanroad.core.sync.PairingCode
 import com.nangmanroad.core.sync.PairingState
@@ -201,6 +203,10 @@ data class AppUiState(
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
 
+    private data class PendingGuidance(val session: Session, val title: String, val receipt: CarTransferReceipt)
+
+    private var pendingGuidance: PendingGuidance? = null
+    private val confirmedGuidance = mutableMapOf<CarTransferReceipt, Session>()
     private val repository = SpotRepository(application, localUser = Author("u-this-car", "이 차량", ""))
     private val driving = DrivingStateMonitor(application, viewModelScope)
     private val navigation = NavigationBridge(application)
@@ -265,8 +271,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             navigation.events.collect { event ->
                 when (event) {
-                    is NaviEvent.RouteStarted -> toast("차량 내비게이션으로 목적지를 보냈어요")
-                    is NaviEvent.Failed -> toast(event.reason)
+                    NaviEvent.RouteRequested -> toast("차량 내비게이션으로 목적지를 보냈어요")
+                    is NaviEvent.RouteStarted -> {
+                        val request = pendingGuidance
+                        if (request != null && request.title == event.name && repository.session.value == request.session) {
+                            confirmedGuidance[request.receipt] = request.session
+                            pendingGuidance = null
+                            sendCarReceipts(request.session, includeReceived = false)
+                        }
+                    }
+                    is NaviEvent.Failed -> {
+                        pendingGuidance = null
+                        toast(event.reason)
+                    }
                     NaviEvent.Arrived -> {
                         toast("목적지에 도착했어요")
                         // The spot we routed to is the one we arrived at, however far the fix says.
@@ -293,6 +310,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     val before = current.fromPhone
                     if (repository.refresh().isSuccess) {
                         retryParkits(current.session.user.id)
+                        sendCarReceipts(current.session, includeReceived = true)
                     }
                     val arrived = _state.value.fromPhone.firstOrNull { it !in before }
                     arrived?.let { id ->
@@ -540,9 +558,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startRoute(spotId: String) {
         val spot = _state.value.spot(spotId) ?: return
+        val session = repository.session.value
+        val sent = repository.state.value.carQueue.firstOrNull { it.spotId == spotId }
+        pendingGuidance = if (session != null && sent != null) {
+            PendingGuidance(session, spot.title, CarTransferReceipt(sent.id, sent.sentAt, CarTransferProgress.GUIDANCE_STARTED))
+        } else null
         _state.update { it.copy(routedSpotId = spotId) }
         if (!navigation.requestRoute(spot)) {
+            pendingGuidance = null
             toast("차량 내비게이션에 연결할 수 없어요")
+        }
+    }
+
+    private suspend fun sendCarReceipts(session: Session, includeReceived: Boolean) {
+        if (repository.session.value != session) return
+        confirmedGuidance.entries.removeAll { it.value != session }
+        val guidance = confirmedGuidance.keys.toList()
+        val received = if (includeReceived) repository.state.value.carQueue
+            .filter { it.carProgress == CarTransferProgress.SENT }
+            .map { CarTransferReceipt(it.id, it.sentAt, CarTransferProgress.RECEIVED) }
+        else emptyList()
+        if (repository.acknowledgeCarQueue(session, guidance + received).isSuccess) {
+            guidance.forEach { confirmedGuidance.remove(it, session) }
         }
     }
 

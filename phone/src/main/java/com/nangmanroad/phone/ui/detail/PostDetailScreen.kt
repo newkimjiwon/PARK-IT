@@ -1,7 +1,5 @@
 package com.nangmanroad.phone.ui.detail
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -79,6 +77,7 @@ import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.core.data.byImportance
 import com.nangmanroad.core.ui.color
 import com.nangmanroad.core.ui.icon
+import com.nangmanroad.core.ui.openWebLink
 import com.nangmanroad.core.ui.label
 import com.nangmanroad.phone.PhoneUiState
 import com.nangmanroad.phone.PhoneViewModel
@@ -103,6 +102,7 @@ fun PostDetailScreen(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
     var tab by rememberSaveable { mutableStateOf(DetailTab.TIPS) }
     var replyTo by rememberSaveable { mutableStateOf<String?>(null) }
     var suggesting by rememberSaveable { mutableStateOf(false) }
+    var reportingChange by rememberSaveable { mutableStateOf(false) }
     var assistantOpen by rememberSaveable(spot.id) { mutableStateOf(false) }
     if (assistantOpen) {
         PlaceAssistantDialog(
@@ -148,12 +148,19 @@ fun PostDetailScreen(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                     item {
                         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             if (suggesting) {
-                                TipSuggestionForm(onCancel = { suggesting = false }) { kind, status, summary, detail ->
+                                TipSuggestionForm(onCancel = { suggesting = false }, fieldChange = reportingChange) { kind, status, summary, detail ->
                                     actions.suggestTip(spot.id, kind, status, summary, detail)
                                     suggesting = false
                                 }
                             } else {
-                                SecondaryButton("꿀팁 제보하기", { suggesting = true }, Modifier.fillMaxWidth(), Icons.Outlined.TaskAlt)
+                                SecondaryButton("꿀팁 제보하기", {
+                                    reportingChange = false
+                                    suggesting = true
+                                }, Modifier.fillMaxWidth(), Icons.Outlined.TaskAlt)
+                                SecondaryButton("현장 변경 제보", {
+                                    reportingChange = true
+                                    suggesting = true
+                                }, Modifier.fillMaxWidth())
                             }
                             Text(
                                 "차박·주차 허용 여부는 현장 안내문으로 다시 확인하세요.",
@@ -239,7 +246,7 @@ private fun Header(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
             Text("${spot.province} · ${spot.category.label}", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
             Text(spot.title, style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
             Text(
-                "${spot.address}${if (spot.approximateLocation) " (대략적인 위치)" else ""} · ${distanceFromHere(state.here, spot)}",
+                "${spot.address}${if (spot.approximateLocation) " (대략적인 위치)" else ""} · ${distanceFromHere(state.here, spot, state.usesDeviceLocation)}",
                 style = MaterialTheme.typography.bodySmall.tabular(),
                 color = Palette.TextSecondary,
             )
@@ -355,7 +362,7 @@ private fun ProductRow(product: Product, saved: Boolean, onSave: () -> Unit, mod
             SecondaryButton(if (saved) "관심 상품" else "관심 상품 담기", onSave, Modifier.weight(1f), if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder, active = saved)
             SecondaryButton("쇼핑 검색", {
                 val query = URLEncoder.encode(product.name, "UTF-8")
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://search.shopping.naver.com/search/all?query=$query")))
+                context.openWebLink("https://search.shopping.naver.com/search/all?query=$query")
             }, Modifier.weight(1f), Icons.Outlined.OpenInNew)
         }
     }

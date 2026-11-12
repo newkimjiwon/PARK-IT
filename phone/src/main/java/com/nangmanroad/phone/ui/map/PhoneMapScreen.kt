@@ -41,6 +41,7 @@ import com.nangmanroad.phone.PhoneUiState
 import com.nangmanroad.phone.PhoneViewModel
 import com.nangmanroad.phone.ui.components.TabRow
 import com.nangmanroad.phone.ui.components.TextTab
+import com.nangmanroad.phone.ui.components.VisitConditionChips
 import com.nangmanroad.phone.ui.components.distanceFromHere
 
 /** Phone-sized markers; zoomed out so the whole peninsula fits a portrait screen. */
@@ -57,6 +58,7 @@ val PhoneMapStyle = PhotoMapStyle(
 fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
     // The same facility chips as the home feed, so a filter chosen there carries over to the map.
     val spots = SpotQueries.matching(state.spots, state.mapCategory, "", state.facilities)
+        .filter { it.visitConditions.containsAll(state.visitConditions) }
     val selected = state.spot(state.mapSelectedId)?.takeIf { it in spots }
 
     Column(Modifier.fillMaxSize()) {
@@ -74,6 +76,7 @@ fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
             height = 36.dp,
             iconSize = 18.dp,
             gap = 6.dp,
+            trailing = { VisitConditionChips(state.visitConditions, actions::toggleVisitCondition) },
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {
             PhotoMap(
@@ -103,7 +106,7 @@ fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(selected.category.label, style = MaterialTheme.typography.labelMedium, color = Palette.TextSecondary)
                         Text(selected.title, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("${selected.region} · ${distanceFromHere(state.here, selected)}", style = MaterialTheme.typography.bodySmall.tabular(), color = Palette.TextSecondary)
+                        Text("${selected.region} · ${distanceFromHere(state.here, selected, state.usesDeviceLocation)}", style = MaterialTheme.typography.bodySmall.tabular(), color = Palette.TextSecondary)
                         Text("꿀팁 ${selected.tips.size} · 좋아요 ${state.likeCount(selected)}", style = MaterialTheme.typography.bodySmall.tabular(), color = Palette.TextSecondary)
                     }
                     Box(

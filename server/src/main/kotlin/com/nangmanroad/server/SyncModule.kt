@@ -3,6 +3,7 @@ package com.nangmanroad.server
 import com.nangmanroad.core.sync.Api
 import com.nangmanroad.core.sync.ApiError
 import com.nangmanroad.core.sync.CarCampingReport
+import com.nangmanroad.core.sync.CarTransferReceipt
 import com.nangmanroad.core.sync.ClaimRequest
 import com.nangmanroad.core.sync.NewComment
 import com.nangmanroad.core.sync.NewPost
@@ -47,6 +48,7 @@ fun Application.syncModule(store: SyncStore) {
     }
     install(StatusPages) {
         exception<UnauthorizedException> { call, cause -> call.respond(HttpStatusCode.Unauthorized, ApiError(cause.message.orEmpty())) }
+        exception<WrongDeviceException> { call, cause -> call.respond(HttpStatusCode.Forbidden, ApiError(cause.message.orEmpty())) }
         exception<IllegalArgumentException> { call, cause -> call.respond(HttpStatusCode.BadRequest, ApiError(cause.message.orEmpty())) }
         exception<NoSuchElementException> { call, cause -> call.respond(HttpStatusCode.NotFound, ApiError(cause.message.orEmpty())) }
         exception<TooManyAttemptsException> { call, cause -> call.respond(HttpStatusCode.TooManyRequests, ApiError(cause.message.orEmpty())) }
@@ -83,6 +85,10 @@ fun Application.syncModule(store: SyncStore) {
             }
 
             post("/car-queue") { call.respond(store.sendToCar(call.userId(store), call.receive<SendRequest>())) }
+            post("/car-queue/receipts") {
+                store.acknowledgeCarQueue(call.bearerToken(), call.receive<List<CarTransferReceipt>>())
+                call.respond(HttpStatusCode.NoContent)
+            }
             delete("/car-queue/{id}") { call.respond(store.removeFromCar(call.userId(store), call.parameters["id"].orEmpty())) }
             post("/phone-inbox") { call.respond(store.sendToPhone(call.userId(store), call.receive<SendRequest>())) }
             delete("/phone-inbox/{id}") { call.respond(store.removeFromPhone(call.userId(store), call.parameters["id"].orEmpty())) }

@@ -9,6 +9,8 @@ import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.Visibility
 import com.nangmanroad.core.data.withConflictsFlagged
 import com.nangmanroad.core.data.CarCamping
+import com.nangmanroad.core.sync.CarTransferProgress
+import com.nangmanroad.core.sync.CarTransferReceipt
 import com.nangmanroad.core.sync.Api
 import com.nangmanroad.core.sync.CarCampingReport
 import com.nangmanroad.core.sync.DEMO_ACCOUNT_PASSWORD
@@ -36,6 +38,8 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+
+class WrongDeviceException : RuntimeException("차량에서만 수신 상태를 보낼 수 있어요")
 
 class UnauthorizedException(message: String = "로그인이 필요해요") : RuntimeException(message)
 
@@ -158,7 +162,7 @@ class SyncStore(
      * for [SESSION_TTL_MS] is dropped; use is recorded at most once an hour to spare the disk.
      */
     @Synchronized
-    fun userFor(token: String?): String {
+    fun userFor(token: String?, device: DeviceKind? = null): String {
         val session = snapshot.sessions[token] ?: throw UnauthorizedException()
         val now = clock()
         if (now - session.lastUsedAt > SESSION_TTL_MS) {
@@ -168,6 +172,7 @@ class SyncStore(
         if (now - session.lastUsedAt > SESSION_TOUCH_MS) {
             update { it.copy(sessions = it.sessions + (session.token to session.copy(lastUsedAt = now))) }
         }
+        if (device != null && session.device != device) throw WrongDeviceException()
         return session.userId
     }
 
@@ -201,6 +206,18 @@ class SyncStore(
     fun sendToCar(userId: String, request: SendRequest): UserState {
         editUser(userId) { it.copy(carQueue = listOf(request.toItem()) + it.carQueue.filter { item -> item.id != request.id }) }
         return state(userId)
+    }
+
+    @Synchronized
+    fun acknowledgeCarQueue(token: String?, receipts: List<CarTransferReceipt>) {
+        val userId = userFor(token, DeviceKind.CAR)
+        val user = user(userId)
+        val byTransfer = receipts.groupBy { it.id to it.sentAt }
+        val queue = user.carQueue.map { item ->
+            val progress = byTransfer[item.id to item.sentAt]?.maxOf { it.progress }
+            if (progress != null && progress > item.carProgress) item.copy(carProgress = progress) else item
+        }
+        if (queue != user.carQueue) editUser(userId) { it.copy(carQueue = queue) }
     }
 
     @Synchronized
@@ -360,6 +377,7 @@ class SyncStore(
             comments = emptyList(),
             visibility = post.visibility,
             approximateLocation = post.approximateLocation,
+            visitConditions = post.visitConditions,
             carCamping = post.carCamping,
             carCampingNote = post.carCampingNote.trim(),
             bestTime = post.bestTime.trim(),

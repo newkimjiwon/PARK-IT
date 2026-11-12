@@ -132,6 +132,14 @@ class SpotRepository(
         return remote { _state.value = client.sendToCar(SendRequest(spot.id, spot.title, spot.id)) }
     }
 
+    suspend fun acknowledgeCarQueue(session: Session, receipts: List<CarTransferReceipt>): Result<Unit> {
+        if (receipts.isEmpty()) return Result.success(Unit)
+        if (_session.value != session || session.device != DeviceKind.CAR) {
+            return Result.failure(SyncException(null, "차량 계정을 다시 확인해 주세요"))
+        }
+        return remote { client.acknowledgeCarQueue(session.token, receipts) }
+    }
+
     suspend fun removeFromCar(id: String): Result<Unit> {
         if (!signedIn) {
             posts.carQueue = posts.carQueue - id
@@ -296,6 +304,7 @@ class SpotRepository(
             comments = emptyList(),
             visibility = visibility,
             approximateLocation = approximateLocation,
+            visitConditions = visitConditions,
         )
     }
 }

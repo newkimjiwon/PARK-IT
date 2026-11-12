@@ -54,6 +54,13 @@ class SyncClient(
 
     suspend fun sendToCar(request: SendRequest): UserState = call(HttpMethod.Post, "/api/car-queue") { jsonBody(request) }.body()
 
+    suspend fun acknowledgeCarQueue(sessionToken: String, receipts: List<CarTransferReceipt>) {
+        call(HttpMethod.Post, "/api/car-queue/receipts", authorized = false) {
+            bearerAuth(sessionToken)
+            jsonBody(receipts)
+        }
+    }
+
     suspend fun removeFromCar(id: String): UserState = call(HttpMethod.Delete, "/api/car-queue/$id").body()
 
     suspend fun sendToPhone(request: SendRequest): UserState = call(HttpMethod.Post, "/api/phone-inbox") { jsonBody(request) }.body()

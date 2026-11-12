@@ -15,8 +15,20 @@ enum class CarCommand(
     UNLOCK("도어 열기", "차량 도어 잠금을 해제하시겠습니까?", "주변에 아무도 없는지 확인하세요.", "도어 잠금을 해제했어요"),
     CLIMATE_ON("공조 켜기", "공조를 켜시겠어요?", "목표 온도로 실내를 맞춰요. 차량 상태에 따라 시간이 걸릴 수 있어요.", "공조를 켰어요"),
     CLIMATE_OFF("공조 끄기", "공조를 끄시겠어요?", "실내 공조를 멈춰요.", "공조를 껐어요"),
+    START_SLEEP("수면 모드 시작", "수면 모드를 시작할까요?", "데모 차량의 조명을 끄고 도어를 잠가요. 공조를 21°C로 맞춰요.", "수면 모드를 시작했어요"),
+    END_SLEEP("수면 모드 종료", "수면 모드를 끝낼까요?", "데모 차량을 시작 전 설정으로 돌려요.", "수면 모드를 끝냈어요"),
+    FRESH_AIR("외기 순환", "외기 순환으로 바꿀까요?", "데모 화면에서 공조의 공기 순환 상태를 바꿔요.", "외기 순환으로 바꿨어요"),
     CLOSE_WINDOWS("창문 닫기", "열린 창문을 닫으시겠어요?", "끼임 방지 기능이 있는 차량에서만 지원돼요.", "창문을 닫았어요"),
 }
+
+data class SleepSettings(
+    val doorsLocked: Boolean,
+    val interiorLightOn: Boolean,
+    val exteriorLightOn: Boolean,
+    val climateOn: Boolean,
+    val cabinTemp: Int,
+    val targetTemp: Int,
+)
 
 data class CarDemoState(
     val model: String = "Hyundai IONIQ 5",
@@ -31,6 +43,12 @@ data class CarDemoState(
     val climateOn: Boolean = false,
     val targetTemp: Int = 22,
     val moodLightSupported: Boolean = false,
+    val interiorLightOn: Boolean = true,
+    val exteriorLightOn: Boolean = true,
+    val sleepSettings: SleepSettings? = null,
+    val lowAuxBatteryExample: Boolean = false,
+    val highCo2Example: Boolean = false,
+    val freshAir: Boolean = false,
     /** Waiting for the user to confirm in a dialog. */
     val pending: CarCommand? = null,
     /** Sent and waiting for the (simulated) car to answer. */
@@ -42,5 +60,26 @@ data class CarDemoState(
         CarCommand.CLIMATE_ON -> copy(climateOn = true, cabinTemp = targetTemp)
         CarCommand.CLIMATE_OFF -> copy(climateOn = false)
         CarCommand.CLOSE_WINDOWS -> copy(driverWindowOpen = false)
+        CarCommand.START_SLEEP -> if (!parked || sleepSettings != null) this else copy(
+            sleepSettings = SleepSettings(doorsLocked, interiorLightOn, exteriorLightOn, climateOn, cabinTemp, targetTemp),
+            doorsLocked = true,
+            interiorLightOn = false,
+            exteriorLightOn = false,
+            climateOn = true,
+            cabinTemp = 21,
+            targetTemp = 21,
+        )
+        CarCommand.END_SLEEP -> sleepSettings?.let {
+            copy(
+                sleepSettings = null,
+                doorsLocked = it.doorsLocked,
+                interiorLightOn = it.interiorLightOn,
+                exteriorLightOn = it.exteriorLightOn,
+                climateOn = it.climateOn,
+                cabinTemp = it.cabinTemp,
+                targetTemp = it.targetTemp,
+            )
+        } ?: this
+        CarCommand.FRESH_AIR -> copy(freshAir = true)
     }
 }

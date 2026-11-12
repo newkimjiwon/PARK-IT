@@ -27,6 +27,7 @@ data class ActiveDestination(
 )
 
 sealed interface NaviEvent {
+    data object RouteRequested : NaviEvent
     data class RouteStarted(val name: String) : NaviEvent
     data class Failed(val reason: String) : NaviEvent
     data object Arrived : NaviEvent
@@ -70,6 +71,7 @@ class NavigationBridge(context: Context) {
         override fun onRoutingCompleted() = refresh()
 
         override fun onRouteStarted(routeStartInfo: RouteStartInfo) {
+            _events.tryEmit(NaviEvent.RouteStarted(routeStartInfo.name))
             refresh()
         }
 
@@ -135,7 +137,7 @@ class NavigationBridge(context: Context) {
                     address = spot.address,
                 ),
             )
-            _events.tryEmit(NaviEvent.RouteStarted(spot.title))
+            _events.tryEmit(NaviEvent.RouteRequested)
         }.onFailure {
             Log.w(TAG, "requestRoute failed", it)
             _events.tryEmit(NaviEvent.Failed("내비게이션에 목적지를 보내지 못했어요"))

@@ -8,6 +8,7 @@ import com.nangmanroad.core.data.Product
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.Visibility
+import com.nangmanroad.core.data.VisitCondition
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -71,7 +72,14 @@ data class SentItem(
     /** What the driver said into the car's microphone with a 파킷; the phone starts the post's story with it. */
     val note: String = "",
     val approximateLocation: Boolean? = null,
+    val carProgress: CarTransferProgress = CarTransferProgress.SENT,
 )
+
+@Serializable
+enum class CarTransferProgress { SENT, RECEIVED, GUIDANCE_STARTED }
+
+@Serializable
+data class CarTransferReceipt(val id: String, val sentAt: Long, val progress: CarTransferProgress)
 
 /**
  * "파킷": the car captured where it stopped and handed it to the phone. Such an item's id starts
@@ -157,6 +165,7 @@ data class NewPost(
     val carCamping: CarCamping = CarCamping.CHECK,
     val carCampingNote: String = "",
     val bestTime: String = "",
+    val visitConditions: Set<VisitCondition> = emptySet(),
 )
 
 /** [path] is relative to the server, e.g. "/photos/3f2a.jpg". */

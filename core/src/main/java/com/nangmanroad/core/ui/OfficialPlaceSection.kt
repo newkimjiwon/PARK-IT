@@ -7,7 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.data.OfficialPlaceInfo
 
@@ -22,8 +22,8 @@ fun OfficialPlaceSection(info: OfficialPlaceInfo, modifier: Modifier = Modifier,
             Text("사진 · $it", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
         }
         if (showSourceLink) {
-            val uriHandler = LocalUriHandler.current
-            TextButton(onClick = { uriHandler.openUri(info.sourceUrl) }) {
+            val context = LocalContext.current
+            TextButton(onClick = { context.openWebLink(info.sourceUrl) }) {
                 Text("고캠핑 원문", color = Palette.TextPrimary)
             }
         }

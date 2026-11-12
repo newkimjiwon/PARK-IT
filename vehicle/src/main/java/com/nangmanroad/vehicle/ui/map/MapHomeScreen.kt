@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -47,6 +48,7 @@ import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -70,7 +72,10 @@ import com.nangmanroad.vehicle.AppViewModel
 import com.nangmanroad.vehicle.ListenPurpose
 import com.nangmanroad.vehicle.ParkitSuggestion
 import com.nangmanroad.vehicle.VoiceUi
+import com.nangmanroad.vehicle.pleos.DrivingState
 import com.nangmanroad.core.data.CarCamping
+import com.nangmanroad.core.data.PlaceQuestion
+import com.nangmanroad.core.data.answerAboutPlace
 import com.nangmanroad.core.data.carCampingCheckedLabel
 import com.nangmanroad.core.data.carCampingStale
 import com.nangmanroad.core.data.Category
@@ -350,6 +355,8 @@ private fun ParkitBannerHost(state: AppUiState, actions: AppViewModel, modifier:
     ) {
         ParkitBanner(
             nearSpot = state.spot(shown?.nearSpotId),
+            suggestionAt = shown?.at,
+            canShowArrivalChecklist = state.drivingState == DrivingState.PARKED,
             note = shown?.note.orEmpty(),
             voice = state.voice,
             onNote = actions::listenForParkitNote,
@@ -370,6 +377,8 @@ private fun ParkitBannerHost(state: AppUiState, actions: AppViewModel, modifier:
 @Composable
 private fun ParkitBanner(
     nearSpot: Spot?,
+    suggestionAt: Long?,
+    canShowArrivalChecklist: Boolean,
     note: String,
     voice: VoiceUi,
     onNote: () -> Unit,
@@ -378,6 +387,8 @@ private fun ParkitBanner(
     modifier: Modifier = Modifier,
 ) {
     val listening = voice.listening == ListenPurpose.PARKIT_NOTE
+    var showChecklist by remember(suggestionAt) { mutableStateOf(false) }
+    var checked by remember(suggestionAt) { mutableStateOf(emptySet<String>()) }
     val shape = RoundedCornerShape(4.dp)
     Row(
         modifier = modifier
@@ -420,6 +431,35 @@ private fun ParkitBanner(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            if (canShowArrivalChecklist && nearSpot != null) {
+                ActionButton(
+                    if (showChecklist) "쉬어가기 접기" else "쉬어가기",
+                    Icons.Outlined.CheckCircle,
+                    { showChecklist = !showChecklist },
+                )
+                if (showChecklist) {
+                    Text(
+                        answerAboutPlace(PlaceQuestion.PARKING, nearSpot).orEmpty(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Palette.TextSecondary,
+                    )
+                    val items = nearSpot.products.map { it.name }.distinct().take(2)
+                        .ifEmpty { listOf("예약과 운영 시간 확인", "현장 이용 안내 확인") }
+                    items.forEach { item ->
+                        val done = item in checked
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(done, role = Role.Checkbox) {
+                                checked = if (it) checked + item else checked - item
+                            },
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Checkbox(checked = done, onCheckedChange = null)
+                            Text(item, style = MaterialTheme.typography.bodyMedium, color = Palette.TextPrimary)
+                        }
+                    }
+                }
             }
         }
         if (voice.canListen) {

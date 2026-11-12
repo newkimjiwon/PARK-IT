@@ -69,16 +69,26 @@ import com.nangmanroad.phone.ui.components.TabRow
 import com.nangmanroad.phone.ui.components.TextTab
 import com.nangmanroad.phone.ui.components.SectionHeader
 import com.nangmanroad.phone.ui.components.Tag
+import com.nangmanroad.phone.ui.components.VisitConditionChips
 import com.nangmanroad.phone.ui.components.distanceFromHere
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.TextButton
 
 @Composable
 fun HomeScreen(state: PhoneUiState, actions: PhoneViewModel) {
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        actions.useCurrentLocation()
+    }
     val feed = when (state.homeTab) {
         HomeTab.FOR_YOU -> SpotQueries.recommended(state.spots, state.saved, state.liked, state.following, state.here)
         HomeTab.FOLLOWING -> state.spots.filter { it.author.id in state.following }.sortedBy { it.postedDaysAgo }
         HomeTab.NEARBY -> state.spots.sortedBy { distanceKm(state.here, it.location) }
-    }.filter { spot -> state.facilities.all { spot.hasFacility(it) } }
-    val nearby = state.spots.sortedBy { distanceKm(state.here, it.location) }.take(6)
+    }.filter { spot -> state.facilities.all { spot.hasFacility(it) } && spot.visitConditions.containsAll(state.visitConditions) }
+    val nearby = state.spots.filter { spot ->
+        state.facilities.all { spot.hasFacility(it) } && spot.visitConditions.containsAll(state.visitConditions)
+    }.sortedBy { distanceKm(state.here, it.location) }.take(6)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -94,6 +104,19 @@ fun HomeScreen(state: PhoneUiState, actions: PhoneViewModel) {
                 TabRow {
                     HomeTab.entries.forEach { tab -> TextTab(tab.label, state.homeTab == tab, { actions.setHomeTab(tab) }) }
                 }
+                if (state.homeTab == HomeTab.NEARBY) {
+                    SectionHeader(
+                        if (state.usesDeviceLocation) "내 위치 기준" else "서울 기준",
+                        Modifier.padding(horizontal = 20.dp),
+                    ) {
+                        TextButton(
+                            enabled = !state.locating,
+                            onClick = {
+                                permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                            },
+                        ) { Text(if (state.locating) "위치 확인 중" else "내 위치 사용") }
+                    }
+                }
                 FacilityFilterRow(
                     selected = state.facilities,
                     onToggle = actions::toggleFacility,
@@ -101,13 +124,14 @@ fun HomeScreen(state: PhoneUiState, actions: PhoneViewModel) {
                     height = 36.dp,
                     iconSize = 18.dp,
                     gap = 6.dp,
+                    trailing = { VisitConditionChips(state.visitConditions, actions::toggleVisitCondition) },
                 )
             }
         }
         if (feed.isEmpty()) {
             item {
                 Text(
-                    if (state.facilities.isNotEmpty()) "고른 시설을 모두 갖췄다고 확인된 장소가 아직 없어요. 조건을 하나 줄여 보세요."
+                    if (state.facilities.isNotEmpty() || state.visitConditions.isNotEmpty()) "선택한 조건을 모두 확인한 장소가 없어요."
                     else "팔로우한 사람의 게시물이 아직 없어요. 마음에 드는 작성자를 팔로우해 보세요.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Palette.TextSecondary,
@@ -144,7 +168,7 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
             Avatar(spot.author.name, size = 36.dp)
             Column(Modifier.weight(1f)) {
                 Text(spot.author.name, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
-                Text("${spot.region} · ${distanceFromHere(state.here, spot)}", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+                Text("${spot.region} · ${distanceFromHere(state.here, spot, state.usesDeviceLocation)}", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
             }
             when {
                 isMine -> VisibilityTag(spot.visibility)
@@ -268,7 +292,7 @@ private fun NearbyCard(spot: Spot, state: PhoneUiState, onClick: () -> Unit) {
         Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(4.dp))) {
             SpotPhoto(spot.photos.first(), spot.title, Modifier.fillMaxSize())
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.6f to Color.Transparent, 1f to Palette.Background.copy(alpha = 0.8f))))
-            PhotoChip(distanceFromHere(state.here, spot), Modifier.align(Alignment.BottomStart).padding(8.dp))
+            PhotoChip(distanceFromHere(state.here, spot, state.usesDeviceLocation), Modifier.align(Alignment.BottomStart).padding(8.dp))
         }
         Text(spot.title, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         FacilityStrip(spot.tips, iconSize = 15.dp, gap = 5.dp)

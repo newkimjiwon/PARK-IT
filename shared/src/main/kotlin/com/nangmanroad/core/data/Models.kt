@@ -109,6 +109,14 @@ enum class CarCamping(val label: String) {
 }
 
 @Serializable
+enum class VisitCondition(val label: String) {
+    FREE_PARKING("무료 주차"),
+    PETS_ALLOWED("반려동물 동반"),
+    PAVED_ACCESS("포장 진입로"),
+    NIGHT_ACCESS("야간 출입"),
+}
+
+@Serializable
 data class Spot(
     val id: String,
     val title: String,
@@ -136,6 +144,7 @@ data class Spot(
     /** Days since a visitor last confirmed [carCamping]; null when only the author's word exists. */
     val carCampingCheckedDaysAgo: Int? = null,
     val officialPlace: OfficialPlaceInfo? = null,
+    val visitConditions: Set<VisitCondition> = emptySet(),
 ) {
     /** First word of the region, e.g. "강원" for "강원 강릉시". */
     val province: String get() = region.substringBefore(' ')

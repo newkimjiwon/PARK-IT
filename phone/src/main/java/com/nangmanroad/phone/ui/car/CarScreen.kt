@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.nangmanroad.core.sync.CarTransferProgress
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.core.ui.SpotPhoto
@@ -75,6 +76,36 @@ fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
         item { CarLinkCard(state, actions) }
         item { ConceptNotice() }
         item { CarSheet(car) }
+        item { SectionHeader("차박 모드", trailing = { Tag("데모", Palette.Warning) }) }
+        item {
+            val sleeping = car.sleepSettings != null
+            ControlRow(
+                icon = Icons.Outlined.Lightbulb,
+                title = if (sleeping) "수면 모드 종료" else "수면 모드 시작",
+                subtitle = if (sleeping) "조명 꺼짐, 도어 잠김, 공조 21°C" else "조명, 도어, 공조를 한 번에 설정",
+                busy = car.processing == CarCommand.START_SLEEP || car.processing == CarCommand.END_SLEEP,
+                enabled = car.parked,
+            ) { actions.requestCarCommand(if (sleeping) CarCommand.END_SLEEP else CarCommand.START_SLEEP) }
+        }
+        item {
+            SheetRow("12V 배터리", if (car.lowAuxBatteryExample) "점검 필요 (예시)" else "정상 (예시)", car.lowAuxBatteryExample)
+            SheetRow("연료", "전기차")
+            TextButton(onClick = actions::toggleDemoAuxBattery) {
+                Text(if (car.lowAuxBatteryExample) "정상 상태로 돌아가기" else "배터리 경고 예시 보기")
+            }
+            SheetRow("실내 CO₂", if (car.highCo2Example) "높음 (예시)" else "보통 (예시)", car.highCo2Example)
+            SheetRow("공기 순환", if (car.freshAir) "외기 순환 (예시)" else "내기 순환 (예시)")
+            TextButton(onClick = actions::toggleDemoCo2) {
+                Text(if (car.highCo2Example) "보통 상태로 돌아가기" else "CO₂ 상승 예시 보기")
+            }
+            ControlRow(
+                icon = Icons.Outlined.AcUnit,
+                title = "외기 순환으로 바꾸기",
+                subtitle = "데모 화면의 공기 순환만 바뀌어요",
+                busy = car.processing == CarCommand.FRESH_AIR,
+                enabled = !car.freshAir,
+            ) { actions.requestCarCommand(CarCommand.FRESH_AIR) }
+        }
         item { SectionHeader("원격 제어", Modifier.padding(top = 8.dp), trailing = { Tag("데모", Palette.Warning) }) }
         item {
             ControlRow(
@@ -82,10 +113,11 @@ fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
                 title = if (car.doorsLocked) "도어 잠금 해제" else "도어 잠그기",
                 subtitle = if (car.doorsLocked) "지금은 잠겨 있어요" else "지금은 열려 있어요",
                 busy = car.processing == CarCommand.LOCK || car.processing == CarCommand.UNLOCK,
+                enabled = car.sleepSettings == null,
             ) { actions.requestCarCommand(if (car.doorsLocked) CarCommand.UNLOCK else CarCommand.LOCK) }
         }
         item {
-            ClimateRow(car, actions)
+            if (car.sleepSettings == null) ClimateRow(car, actions)
         }
         item {
             ControlRow(
@@ -106,11 +138,13 @@ fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
             ) {}
         }
         item { SectionHeader("차량으로 보낸 장소", Modifier.padding(top = 8.dp)) }
-        val queued = state.spots.filter { it.id in state.carQueue }
+        val queued = state.user.carQueue.mapNotNull { transfer ->
+            state.spot(transfer.spotId)?.let { it to transfer }
+        }
         if (queued.isEmpty()) {
             item { Text("장소 상세에서 '차량으로 보내기'를 누르면 여기에 모여요.", style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary) }
         }
-        queued.forEach { spot ->
+        queued.forEach { (spot, transfer) ->
             item(key = "queued-${spot.id}") {
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(3.dp)).clickable { actions.openSpot(spot.id) }.padding(vertical = 6.dp),
@@ -121,10 +155,12 @@ fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
                     Column(Modifier.weight(1f)) {
                         Text(spot.title, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
                         Text(
-                            "${spot.region} · " + when {
-                                state.account.session == null -> "로그인하면 차량에 전송돼요"
-                                state.user.linkedCars == 0 -> "차량을 연결하면 바로 보여요"
-                                else -> "차량 화면의 '휴대폰에서 보냄'에 있어요"
+                            when {
+                                state.account.session == null -> "이 휴대폰에만 저장"
+                                transfer.carProgress == CarTransferProgress.GUIDANCE_STARTED -> "길 안내 시작"
+                                transfer.carProgress == CarTransferProgress.RECEIVED -> "차량 수신"
+                                state.user.linkedCars == 0 -> "차량 연결 대기"
+                                else -> "보냄 / 차량 수신 대기"
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = Palette.TextSecondary,

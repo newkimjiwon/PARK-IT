@@ -103,10 +103,12 @@ class PostStore(context: Context) {
         .put("products", JSONArray(products.map { it.toJson() }))
         .put("visibility", visibility.name)
         .put("approximate", approximateLocation)
+        .put("visitConditions", JSONArray(visitConditions.map { it.name }))
         .put("createdAt", createdAt)
 
     private fun JSONObject.toSpot(author: Author, now: Long): Spot {
         val photos = getJSONArray("photos")
+        val conditions = optJSONArray("visitConditions")
         return Spot(
             id = getString("id"),
             title = getString("title"),
@@ -125,6 +127,9 @@ class PostStore(context: Context) {
             comments = emptyList(),
             visibility = Visibility.valueOf(getString("visibility")),
             approximateLocation = getBoolean("approximate"),
+            visitConditions = VisitCondition.entries.filter { condition ->
+                conditions != null && (0 until conditions.length()).any { conditions.optString(it) == condition.name }
+            }.toSet(),
         )
     }
 

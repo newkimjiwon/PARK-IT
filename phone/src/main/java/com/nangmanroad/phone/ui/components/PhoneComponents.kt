@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,9 +35,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.Spot
+import com.nangmanroad.core.data.VisitCondition
 import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.data.formatKm
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.ToggleChip
 import com.nangmanroad.core.ui.tabular
 
 /** A choice in a form: outlined, white when chosen. */
@@ -213,5 +217,25 @@ fun IconCircle(icon: ImageVector, label: String, onClick: () -> Unit, modifier: 
     }
 }
 
-/** "서울 기준 160km" until the phone reads its own location. */
-fun distanceFromHere(here: LatLng, spot: Spot): String = "서울 기준 ${formatKm(distanceKm(here, spot.location))}"
+@Composable
+fun VisitConditionChips(
+    selected: Set<VisitCondition>,
+    onToggle: (VisitCondition) -> Unit,
+) {
+    VisitCondition.entries.forEach { condition ->
+        ToggleChip(
+            icon = Icons.Outlined.CheckCircle,
+            label = condition.label,
+            on = condition in selected,
+            onToggle = { onToggle(condition) },
+            height = 36.dp,
+            iconSize = 18.dp,
+            gap = 6.dp,
+        )
+    }
+}
+
+fun distanceFromHere(here: LatLng, spot: Spot, usesDeviceLocation: Boolean): String {
+    val basis = if (usesDeviceLocation) "내 위치 기준" else "서울 기준"
+    return "$basis ${formatKm(distanceKm(here, spot.location))}"
+}
