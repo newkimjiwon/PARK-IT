@@ -28,6 +28,8 @@ android {
         // address instead: sh gradlew -Pnangmanroad.syncUrl=http://192.168.0.10:8080 ...
         val syncUrl = providers.gradleProperty("nangmanroad.syncUrl").getOrElse("http://10.0.2.2:8080")
         buildConfigField("String", "SYNC_URL", "\"$syncUrl\"")
+        val configUrl = providers.gradleProperty("nangmanroad.configUrl").getOrElse("https://34.64.170.97/map-config.json")
+        buildConfigField("String", "MAP_CONFIG_URL", "\"$configUrl\"")
         buildConfigField("String", "NAVER_NCP_KEY_ID", "\"${naverKeyId.trim()}\"")
         buildConfigField("String", "NAVER_CLIENT_TYPE", "\"${naverClientType.trim()}\"")
     }

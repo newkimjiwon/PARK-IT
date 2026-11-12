@@ -20,7 +20,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import com.nangmanroad.core.BuildConfig
 import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.ui.Palette
@@ -71,14 +70,15 @@ internal fun NaverPhotoMap(
     markerTint: (Spot) -> Color?,
     onMapTap: ((LatLng) -> Unit)?,
     herePulse: Long?,
+    mapConfig: MapConfig,
 ) {
     val context = LocalContext.current
-    remember(context) {
+    remember(context, mapConfig) {
         NaverMapSdk.getInstance(context).apply {
-            client = if (BuildConfig.NAVER_CLIENT_TYPE == "legacy") {
-                NaverMapSdk.NaverCloudPlatformClient(BuildConfig.NAVER_NCP_KEY_ID)
+            client = if (mapConfig.clientType == "legacy") {
+                NaverMapSdk.NaverCloudPlatformClient(mapConfig.keyId)
             } else {
-                NaverMapSdk.NcpKeyClient(BuildConfig.NAVER_NCP_KEY_ID)
+                NaverMapSdk.NcpKeyClient(mapConfig.keyId)
             }
             onAuthFailedListener = NaverMapSdk.OnAuthFailedListener { error ->
                 Log.w(TAG, "NAVER Maps auth failed: ${error.errorCode} ${error.message} (${error.javaClass.simpleName})")

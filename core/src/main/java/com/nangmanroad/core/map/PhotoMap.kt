@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
@@ -61,7 +62,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
-import com.nangmanroad.core.BuildConfig
 import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.ui.Palette
@@ -82,9 +82,6 @@ data class PhotoMapStyle(
     val controlsPadding: PaddingValues = PaddingValues(20.dp),
     val initialCamera: MapCamera = MapCamera(),
 )
-
-/** True when a NAVER Maps key was supplied at build time (see core/build.gradle.kts). */
-val naverMapsAvailable: Boolean get() = BuildConfig.NAVER_NCP_KEY_ID.isNotBlank()
 
 /**
  * The map that shows places as their own photos. Nearby photos merge into one marker with a count;
@@ -109,8 +106,10 @@ fun PhotoMap(
     /** Change this value to play the 파킷 pin drop at [here]; null shows the plain position dot. */
     herePulse: Long? = null,
 ) {
-    if (naverMapsAvailable) {
-        NaverPhotoMap(spots, selectedId, here, onSelect, onVisibleChange, modifier, style, markerTint, onMapTap, herePulse)
+    val mapConfig by produceState<MapConfig?>(initialValue = null) { value = loadMapConfig() }
+    val resolvedConfig = mapConfig
+    if (resolvedConfig != null && resolvedConfig.keyId.isNotBlank()) {
+        NaverPhotoMap(spots, selectedId, here, onSelect, onVisibleChange, modifier, style, markerTint, onMapTap, herePulse, resolvedConfig)
     } else {
         CanvasPhotoMap(spots, selectedId, here, onSelect, onVisibleChange, modifier, style, markerTint, onMapTap, herePulse)
     }

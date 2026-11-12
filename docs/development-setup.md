@@ -128,13 +128,13 @@ $env:ANDROID_HOME = 'C:\실제\Android\sdk\경로'
 
 ## 네이버 지도 키
 
-앱의 지도는 NAVER Maps SDK로 그립니다. 키가 없으면 빌드와 실행은 되지만 지도 자리에 예전의 단순화된 Canvas 지도가 나옵니다.
+앱은 먼저 서버의 NAVER 지도 Client ID를 조회합니다. 서버에 유효한 설정이 없으면 빌드할 때 `local.properties`에서 읽은 ID를 사용하고, 둘 다 없으면 단순화된 Canvas 지도를 표시합니다. 서버 응답을 기다리는 동안에도 Canvas 지도가 표시됩니다. `local.properties`는 개발 PC의 파일로, 앱 실행 시 직접 읽지 않고 빌드할 때 앱에 포함됩니다.
 
 1. [네이버 클라우드 플랫폼](https://www.ncloud.com)에 가입하고 콘솔에서 **Services → Application Services → Maps**로 들어갑니다.
 2. **Application 등록**에서 이름을 정하고, API 선택에서 **Dynamic Map**을 켭니다. 이 항목이 없으면 지도가 429 오류로 열리지 않습니다.
 3. Android 앱 패키지 이름으로 `com.nangmanroad.vehicle`과 `com.nangmanroad.phone`을 모두 등록합니다. 패키지 이름이 틀리면 401 오류가 납니다.
 4. 등록된 애플리케이션의 인증 정보에서 **Client ID(키 ID)** 를 복사합니다.
-5. 저장소 루트의 `local.properties`(git에서 제외됨)에 한 줄을 추가하고 다시 빌드합니다.
+5. 서버에 ID를 설정하거나, 서버를 사용할 수 없을 때의 대안으로 저장소 루트의 `local.properties`(git에서 제외됨)에 한 줄을 추가하고 다시 빌드합니다.
 
 ```
 naver.ncpKeyId=여기에_키_ID
@@ -149,6 +149,12 @@ naver.ncpKeyId=여기에_키_ID
 - 429가 나오면 Dynamic Map이 선택되지 않았거나 한도를 넘은 것입니다. 한도 설정의 "한도 초과 사용"은 허용안함으로 두면 과금 대신 차단됩니다.
 - 키를 처음 넣거나 바꾼 뒤에는 `sh gradlew :core:clean`을 먼저 실행하고 빌드합니다. 키는 빌드할 때 상수로 코드에 들어가는데, 증분 빌드는 그 코드를 다시 컴파일하지 않아 예전 값(키가 없던 때의 Canvas 지도)이 남습니다. 2026-11-10 macOS에서 확인했습니다.
 - 콘솔에서 Client ID 옆의 40자짜리 값은 Client Secret입니다. 앱에는 넣지 않습니다.
+
+### 서버에서 지도 Client ID 받기
+
+앱은 기본적으로 `https://34.64.170.97/map-config.json`에서 지도 Client ID와 클라이언트 종류를 읽습니다. 응답은 `{"naverKeyId":"...","clientType":"ncp"}` 형식이며 `clientType`은 `ncp` 또는 `legacy`입니다. 이 주소는 공개되므로 Client Secret이나 다른 비밀 키를 넣지 마세요. 서버에 접근할 수 없거나 설정이 유효하지 않으면 위에 설명한 로컬 빌드 설정을 사용하고, 그것도 없으면 Canvas 지도를 사용합니다. 앱을 다시 열거나 지도 화면에 다시 들어가면 설정을 다시 읽습니다.
+
+다른 설정 서버를 사용하려면 Gradle 옵션 `-Pnangmanroad.configUrl=https://...`로 주소를 지정합니다. HTTPS만 허용합니다. 원격 서버에 ID가 설정되어 있으면 로컬 빌드 ID보다 우선합니다.
 
 ## 6. 휴대폰 에뮬레이터 준비
 
