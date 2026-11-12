@@ -1,65 +1,120 @@
-# PARK-IT (파킷)
+# 현대자동차그룹 차량용 앱 개발 공모전
 
-현대자동차그룹 차량용 앱 개발 공모전 프로젝트. 휴대폰에서 차박·드라이브 장소를 찾고 차량으로 보낸 뒤, 방문한 장소의 사진과 팁을 공유합니다. 차량용 앱은 Pleos Connect에서 실행합니다.
+Pleos Connect 차량용 앱을 만들기 위한 팀 저장소입니다. 차박, 드라이브 장소를 사진과 꿀팁으로 공유하는 차량 특화 SNS **PARK-IT(파킷)** 을 개발하고 있습니다. 슬로건은 "당신의 경험이 누군가의 목적지가 되는 곳"이며, 코드와 패키지 이름은 개발 초기 가칭인 낭만로드(`com.nangmanroad`)를 그대로 씁니다.
 
-## 이번 업데이트
+<a name="실행-화면"></a>
 
-- 차량·휴대폰 테마에 차콜과 코랄 적용. 두 앱에서 네이버 도로 지도 표시 확인.
-- 고캠핑 야영장 3곳의 사진 6장, 주차·야간 이용 안내, 출처·조회일 추가.
-- 장소 도우미에서 주차·야간 이용·차박·방문 팁 확인.
-- 같은 목적지의 남은 도로 거리로 배터리 추정 보강.
-- 정차 위치 전송 대기·재시도와 서버 중복 방지. 서버 저장은 SQLite로 이관.
+## 화면
 
-## 실행 화면
-
-2026-11-12 최신 빌드와 샘플 계정으로 캡처했습니다. 휴대폰 화면은 에뮬레이터의 세로 디스플레이에서 촬영했습니다.
+2026-11-12 최신 빌드에서 캡처했습니다. 차량용 앱은 Pleos Connect Emulator 2.1.0(2560×1440), 스마트폰 앱은 에뮬레이터의 세로 디스플레이에서 실행했습니다. 샘플 계정으로 차량과 휴대폰을 연결하고 두 앱의 네이버 도로 지도를 확인했습니다.
 
 ### 차량용 앱
 
-<img src="docs/images/car-naver-dark.png" alt="Pleos 차량용 파킷 지도 홈" width="100%">
+<img src="docs/images/car-headunit.jpg" alt="Pleos 헤드유닛 전체 화면에서 오른쪽 창에 파킷 지도 홈이 열린 모습" width="100%">
 
-[라이트 모드](docs/images/car-naver-light.png) · [난지캠핑장 공식 사진과 정보](docs/images/car-official-place.png) · [장소 도우미](docs/images/car-place-assistant.png)
+Pleos 헤드유닛에서는 왼쪽 클러스터 옆 창에 앱이 열립니다. 아래 화면은 앱 창만 잘랐습니다. [라이트 모드 전체 화면](docs/images/car-naver-light.png)
 
-<details>
-<summary>차량 기능별 화면</summary>
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/car-map.jpg" alt="사진 마커 지도, 지금 갈 수 있는 곳만 토글, 선택한 장소의 세 줄 카드(제목 / 차박 상태, 배터리 판정 / 거리, 지역, 일몰), 지도에 보이는 지역의 피드"></td>
+    <td width="50%"><img src="docs/images/car-detail-tips.jpg" alt="장소 상세의 방문 꿀팁 탭. 확인 필요, 준비하세요 상태 카드"></td>
+  </tr>
+  <tr>
+    <td><b>지도 홈</b> / 사진 마커와 묶음 표시, 분류 필터, 미리보기 카드, 지도에 보이는 지역의 피드, 말로 검색</td>
+    <td><b>장소 상세 / 방문 꿀팁</b> / 엇갈리는 정보는 '확인 필요'로 먼저 보여줌</td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/car-detail-items.jpg" alt="장소 상세의 준비물 탭. 가격, 추천한 사람, 광고, 제휴 표시"></td>
+    <td><img src="docs/images/car-album.jpg" alt="내 장소의 저장한 장소 탭. 오늘 해를 보러 간다면 카드와 저장한 사진"></td>
+  </tr>
+  <tr>
+    <td><b>준비물</b> / 방문자들이 챙겨 간 물건과 가격, 광고, 제휴 표시, 구매는 휴대폰으로</td>
+    <td><b>내 장소</b> / 저장한 장소, 다녀온 곳, 휴대폰에서 보냄 탭과 오늘 해를 보러 간다면</td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/car-from-phone.jpg" alt="휴대폰에서 보낸 장소 탭과 레일의 배지"></td>
+    <td><img src="docs/images/car-driving.jpg" alt="주행 화면 미리보기의 목적지, 차박 금지 안내, 도착 전 꿀팁"></td>
+  </tr>
+  <tr>
+    <td><b>휴대폰에서 보냄</b> / 휴대폰의 '차량으로 보내기'가 도착하면 레일에 배지</td>
+    <td><b>주행 화면 미리보기</b> / 목적지, 차박 상태, 도착 전 꿀팁</td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/car-pairing.jpg" alt="휴대폰 계정과 연결하기 화면의 6자리 코드"></td>
+    <td><img src="docs/images/car-account.jpg" alt="휴대폰과 연결되어 있어요 화면, 파킷 위치를 시, 군 중심으로만 보내기와 음성 안내 설정"></td>
+  </tr>
+  <tr>
+    <td><b>계정 연결</b> / 휴대폰에 입력할 6자리 코드(10분마다 새 코드)</td>
+    <td><b>연결됨</b> / 저장, 좋아요, 팔로우가 휴대폰과 같아짐, 음성 안내 켜기, 끄기</td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/car-visited.jpg" alt="다녀온 곳과 방문 기록"></td>
+    <td><img src="docs/images/car-official-place.png" alt="난지캠핑장 공식 사진과 장소 정보"></td>
+  </tr>
+  <tr>
+    <td><b>다녀온 곳</b> / 방문 기록</td>
+    <td><b>공식 장소 정보</b> / 고캠핑 사진과 출처</td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/car-place-assistant.png" alt="정차 중 차량 앱의 장소 도우미"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td><b>장소 도우미</b> / 주차, 야간 이용, 차박, 방문 팁</td>
+    <td></td>
+  </tr>
+</table>
 
-| 탐색·방문 | 계정·주행 |
-| --- | --- |
-| [지도 홈과 지역 피드](docs/images/car-map.jpg) | [휴대폰에서 보낸 장소](docs/images/car-from-phone.jpg) |
-| [장소 상세와 방문 꿀팁](docs/images/car-detail-tips.jpg) | [6자리 연결 코드](docs/images/car-pairing.jpg) |
-| [준비물](docs/images/car-detail-items.jpg) | [연결된 계정과 음성 안내 설정](docs/images/car-account.jpg) |
-| [저장한 장소와 일몰 안내](docs/images/car-album.jpg) | [주행 화면 미리보기](docs/images/car-driving.jpg) |
-| [다녀온 곳](docs/images/car-visited.jpg) | |
+### 스마트폰 앱
 
-</details>
+<table>
+  <tr>
+    <td width="25%"><img src="docs/images/phone-signin.jpg" alt="닉네임과 비밀번호 로그인 화면"></td>
+    <td width="25%"><img src="docs/images/phone-home.jpg" alt="홈 피드의 나를 위한 추천 탭"></td>
+    <td width="25%"><img src="docs/images/phone-map.jpg" alt="네이버 도로 지도와 사진 마커"></td>
+    <td width="25%"><img src="docs/images/phone-detail.jpg" alt="장소 상세 상단 사진 갤러리"></td>
+  </tr>
+  <tr>
+    <td><b>로그인</b></td>
+    <td><b>홈</b> / 나를 위한 추천</td>
+    <td><b>지도</b></td>
+    <td><b>장소 상세</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/phone-tips.jpg" alt="장소 상세의 방문 꿀팁과 차량으로 보내기 버튼"></td>
+    <td><img src="docs/images/phone-share-photo.jpg" alt="장소 공유 1단계 사진 고르기"></td>
+    <td><img src="docs/images/phone-share-place.jpg" alt="장소 공유 2단계. 시, 군과 지도 핀, 위치 공개 수준, 차박 가능 여부"></td>
+    <td><img src="docs/images/phone-car.jpg" alt="내 차량 탭의 차량 연결, 콘셉트 안내, 배터리와 도어, 창문, 온도, 공조 사양표"></td>
+  </tr>
+  <tr>
+    <td><b>방문 꿀팁</b> / 차량으로 보내기</td>
+    <td><b>장소 공유 1/3</b> / 사진</td>
+    <td><b>장소 공유 2/3</b> / 위치, 위치 공개 수준, 차박 가능 여부</td>
+    <td><b>내 차량</b> / 차량 연결, 콘셉트 사양표</td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/phone-profile.jpg" alt="마이 화면의 프로필과 내 장소 지도"></td>
+    <td><img src="docs/images/phone-notifications.jpg" alt="알림의 차량에서 보낸 항목"></td>
+    <td><img src="docs/images/phone-current-home.jpg" alt="가까운 곳의 난지캠핑장 사진"></td>
+    <td><img src="docs/images/phone-current-assistant.jpg" alt="휴대폰 장소 도우미의 주차 답변"></td>
+  </tr>
+  <tr>
+    <td><b>마이</b> / 내 장소 지도</td>
+    <td><b>알림</b> / 차량에서 보낸 항목</td>
+    <td><b>가까운 곳</b> / <a href="docs/images/phone-current-detail.jpg">난지캠핑장 상세</a></td>
+    <td><b>장소 도우미</b> / 주차 답변과 출처</td>
+  </tr>
+</table>
 
-### 휴대폰 앱
-
-| 홈 | 지도 | 장소 상세 | 장소 도우미 |
-| --- | --- | --- | --- |
-| ![휴대폰 홈과 추천 피드](docs/images/phone-home.jpg) | ![네이버 지도와 사진 마커](docs/images/phone-map.jpg) | ![장소 상세와 차량으로 보내기](docs/images/phone-current-detail.jpg) | ![난지캠핑장 주차 답변](docs/images/phone-current-assistant.jpg) |
-
-<details>
-<summary>휴대폰 기능별 화면</summary>
-
-| 장소 탐색·공유 | 계정·차량 |
-| --- | --- |
-| [가까운 곳](docs/images/phone-current-home.jpg) | [로그인](docs/images/phone-signin.jpg) |
-| [사진 상세와 방문 기록](docs/images/phone-detail.jpg) | [차량 연결·제어 데모](docs/images/phone-car.jpg) |
-| [방문 꿀팁](docs/images/phone-tips.jpg) | [프로필과 내 장소 지도](docs/images/phone-profile.jpg) |
-| [장소 공유 · 사진 선택](docs/images/phone-share-photo.jpg) | [차량에서 보낸 항목과 알림](docs/images/phone-notifications.jpg) |
-| [장소 공유 · 위치와 공개 범위](docs/images/phone-share-place.jpg) | |
-
-</details>
-
+화면이 바뀌면 스크린샷도 같이 바꿉니다. 같은 화면을 띄운 뒤 `scripts/capture-screenshot.sh <기기> <파일 이름> <car|car-full|phone>`을 실행하면 `docs/images/`의 같은 이름 파일이 바뀝니다. 차량 앱 창 자르기와 크기 조절까지 스크립트가 하고, macOS에서만 동작합니다. 자세한 내용은 [외장 SSD 개발 환경](docs/local-environment-mac.md#readme-스크린샷)을 참고하세요.
 
 ## 시작하기
 
 [개발 환경 설치 및 샘플 실행 안내](docs/development-setup.md)를 따라 Android Studio, JDK 17, Android SDK, Pleos 전용 에뮬레이터와 휴대폰 에뮬레이터를 설치합니다. 도구를 모두 외장 SSD에 둔 개발용 Mac의 경로, 환경 변수, 가상 기기 설정은 [외장 SSD 개발 환경](docs/local-environment-mac.md)에 정리했습니다.
 
-- [차량용 앱](docs/vehicle-app.md): `vehicle/` 모듈의 빌드·실행 방법, 기능, Pleos SDK 연동, 아직 없는 기능
-- [스마트폰 앱](docs/phone-app.md): `phone/` 모듈의 빌드·실행 방법, 장소 공유·커뮤니티·차량 콘셉트 화면, 아직 없는 기능
-- [동기화 서버](docs/sync-server.md): `server/` 모듈. 휴대폰 로그인, 6자리 코드로 차량 연결, 저장·게시물·보낸 장소 동기화
+- [차량용 앱](docs/vehicle-app.md): `vehicle/` 모듈의 빌드, 실행 방법, 기능, Pleos SDK 연동, 아직 없는 기능
+- [스마트폰 앱](docs/phone-app.md): `phone/` 모듈의 빌드, 실행 방법, 장소 공유, 커뮤니티, 차량 콘셉트 화면, 아직 없는 기능
+- [동기화 서버](docs/sync-server.md): `server/` 모듈. 휴대폰 로그인, 6자리 코드로 차량 연결, 저장, 게시물, 보낸 장소 동기화
 - 공용 코드: `shared/` 모듈(데이터 모델, 샘플 장소, API 계약)은 서버와 두 앱이, `core/` 모듈(서버 연결, 사진 지도, 공용 UI)은 두 앱이 함께 씁니다.
 - [Figma 프로토타입 검토](docs/figma-prototype-review.md): 아이디어 초안 프로토타입에서 구현된 흐름과 빠진 부분
 
