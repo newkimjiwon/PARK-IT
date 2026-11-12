@@ -70,6 +70,7 @@ data class SentItem(
     val location: LatLng? = null,
     /** What the driver said into the car's microphone with a 파킷; the phone starts the post's story with it. */
     val note: String = "",
+    val approximateLocation: Boolean? = null,
 )
 
 /**
@@ -106,7 +107,14 @@ enum class UserList { SAVED, LIKED, FOLLOWING, HELPFUL_TIPS, VISITED, SAVED_PROD
 data class ToggleRequest(val list: UserList, val id: String, val on: Boolean)
 
 @Serializable
-data class SendRequest(val id: String, val label: String, val spotId: String? = null, val location: LatLng? = null, val note: String = "")
+data class SendRequest(
+    val id: String,
+    val label: String,
+    val spotId: String? = null,
+    val location: LatLng? = null,
+    val note: String = "",
+    val approximateLocation: Boolean? = null,
+)
 
 @Serializable
 data class PairingCode(val pairingId: String, val code: String, val expiresAt: Long)

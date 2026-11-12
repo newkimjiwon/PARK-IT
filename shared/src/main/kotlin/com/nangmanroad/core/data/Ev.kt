@@ -23,13 +23,13 @@ fun usableRangeKm(percent: Int, capacityKwh: Double, kmPerKwh: Double = DEFAULT_
     (capacityKwh * percent / 100.0 * kmPerKwh * (1 - RESERVE_SHARE)).coerceAtLeast(0.0)
 
 /** Whether [usableRangeKm] covers the road distance there and back, there only, or neither. */
-fun reach(straightKm: Double, usableRangeKm: Double): Reach {
-    val road = straightKm * ROAD_FACTOR
-    return when {
-        usableRangeKm >= road * 2 -> Reach.ROUND_TRIP
-        usableRangeKm >= road -> Reach.ONE_WAY
-        else -> Reach.SHORT
-    }
+fun reach(straightKm: Double, usableRangeKm: Double): Reach =
+    reachForRoadDistance(straightKm * ROAD_FACTOR, usableRangeKm)
+
+fun reachForRoadDistance(roadKm: Double, usableRangeKm: Double): Reach = when {
+    usableRangeKm >= roadKm * 2 -> Reach.ROUND_TRIP
+    usableRangeKm >= roadKm -> Reach.ONE_WAY
+    else -> Reach.SHORT
 }
 
 /** "배터리 68% · 약 260km": the number the verdict rests on, rounded to something a glance can hold. */

@@ -135,6 +135,7 @@ data class Spot(
     val bestTime: String = "",
     /** Days since a visitor last confirmed [carCamping]; null when only the author's word exists. */
     val carCampingCheckedDaysAgo: Int? = null,
+    val officialPlace: OfficialPlaceInfo? = null,
 ) {
     /** First word of the region, e.g. "강원" for "강원 강릉시". */
     val province: String get() = region.substringBefore(' ')

@@ -1,0 +1,50 @@
+[
+  {
+    "campId": 2778,
+    "asset": "2778-1.jpg",
+    "sourceUrl": "https://www.gocamping.or.kr/upload/camp/2778/thumb/thumb_720_9353xrGZmnNzK3RUm0bNnMqS.jpg",
+    "page": "https://www.gocamping.or.kr/bsite/camp/info/read.do?c_no=2778",
+    "retrievedOn": "2026-11-08",
+    "sha256": "7a495161c6093cc114de02abc149242be0bd5bb4acc379406fc8b8aa3f46cf56"
+  },
+  {
+    "campId": 2778,
+    "asset": "2778-2.jpg",
+    "sourceUrl": "https://www.gocamping.or.kr/upload/camp/2778/thumb/thumb_384_7120TT4QMHAmLzmrNzDVaBpO.jpg",
+    "page": "https://www.gocamping.or.kr/bsite/camp/info/read.do?c_no=2778",
+    "retrievedOn": "2026-11-08",
+    "sha256": "4d162f2ea81f44bd78edd1165fa81c03b3afc08f2b6812b62d71a75eac62ced6"
+  },
+  {
+    "campId": 3397,
+    "asset": "3397-1.jpg",
+    "sourceUrl": "https://www.gocamping.or.kr/upload/camp/3397/thumb/thumb_720_4237mTM6rxMG6sFp0l0C5xrT.jpg",
+    "page": "https://www.gocamping.or.kr/bsite/camp/info/read.do?c_no=3397",
+    "retrievedOn": "2026-11-08",
+    "sha256": "df78033f0abb7d407c545bfe819f0f37d822cca5fde25eac16b8ea695552e6cb"
+  },
+  {
+    "campId": 3397,
+    "asset": "3397-2.jpg",
+    "sourceUrl": "https://www.gocamping.or.kr/upload/camp/3397/thumb/thumb_384_4746D9q5dK6TNmPFh2AdDtAF.jpg",
+    "page": "https://www.gocamping.or.kr/bsite/camp/info/read.do?c_no=3397",
+    "retrievedOn": "2026-11-08",
+    "sha256": "7e71473ffa669de4b60707a42bc6674ca6d244c368c9099cf537151d1635a89e"
+  },
+  {
+    "campId": 2616,
+    "asset": "2616-1.jpg",
+    "sourceUrl": "https://www.gocamping.or.kr/upload/camp/2616/thumb/thumb_720_89834uj9LstSaRcltBpKncGY.jpg",
+    "page": "https://www.gocamping.or.kr/bsite/camp/info/read.do?c_no=2616",
+    "retrievedOn": "2026-11-08",
+    "sha256": "8a4df16b81f147f676de57d552ab73426fb2455c0f054555c3530074695f7125"
+  },
+  {
+    "campId": 2616,
+    "asset": "2616-2.jpg",
+    "sourceUrl": "https://www.gocamping.or.kr/upload/camp/2616/thumb/thumb_384_3238e8NjiusOBKKt2r3bt1zt.jpg",
+    "page": "https://www.gocamping.or.kr/bsite/camp/info/read.do?c_no=2616",
+    "retrievedOn": "2026-11-08",
+    "sha256": "87ecb0ac8a5d03cf00a0ba6082062c44df5f565db75afda9b0762a1386bb272a"
+  }
+]

@@ -10,6 +10,7 @@ import com.nangmanroad.core.data.LocalComment
 import com.nangmanroad.core.data.LocalTip
 import com.nangmanroad.core.data.PostStore
 import com.nangmanroad.core.data.SampleSpots
+import com.nangmanroad.core.data.VerifiedPlaces
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
@@ -50,7 +51,7 @@ class SpotRepository(
     private val _state = MutableStateFlow(initialState())
     val state: StateFlow<UserState> = _state.asStateFlow()
 
-    private val _spots = MutableStateFlow(if (_session.value == null) localSpots() else SampleSpots.all)
+    private val _spots = MutableStateFlow(if (_session.value == null) localSpots() else SampleSpots.all + VerifiedPlaces.all)
     val spots: StateFlow<List<Spot>> = _spots.asStateFlow()
 
     /** Whether the last server call worked; null until one has been made. */
@@ -147,6 +148,14 @@ class SpotRepository(
             return Result.success(Unit)
         }
         return remote { _state.value = client.sendToPhone(SendRequest(id, label, spotId, location, note)) }
+    }
+
+    /** A location can only be delivered while linked. The expected account must own the queue. */
+    suspend fun sendParkit(expectedUserId: String, request: SendRequest): Result<Unit> {
+        if (_session.value?.user?.id != expectedUserId) {
+            return Result.failure(SyncException(null, "차량 계정을 연결한 뒤 다시 시도하세요"))
+        }
+        return remote { _state.value = client.sendToPhone(request) }
     }
 
     suspend fun removeFromPhone(id: String): Result<Unit> {
@@ -257,7 +266,7 @@ class SpotRepository(
         val comments = posts.loadComments().groupBy { it.spotId }
         val tips = posts.loadTips().groupBy({ it.spotId }, { it.tip })
         val mine = posts.loadPosts(localUser).sortedBy { it.postedDaysAgo }
-        return (mine + SampleSpots.all).map { spot ->
+        return (mine + SampleSpots.all + VerifiedPlaces.all).map { spot ->
             spot.copy(
                 comments = mergeComments(spot.comments, comments[spot.id].orEmpty(), localUser.name),
                 tips = (spot.tips + tips[spot.id].orEmpty()).withConflictsFlagged(),

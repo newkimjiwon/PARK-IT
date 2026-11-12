@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Android 12+ draws its own launch screen; keep it the app's light sage instead of plain white. -->
+    <!-- Android 12+ draws its own launch screen; match the app background. -->
     <style name="Theme.NangmanRoad" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:windowBackground">#FFF3F6F1</item>
-        <item name="android:statusBarColor">#FFF3F6F1</item>
-        <item name="android:navigationBarColor">#FFF3F6F1</item>
+        <item name="android:windowBackground">@color/parkit_background</item>
+        <item name="android:statusBarColor">@color/parkit_background</item>
+        <item name="android:navigationBarColor">@color/parkit_background</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
-        <item name="android:windowSplashScreenBackground">#FFF3F6F1</item>
+        <item name="android:windowSplashScreenBackground">@color/parkit_background</item>
     </style>
 </resources>

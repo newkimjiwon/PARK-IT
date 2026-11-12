@@ -56,9 +56,11 @@ import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
 import com.nangmanroad.vehicle.PhoneHandoff
 import com.nangmanroad.core.data.CarCamping
-import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.data.rangeLabel
-import com.nangmanroad.core.data.reach
+import com.nangmanroad.core.data.formatKm
+import com.nangmanroad.core.data.Reach
+import com.nangmanroad.core.data.PlaceQuestion
+import com.nangmanroad.core.data.Regions
 import com.nangmanroad.core.data.carCampingCheckedLabel
 import com.nangmanroad.core.data.carCampingStale
 import com.nangmanroad.core.data.Spot
@@ -72,6 +74,8 @@ import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.vehicle.ui.map.distanceLabel
 import com.nangmanroad.vehicle.ui.theme.Dimens
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.OfficialPlaceSection
+import com.nangmanroad.core.ui.PlaceAssistantDialog
 import com.nangmanroad.core.ui.tabular
 
 private enum class DetailTab(val label: String) { TIPS("방문 꿀팁"), ITEMS("준비물"), COMMENTS("댓글") }
@@ -79,6 +83,7 @@ private enum class DetailTab(val label: String) { TIPS("방문 꿀팁"), ITEMS("
 @Composable
 fun SpotDetailScreen(spot: Spot, state: AppUiState, actions: AppViewModel) {
     var tab by rememberSaveable(spot.id) { mutableStateOf(DetailTab.TIPS) }
+    var assistantOpen by rememberSaveable(spot.id) { mutableStateOf(false) }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= 1100.dp
@@ -90,7 +95,7 @@ fun SpotDetailScreen(spot: Spot, state: AppUiState, actions: AppViewModel) {
                     contentPadding = PaddingValues(horizontal = 40.dp, vertical = 28.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
-                    detailBody(spot, state, actions, tab) { tab = it }
+                    detailBody(spot, state, actions, tab, onAssistant = { assistantOpen = true }) { tab = it }
                 }
             }
         } else {
@@ -100,9 +105,18 @@ fun SpotDetailScreen(spot: Spot, state: AppUiState, actions: AppViewModel) {
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
                 item { PhotoGallery(spot, onBack = actions::back, modifier = Modifier.fillMaxWidth().height(900.dp)) }
-                detailBody(spot, state, actions, tab, horizontalPadding = 28.dp) { tab = it }
+                detailBody(spot, state, actions, tab, horizontalPadding = 28.dp, onAssistant = { assistantOpen = true }) { tab = it }
             }
         }
+    }
+    if (assistantOpen && !state.showDrivingView) {
+        PlaceAssistantDialog(
+            spot.title,
+            PlaceQuestion.entries,
+            onAnswer = { actions.placeAnswer(spot, it) },
+            onDismiss = { assistantOpen = false },
+            targetHeight = Dimens.TouchTarget,
+        )
     }
 }
 
@@ -112,10 +126,13 @@ private fun LazyListScope.detailBody(
     actions: AppViewModel,
     tab: DetailTab,
     horizontalPadding: androidx.compose.ui.unit.Dp = 0.dp,
+    onAssistant: () -> Unit,
     onTab: (DetailTab) -> Unit,
 ) {
     val pad = Modifier.padding(horizontal = horizontalPadding)
     item { RouteRow(spot, state, actions, pad) }
+    item { ActionButton("장소 도우미", null, onAssistant, modifier = pad) }
+    spot.officialPlace?.let { info -> item { OfficialPlaceSection(info, pad) } }
     item { AuthorRow(spot, state, actions, pad) }
     item {
         Column(pad) {
@@ -243,8 +260,9 @@ private fun RouteRow(spot: Spot, state: AppUiState, actions: AppViewModel, modif
                 }
             }
             Text(distanceLabel(state, spot), style = MaterialTheme.typography.bodyMedium.tabular(), color = Palette.TextSecondary)
-            state.usableRangeKm?.let { range ->
-                val verdict = reach(distanceKm(state.here, spot.location), range)
+            val range = state.usableRangeKm
+            val verdict = state.tripReach(spot)
+            if (range != null && verdict != null) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Outlined.BatteryChargingFull, contentDescription = null, tint = verdict.color(), modifier = Modifier.size(20.dp))
                     Text(
@@ -255,6 +273,26 @@ private fun RouteRow(spot: Spot, state: AppUiState, actions: AppViewModel, modif
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                val distanceBasis = state.remainingRouteKm(spot)
+                    ?.let { "남은 경로 ${formatKm(it)} 기준 추정" }
+                    ?: "직선거리를 보정한 추정치"
+                Text(distanceBasis, style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+                if (verdict != Reach.ROUND_TRIP) {
+                    val region = if (verdict == Reach.SHORT) Regions.nearest(state.here).address else spot.region
+                    val charger = when {
+                        "중랑" in region -> "중랑캠핑숲 2주차장 충전소"
+                        "마포" in region -> "서울월드컵경기장 충전소"
+                        "가평" in region -> "가평휴게소 E-pit · 진행 방향 확인"
+                        else -> null
+                    }
+                    if (charger != null) {
+                        val area = if (verdict == Reach.SHORT) "출발지 주변" else "목적지 주변"
+                        Text("$area · $charger", style = MaterialTheme.typography.bodyMedium, color = Palette.TextPrimary)
+                        Text("충전기 이용 가능 여부는 출발 전에 확인하세요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+                    }
+                }
+            } else {
+                Text("배터리 또는 현재 위치를 확인하면 이동 가능 여부를 표시합니다.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
             }
             if (spot.bestTime.isNotBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

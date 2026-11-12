@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -28,14 +29,14 @@ const val BRAND_NAME = "PARK-IT"
 const val BRAND_NAME_KO = "파킷"
 const val BRAND_TAGLINE = "당신의 경험이 누군가의 목적지가 되는 곳"
 
-/** The launcher glyph (a P with a crescent moon) in mist on a pine square; the accent here marks identity rather than action. */
+/** The crescent P and background used by the launcher icon. */
 @Composable
 fun ParkItMark(size: Dp = 40.dp, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .size(size)
             .clip(RoundedCornerShape(size / 4))
-            .background(Palette.Pine),
+            .background(colorResource(R.color.parkit_brand)),
         contentAlignment = Alignment.Center,
     ) {
         Image(

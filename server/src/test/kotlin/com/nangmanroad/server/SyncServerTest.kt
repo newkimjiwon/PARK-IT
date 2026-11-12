@@ -188,8 +188,8 @@ class SyncServerTest {
         val created = store.signIn("새사람", "secret-7")
         assertEquals(created.user.id, store.signIn("새사람", "secret-7").user.id)
         assertFailsWith<UnauthorizedException> { store.signIn("새사람", "secret-8") }
-        // The password itself never lands in the state file.
-        val saved = folder.root.resolve("state.json").readText()
+        // The password itself never lands in persisted state.
+        val saved = requireNotNull(SnapshotDatabase(folder.root.resolve("parkit.sqlite")).read())
         assertTrue("secret-7" !in saved)
     }
 
@@ -260,6 +260,49 @@ class SyncServerTest {
         assertEquals(parked, item.location)
         assertEquals(null, item.spotId)
         assertEquals("화장실이 깨끗하고 조용해요", item.note)
+    }
+
+    @Test
+    fun `camp photos must match the requested provider place and official host`() {
+        val json = """
+            {"response":{"header":{"resultCode":"0000"},"body":{"items":{"item":[
+              {"contentId":"3397","imageUrl":"http://www.gocamping.or.kr/upload/camp/3397/a.jpg"},
+              {"contentId":"3397","imageUrl":"http://www.gocamping.or.kr/upload/camp/3397/a.jpg"},
+              {"contentId":"2616","imageUrl":"https://www.gocamping.or.kr/upload/camp/2616/b.jpg"},
+              {"contentId":"3397","imageUrl":"https://www.gocamping.or.kr/upload/camp/2616/b.jpg"},
+              {"contentId":"3397","imageUrl":"https://example.org/upload/camp/3397/c.jpg"}
+            ]}}}}
+        """.trimIndent()
+        assertEquals(listOf("https://www.gocamping.or.kr/upload/camp/3397/a.jpg"), GoCampingPhotos.readPhotos(json, "3397"))
+    }
+
+    @Test
+    fun `legacy JSON is imported once and the new database preserves later changes`() {
+        val legacy = folder.root.resolve("state.json")
+        legacy.writeText("""{"users":{"u-yunseul":{"author":{"id":"u-yunseul","name":"윤슬을따라","bio":""},"lists":{"SAVED":["s-taean"]}}}}""")
+        val photos = folder.root.resolve("photos").apply { mkdirs() }
+        val originalPhoto = photos.resolve("existing.jpg").apply { writeText("existing file") }
+        val store = SyncStore(folder.root)
+        assertEquals(setOf("s-taean"), store.state("u-yunseul").saved)
+        assertTrue(folder.root.resolve("parkit.sqlite").isFile)
+        store.toggle("u-yunseul", UserList.SAVED, "s-gangneung", on = true)
+        assertEquals(setOf("s-taean", "s-gangneung"), SyncStore(folder.root).state("u-yunseul").saved)
+        assertEquals("existing file", originalPhoto.readText())
+        assertTrue(legacy.isFile)
+    }
+
+    @Test
+    fun `a retry does not duplicate a parkit or reopen a consumed inbox item`() {
+        val store = SyncStore(folder.root)
+        val userId = store.userFor(store.signIn("윤슬을따라", DEMO_ACCOUNT_PASSWORD).token)
+        val request = SendRequest("${PARKIT_PREFIX}retry", "파킷", "s-taean", LatLng(37.0, 127.0), approximateLocation = true)
+        val first = store.sendToPhone(userId, request).phoneInbox.single()
+        val retried = store.sendToPhone(userId, request.copy(note = "늦은 요청")).phoneInbox.single()
+        assertEquals(first, retried)
+        assertEquals(true, retried.approximateLocation)
+        assertTrue("s-taean" in store.state(userId).visited)
+        store.removeFromPhone(userId, request.id)
+        assertTrue(SyncStore(folder.root).sendToPhone(userId, request).phoneInbox.isEmpty())
     }
 
     @Test

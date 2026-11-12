@@ -83,8 +83,7 @@ import com.nangmanroad.core.data.formatClock
 import com.nangmanroad.core.data.sunMoment
 import com.nangmanroad.core.data.sunTimesToday
 import com.nangmanroad.core.data.distanceKm
-import com.nangmanroad.core.data.goableNow
-import com.nangmanroad.core.data.reach
+import com.nangmanroad.core.data.Reach
 import com.nangmanroad.core.ui.color
 import com.nangmanroad.core.data.formatKm
 import com.nangmanroad.vehicle.ui.components.ActionButton
@@ -101,7 +100,10 @@ import com.nangmanroad.core.ui.tabular
 @Composable
 fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
     val matching = SpotQueries.matching(state.spots, state.category, state.query)
-        .let { if (state.onlyRoundTrip) it.goableNow(state.here, state.usableRangeKm) else it }
+        .let { spots ->
+            if (!state.onlyRoundTrip) spots
+            else spots.filter { it.carCamping != CarCamping.BANNED && state.tripReach(it) == Reach.ROUND_TRIP }
+        }
     val selected = state.spot(state.selectedSpotId)?.takeIf { it in matching }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -292,8 +294,7 @@ private fun PreviewCard(
             Text(spot.title, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CarCampingBadge(spot.carCamping, iconSize = 20.dp, stale = spot.carCampingStale)
-                state.usableRangeKm?.let { range ->
-                    val verdict = reach(distanceKm(state.here, spot.location), range)
+                state.tripReach(spot)?.let { verdict ->
                     Icon(Icons.Outlined.BatteryChargingFull, contentDescription = null, tint = verdict.color(), modifier = Modifier.size(20.dp))
                     Text(verdict.label, style = MaterialTheme.typography.bodyMedium.tabular(), color = verdict.color(), maxLines = 1, softWrap = false)
                 }

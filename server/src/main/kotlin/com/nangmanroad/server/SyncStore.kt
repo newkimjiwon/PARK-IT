@@ -4,6 +4,7 @@ import com.nangmanroad.core.data.Author
 import com.nangmanroad.core.data.Comment
 import com.nangmanroad.core.data.HoneyTip
 import com.nangmanroad.core.data.SampleSpots
+import com.nangmanroad.core.data.VerifiedPlaces
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.Visibility
 import com.nangmanroad.core.data.withConflictsFlagged
@@ -20,6 +21,8 @@ import com.nangmanroad.core.sync.NewTip
 import com.nangmanroad.core.sync.PairingCode
 import com.nangmanroad.core.sync.PairingState
 import com.nangmanroad.core.sync.PairingStatus
+import com.nangmanroad.core.sync.PARKIT_PREFIX
+import com.nangmanroad.core.sync.isParkit
 import com.nangmanroad.core.sync.SendRequest
 import com.nangmanroad.core.sync.SentItem
 import com.nangmanroad.core.sync.Session
@@ -48,6 +51,7 @@ private data class StoredUser(
     /** PBKDF2 hash and salt, hex. Null for the seeded sample accounts, which open with the demo password. */
     val passwordHash: String? = null,
     val passwordSalt: String? = null,
+    val receivedParkitIds: Set<String> = emptySet(),
 )
 
 @Serializable
@@ -89,7 +93,7 @@ private class Pairing(val id: String, val code: String, val expiresAt: Long) {
 
 /**
  * All server state. Sample authors and spots are built in; everything users add is kept in memory
- * and written to `state.json` after each change, with uploaded photos beside it in `photos/`.
+ * and written to SQLite after each change, with uploaded photos beside it in `photos/`.
  * One lock guards everything, which is plenty for a development server.
  */
 class SyncStore(
@@ -98,6 +102,8 @@ class SyncStore(
 ) {
     private val random = SecureRandom()
     private val stateFile = dataDir?.let { File(it, "state.json") }
+    private val database = dataDir?.let { SnapshotDatabase(File(it, "parkit.sqlite")) }
+    private var officialPlaces = VerifiedPlaces.all
     val photoDir: File? = dataDir?.let { File(it, "photos") }
 
     private var snapshot: Snapshot = load()
@@ -205,13 +211,34 @@ class SyncStore(
 
     @Synchronized
     fun sendToPhone(userId: String, request: SendRequest): UserState {
-        editUser(userId) { it.copy(phoneInbox = listOf(request.toItem()) + it.phoneInbox.filter { item -> item.id != request.id }) }
+        val current = user(userId)
+        val isParkit = request.id.startsWith(PARKIT_PREFIX)
+        if (isParkit && (request.id in current.receivedParkitIds || current.phoneInbox.any { it.id == request.id })) {
+            return state(userId)
+        }
+        val item = request.toItem()
+        val spotId = request.spotId
+        editUser(userId) {
+            val visited = if (isParkit && spotId != null) {
+                it.lists + (UserList.VISITED to (it.list(UserList.VISITED) + spotId))
+            } else it.lists
+            it.copy(
+                phoneInbox = listOf(item) + it.phoneInbox.filter { existing -> existing.id != request.id },
+                receivedParkitIds = if (isParkit) it.receivedParkitIds + request.id else it.receivedParkitIds,
+                lists = visited,
+            )
+        }
         return state(userId)
     }
 
     @Synchronized
     fun removeFromPhone(userId: String, id: String): UserState {
-        editUser(userId) { it.copy(phoneInbox = it.phoneInbox.filter { item -> item.id != id }) }
+        editUser(userId) {
+            val received = if (it.phoneInbox.any { item -> item.id == id && item.isParkit }) {
+                it.receivedParkitIds + id
+            } else it.receivedParkitIds
+            it.copy(phoneInbox = it.phoneInbox.filter { item -> item.id != id }, receivedParkitIds = received)
+        }
         return state(userId)
     }
 
@@ -274,6 +301,14 @@ class SyncStore(
 
     // Spots
 
+    @Synchronized
+    internal fun setOfficialPhotos(photosByPlace: Map<String, List<String>>) {
+        officialPlaces = VerifiedPlaces.all.map { place ->
+            val photos = photosByPlace[place.id].orEmpty()
+            if (photos.isEmpty()) place else place.copy(photos = photos)
+        }
+    }
+
     /** Sample spots plus user posts the requester may see, with comments, tips and counts merged in. */
     @Synchronized
     fun spots(userId: String): List<Spot> {
@@ -289,7 +324,7 @@ class SyncStore(
             }
             .sortedByDescending { it.createdAt }
             .map { it.spot.copy(postedDaysAgo = daysSince(it.createdAt)) }
-        return (posts + SampleSpots.all).map { decorate(it, userId) }
+        return (posts + SampleSpots.all + officialPlaces).map { decorate(it, userId) }
     }
 
     @Synchronized
@@ -432,6 +467,7 @@ class SyncStore(
     private fun findSpot(spotId: String): Spot =
         snapshot.posts.firstOrNull { it.spot.id == spotId }?.spot
             ?: SampleSpots.byId(spotId)
+            ?: officialPlaces.firstOrNull { it.id == spotId }
             ?: throw NoSuchElementException("장소를 찾을 수 없어요")
 
     private fun user(userId: String): StoredUser =
@@ -446,7 +482,7 @@ class SyncStore(
 
     private fun SendRequest.toItem(): SentItem {
         require(note.length <= Limits.NOTE) { "메모는 ${Limits.NOTE}자까지예요" }
-        return SentItem(id, label, spotId, clock(), location, note.trim())
+        return SentItem(id, label, spotId, clock(), location, note.trim(), approximateLocation)
     }
 
     private fun NewTip.checkLength() {
@@ -479,13 +515,18 @@ class SyncStore(
     private fun String.hexToBytes(): ByteArray = chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 
     private fun update(transform: (Snapshot) -> Snapshot) {
-        snapshot = transform(snapshot)
-        save()
+        val next = transform(snapshot)
+        database?.write(Api.json.encodeToString(Snapshot.serializer(), next))
+        snapshot = next
     }
 
     private fun load(): Snapshot {
-        val stored = stateFile?.takeIf { it.exists() }?.let { Api.json.decodeFromString(Snapshot.serializer(), it.readText()) }
-        return stored ?: seed()
+        val stored = database?.read()
+        if (stored != null) return Api.json.decodeFromString(Snapshot.serializer(), stored)
+        val imported = stateFile?.takeIf { it.isFile }?.readText() ?: return seed()
+        val decoded = Api.json.decodeFromString(Snapshot.serializer(), imported)
+        database?.write(imported)
+        return decoded
     }
 
     /** Sample authors exist from the start so "윤슬을따라" signs in to the account that owns 태안. */
@@ -495,17 +536,6 @@ class SyncStore(
             author.id to StoredUser(author, lists = mapOf(UserList.FOLLOWING to following))
         },
     )
-
-    private fun save() {
-        val file = stateFile ?: return
-        file.parentFile?.mkdirs()
-        val temp = File(file.parentFile, "${file.name}.tmp")
-        temp.writeText(Api.json.encodeToString(Snapshot.serializer(), snapshot))
-        if (!temp.renameTo(file)) {
-            file.delete()
-            temp.renameTo(file)
-        }
-    }
 
     companion object {
         const val PAIRING_TTL_MS = 10 * 60 * 1000L

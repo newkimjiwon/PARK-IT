@@ -70,6 +70,10 @@ import com.nangmanroad.core.sync.Limits
 import com.nangmanroad.core.ui.Avatar
 import com.nangmanroad.core.ui.CarCampingBadge
 import com.nangmanroad.core.ui.Palette
+import com.nangmanroad.core.ui.OfficialPlaceSection
+import com.nangmanroad.core.ui.PlaceAssistantDialog
+import com.nangmanroad.core.data.PlaceQuestion
+import com.nangmanroad.core.data.answerAboutPlace
 import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.core.data.byImportance
@@ -99,11 +103,27 @@ fun PostDetailScreen(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
     var tab by rememberSaveable { mutableStateOf(DetailTab.TIPS) }
     var replyTo by rememberSaveable { mutableStateOf<String?>(null) }
     var suggesting by rememberSaveable { mutableStateOf(false) }
+    var assistantOpen by rememberSaveable(spot.id) { mutableStateOf(false) }
+    if (assistantOpen) {
+        PlaceAssistantDialog(
+            spot.title,
+            listOf(PlaceQuestion.PARKING, PlaceQuestion.NIGHT, PlaceQuestion.CAMPING, PlaceQuestion.TIPS),
+            onAnswer = { answerAboutPlace(it, spot) ?: "차량 화면에서 확인할 수 있어요." },
+            onDismiss = { assistantOpen = false },
+        )
+    }
 
     Column(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 24.dp)) {
             item { Gallery(spot, onBack = actions::back) }
             item { Header(spot, state, actions) }
+            item {
+                SecondaryButton(
+                    "장소 도우미",
+                    { assistantOpen = true },
+                    Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                )
+            }
             item {
                 TabRow(Modifier.padding(top = 20.dp)) {
                     TextTab(DetailTab.TIPS.label, tab == DetailTab.TIPS, { tab = DetailTab.TIPS }, count = spot.tips.size)
@@ -117,6 +137,9 @@ fun PostDetailScreen(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                         Meta(
                             "방문자가 남긴 정보" + (spot.lastConfirmedDaysAgo?.let { days -> if (days == 0) " · 오늘 확인" else " · 최근 확인 ${days}일 전" } ?: ""),
                         )
+                    }
+                    spot.officialPlace?.let { info ->
+                        item { OfficialPlaceSection(info, Modifier.padding(horizontal = 20.dp), showSourceLink = true) }
                     }
                     items(spot.tips.byImportance(), key = { it.id }) { tip ->
                         TipRow(tip, tip.id in state.helpfulTips, onHelpful = { actions.toggleHelpful(tip.id) }, modifier = Modifier.padding(horizontal = 20.dp))

@@ -13,6 +13,11 @@ fun main() {
     val port = System.getenv("PORT")?.toIntOrNull() ?: Api.DEFAULT_PORT
     val dataDir = File(System.getenv("NANGMANROAD_DATA") ?: "data").absoluteFile
     val store = SyncStore(dataDir)
+    System.getenv("GOCAMPING_SERVICE_KEY")?.takeIf { it.isNotBlank() }?.let { key ->
+        kotlin.concurrent.thread(name = "gocamping-photos", isDaemon = true) {
+            store.setOfficialPhotos(GoCampingPhotos.load(key))
+        }
+    }
     println("PARK-IT sync server: http://localhost:$port (data: $dataDir)")
     embeddedServer(CIO, port = port, host = "0.0.0.0") { syncModule(store) }.start(wait = true)
 }

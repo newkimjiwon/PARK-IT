@@ -15,10 +15,18 @@ import com.nangmanroad.core.data.SpotQueries
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.Regions
 import com.nangmanroad.core.data.TipKind
+import com.nangmanroad.core.data.Reach
+import com.nangmanroad.core.data.PlaceQuestion
+import com.nangmanroad.core.data.answerAboutPlace
+import com.nangmanroad.core.data.placeQuestions
+import com.nangmanroad.core.data.reach
+import com.nangmanroad.core.data.reachForRoadDistance
 import com.nangmanroad.core.data.usableRangeKm
 import com.nangmanroad.core.sync.Limits
 import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.sync.PARKIT_PREFIX
+import com.nangmanroad.core.sync.Api
+import com.nangmanroad.core.sync.SendRequest
 import com.nangmanroad.core.sync.PairingCode
 import com.nangmanroad.core.sync.PairingState
 import com.nangmanroad.core.sync.Session
@@ -60,6 +68,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -163,6 +173,19 @@ data class AppUiState(
     /** Kilometres the pack can still cover with a reserve kept back, or null when unknown. */
     val usableRangeKm: Double? get() = battery?.let { usableRangeKm(it.percent, it.capacityKwh) }
 
+    fun remainingRouteKm(spot: Spot): Double? = destination
+        ?.takeIf { it.name == spot.title && it.remainMeters > 0 && (routedSpotId == null || routedSpotId == spot.id) }
+        ?.let { it.remainMeters / 1000.0 }
+
+    fun tripReach(spot: Spot): Reach? = usableRangeKm?.let { range ->
+        val roadKm = remainingRouteKm(spot)
+        when {
+            roadKm != null -> reachForRoadDistance(roadKm, range)
+            hereFromNavigation -> reach(distanceKm(here, spot.location), range)
+            else -> null
+        }
+    }
+
     /** Driving hides photos, feeds and long text; the preview lets us demo it while parked. */
     val showDrivingView: Boolean get() = drivingState == DrivingState.DRIVING || drivingPreview
 
@@ -184,6 +207,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val voiceGuide = VoiceGuide(application)
     private val voiceInput = VoiceInput(application, viewModelScope)
     private val settings = application.getSharedPreferences("vehicle_settings", Application.MODE_PRIVATE)
+    private val parkitOutbox = application.getSharedPreferences("parkit_outbox", Application.MODE_PRIVATE)
+    private val parkitSendLock = Mutex()
     private var pairingJob: Job? = null
     private var briefingJob: Job? = null
     /** What "다시 듣기" repeats: the last departure briefing or arrival reminder. */
@@ -266,7 +291,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val current = _state.value
                 if (current.session != null && !current.showDrivingView) {
                     val before = current.fromPhone
-                    repository.refresh()
+                    if (repository.refresh().isSuccess) {
+                        retryParkits(current.session.user.id)
+                    }
                     val arrived = _state.value.fromPhone.firstOrNull { it !in before }
                     arrived?.let { id ->
                         _state.value.spot(id)?.let {
@@ -462,26 +489,47 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * spot is also marked visited, so the phone can ask whether its tips held up.
      */
     fun sendParkit() {
-        val suggestion = _state.value.parkit ?: return
-        val near = _state.value.spot(suggestion.nearSpotId)
+        val current = _state.value
+        val suggestion = current.parkit ?: return
+        val userId = current.session?.user?.id ?: return toast("휴대폰 계정을 연결한 뒤 파킷을 보내세요")
+        val near = current.spot(suggestion.nearSpotId)
         val time = SimpleDateFormat("M월 d일 a h:mm", Locale.KOREA).format(Date(suggestion.at))
         val label = listOfNotNull("파킷", near?.title ?: nearestRegion(suggestion.location), time).joinToString(" · ")
-        val location = if (_state.value.approximateParkit) Regions.nearest(suggestion.location).center else suggestion.location
+        val location = if (current.approximateParkit) Regions.nearest(suggestion.location).center else suggestion.location
+        val request = SendRequest("$PARKIT_PREFIX${suggestion.at}", label, near?.id, location, suggestion.note, current.approximateParkit)
         viewModelScope.launch {
-            if (near != null && near.id !in _state.value.user.visited) repository.toggle(UserList.VISITED, near.id, true)
-            repository.sendToPhone("$PARKIT_PREFIX${suggestion.at}", label, near?.id, location, suggestion.note)
-                .onSuccess {
-                    _state.update { it.copy(parkit = null, parkitPulse = System.currentTimeMillis()) }
-                    toast(
-                        when {
-                            _state.value.session == null -> "담아 두었어요. 계정을 연결하면 휴대폰으로 보낼 수 있어요"
-                            near != null -> "방문 완료로 표시했어요. 꿀팁이 맞았는지 휴대폰에서 알려주세요"
-                            else -> "휴대폰으로 보냈어요. 사진과 꿀팁을 더해 공유해 보세요"
-                        },
-                    )
+            val key = "$userId/${request.id}"
+            parkitSendLock.withLock {
+                if (_state.value.parkit?.at != suggestion.at) return@withLock
+                val stored = parkitOutbox.edit().putString(key, Api.json.encodeToString(SendRequest.serializer(), request)).commit()
+                if (!stored) {
+                    toast("파킷을 저장하지 못했어요. 다시 시도해 주세요")
+                    return@withLock
                 }
-                .onFailure { toast(it.message ?: "휴대폰으로 보내지 못했어요") }
+                _state.update { it.copy(parkit = null, parkitPulse = System.currentTimeMillis()) }
+                if (repository.sendParkit(userId, request).isSuccess) {
+                    parkitOutbox.edit().remove(key).apply()
+                    toast("휴대폰으로 보냈어요")
+                } else {
+                    toast("전송 대기 중 · 정차 중 연결되면 다시 보낼게요")
+                }
+            }
         }
+    }
+
+    private suspend fun retryParkits(userId: String) = parkitSendLock.withLock {
+        val pending = parkitOutbox.all.filterKeys { it.startsWith("$userId/") }
+        var sent = false
+        for ((key, value) in pending) {
+            if (_state.value.showDrivingView || repository.session.value?.user?.id != userId) break
+            val request = (value as? String)?.let {
+                runCatching { Api.json.decodeFromString(SendRequest.serializer(), it) }.getOrNull()
+            } ?: continue
+            if (repository.sendParkit(userId, request).isFailure) break
+            parkitOutbox.edit().remove(key).apply()
+            sent = true
+        }
+        if (sent) toast("대기 중이던 파킷을 휴대폰으로 보냈어요")
     }
 
     /** Names the area by the closest known spot, when one is close enough for its region to apply. */
@@ -534,7 +582,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** Microphone on the driving screen: a few spoken questions, answered out loud. */
     fun listenForCommand() = listen(ListenPurpose.COMMAND) { heard ->
         val trip = tripFacts()
-        when (parseCommand(heard)) {
+        val current = _state.value
+        val topics = placeQuestions(heard)
+        val command = parseCommand(heard)
+        if (command != VoiceCommand.STOP && trip.spot != null && topics.isNotEmpty()) {
+            reply(topics.take(if (current.showDrivingView) 1 else 2).joinToString(" ") { placeAnswer(trip.spot, it) })
+            return@listen
+        }
+        when (command) {
             VoiceCommand.STOP -> voiceGuide.stop()
             VoiceCommand.REPEAT -> reply(lastBriefing ?: departureBriefing(trip) ?: NO_DESTINATION)
             VoiceCommand.TIPS -> reply(tipsReadout(trip.spot))
@@ -543,6 +598,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             VoiceCommand.CAR_CAMPING -> reply(carCampingReadout(trip.spot))
             VoiceCommand.ETA -> reply(etaReadout(trip))
             VoiceCommand.UNKNOWN -> reply(COMMAND_HELP)
+        }
+    }
+
+    fun placeAnswer(spot: Spot, question: PlaceQuestion): String {
+        val current = _state.value
+        return when (question) {
+            PlaceQuestion.BATTERY -> if (current.showDrivingView) {
+                batteryReadout(tripFacts())
+            } else {
+                val verdict = current.tripReach(spot)
+                if (verdict == null) "차량의 배터리와 현재 위치를 확인하면 이동 가능 여부를 알 수 있어요."
+                else {
+                    val basis = if (current.remainingRouteKm(spot) != null) "남은 도로 경로" else "직선거리를 보정한 값"
+                    "배터리 ${current.battery?.percent}% · ${verdict.label}. $basis 기준 추정이에요."
+                }
+            }
+            PlaceQuestion.ETA -> if (current.remainingRouteKm(spot) == null) {
+                "이 장소의 길 안내를 시작하면 도착 시간을 확인할 수 있어요."
+            } else etaReadout(tripFacts())
+            else -> requireNotNull(answerAboutPlace(question, spot))
         }
     }
 
