@@ -70,9 +70,11 @@ private val clockFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("a h:mm
 /** "오후 5:23" on the Korean clock. */
 fun formatClock(epochMillis: Long): String = clockFormat.format(Instant.ofEpochMilli(epochMillis).atZone(KoreaZone))
 
-/** Straight-line distance padded for real roads, at the pace a weekend drive actually averages. */
-private const val ROAD_FACTOR = 1.3
+/** Average speed used for an estimate before the navigation route is available. */
 private const val AVERAGE_KMH = 60.0
+
+fun estimatedDriveSeconds(roadKm: Double): Int =
+    (roadKm / AVERAGE_KMH * 3600).roundToInt()
 
 /** Minutes to be parked and settled before the sun does its thing. */
 private const val SETTLE_MINUTES = 15
@@ -117,7 +119,7 @@ fun sunPlan(spot: Spot, here: LatLng, now: Long = System.currentTimeMillis(), dr
     val moment = spot.category.sunMoment ?: return null
     val today = Instant.ofEpochMilli(now).atZone(KoreaZone).toLocalDate()
     val sunAt = sunTimes(spot.location, today)?.at(moment) ?: return null
-    val drive = driveSeconds ?: (distanceKm(here, spot.location) * ROAD_FACTOR / AVERAGE_KMH * 3600).roundToInt()
+    val drive = driveSeconds ?: estimatedDriveSeconds(estimatedRoadKm(distanceKm(here, spot.location)))
     val driveMillis = drive * 1000L
     val arrival = now + driveMillis
     val settle = SETTLE_MINUTES * 60_000L

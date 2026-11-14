@@ -13,10 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.outlined.TipsAndUpdates
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -72,7 +72,7 @@ fun SpotCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                    imageVector = if (saved) Icons.Rounded.Star else Icons.Rounded.StarBorder,
                     contentDescription = if (saved) "저장됨" else "저장",
                     tint = Palette.TextPrimary,
                     modifier = Modifier.size(28.dp),
@@ -90,7 +90,7 @@ fun SpotCard(
             )
             Spacer(Modifier.size(2.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Stat(Icons.Outlined.FavoriteBorder, likeCount.toString())
+                Stat(Icons.Rounded.FavoriteBorder, likeCount.toString())
                 Stat(Icons.Outlined.ChatBubbleOutline, spot.commentCount.toString())
                 Stat(Icons.Outlined.TipsAndUpdates, "꿀팁 ${spot.tips.size}")
             }

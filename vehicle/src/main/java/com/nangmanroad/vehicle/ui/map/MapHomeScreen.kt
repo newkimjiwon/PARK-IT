@@ -1,10 +1,5 @@
 package com.nangmanroad.vehicle.ui.map
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,8 +32,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
@@ -48,14 +43,19 @@ import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,14 +63,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.nangmanroad.core.data.LatLng
+import com.nangmanroad.core.map.MapCamera
+import com.nangmanroad.core.map.MapMarkerMode
 import com.nangmanroad.core.map.PhotoMap
+import com.nangmanroad.core.map.PhotoMapStyle
 import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
 import com.nangmanroad.vehicle.ListenPurpose
-import com.nangmanroad.vehicle.ParkitSuggestion
 import com.nangmanroad.vehicle.VoiceUi
 import com.nangmanroad.vehicle.pleos.DrivingState
 import com.nangmanroad.core.data.CarCamping
@@ -83,10 +88,7 @@ import com.nangmanroad.core.ui.CarCampingBadge
 import com.nangmanroad.core.data.FeedSort
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.SpotQueries
-import com.nangmanroad.core.data.at
-import com.nangmanroad.core.data.formatClock
-import com.nangmanroad.core.data.sunMoment
-import com.nangmanroad.core.data.sunTimesToday
+import com.nangmanroad.core.data.formatDuration
 import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.data.Reach
 import com.nangmanroad.core.ui.color
@@ -95,21 +97,45 @@ import com.nangmanroad.vehicle.ui.components.ActionButton
 import com.nangmanroad.vehicle.ui.components.EmptyState
 import com.nangmanroad.vehicle.ui.components.Hairline
 import com.nangmanroad.vehicle.ui.components.TextTab
-import com.nangmanroad.core.ui.ToggleChip
 import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.vehicle.ui.feed.SpotCard
 import com.nangmanroad.vehicle.ui.theme.Dimens
+import com.nangmanroad.core.ui.ParkItMark
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.tabular
 
+// Keep the overview inside the NAVER navigation map's coverage on the head unit.
+private val VehicleMapStyle = PhotoMapStyle(
+    initialCamera = MapCamera(LatLng(36.15, 128.0)),
+    naverMinZoom = 6.7,
+    naverOverviewZoom = 6.85,
+)
+
+private enum class MapFeedFilter(val label: String, val emptyTitle: String) {
+    ALL("전체", "이 지역의 사진이 아직 없어요"),
+    LIKED("좋아요", "이 지도 범위에 좋아요 한 곳이 없어요"),
+    SAVED("저장", "이 지도 범위에 저장한 곳이 없어요"),
+    MINE("내 파킷", "이 지도 범위에 내가 올린 곳이 없어요"),
+}
+
 @Composable
 fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
+    var filter by rememberSaveable { mutableStateOf(MapFeedFilter.ALL) }
     val matching = SpotQueries.matching(state.spots, state.category, state.query)
+        .let { spots ->
+            when (filter) {
+                MapFeedFilter.ALL -> spots
+                MapFeedFilter.LIKED -> spots.filter { it.id in state.liked }
+                MapFeedFilter.SAVED -> spots.filter { it.id in state.saved }
+                MapFeedFilter.MINE -> spots.filter { it.author.id == state.user.user.id }
+            }
+        }
         .let { spots ->
             if (!state.onlyRoundTrip) spots
             else spots.filter { it.carCamping != CarCamping.BANNED && state.tripReach(it) == Reach.ROUND_TRIP }
         }
     val selected = state.spot(state.selectedSpotId)?.takeIf { it in matching }
+    var markerMode by rememberSaveable { mutableStateOf(MapMarkerMode.PHOTO) }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= 1100.dp
@@ -122,21 +148,19 @@ fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = Dimens.Gutter, top = Dimens.Gutter, end = Dimens.Gutter),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                        .padding(start = Dimens.Gutter, top = 12.dp, end = Dimens.Gutter, bottom = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    SearchField(query = state.query, onQueryChange = actions::setQuery, voice = state.voice, onMic = actions::listenForSearch)
-                    CategoryFilters(selected = state.category, onSelect = actions::setCategory)
-                    // One question while parked: where can we actually go tonight? Facility chips live on the phone.
-                    Row(Modifier.padding(bottom = 8.dp)) {
-                        ToggleChip(
-                            icon = Icons.Outlined.CheckCircle,
-                            label = if (state.usableRangeKm != null) "지금 갈 수 있는 곳만 · 배터리 ${state.battery!!.percent}%" else "지금 갈 수 있는 곳만",
-                            on = state.onlyRoundTrip,
-                            onToggle = actions::toggleOnlyRoundTrip,
-                            onClickLabel = "배터리로 왕복 가능하고 차박이 금지되지 않은 곳만",
-                        )
+                    SearchField(query = state.query, onQueryChange = actions::setQuery, voice = state.voice,
+                        onMic = actions::listenForSearch)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ReachFilter(state, actions::toggleOnlyRoundTrip)
+                        CategoryFilters(selected = state.category, onSelect = actions::setCategory, modifier = Modifier.weight(1f))
                     }
+                    if (!wide) MapFeedTabs(filter, { filter = it })
                 }
                 Hairline()
                 Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -146,12 +170,18 @@ fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
                         here = state.here,
                         onSelect = { actions.selectSpot(it.id) },
                         onVisibleChange = actions::onVisibleSpotsChanged,
+                        style = VehicleMapStyle,
+                        markerMode = markerMode,
+                        savedIds = state.saved,
+                        myAuthorId = state.user.user.id,
+                        likedIds = state.liked,
+                        onMarkerModeChange = { markerMode = it },
                         herePulse = state.parkitPulse,
+                        onLocationUnavailable = if (state.hereFromNavigation) null else actions::showLocationUnavailable,
                         // A red ring warns off overnight stays before the card is even read.
                         markerTint = { if (it.carCamping == CarCamping.BANNED) Palette.Alert else null },
                         modifier = Modifier.fillMaxSize(),
                     )
-                    ParkitBannerHost(state, actions, Modifier.align(Alignment.TopStart))
                     if (selected != null) {
                         PreviewCard(
                             spot = selected,
@@ -161,22 +191,49 @@ fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
                             onRoute = { actions.startRoute(selected.id) },
                             modifier = Modifier
                                 .align(Alignment.BottomStart)
-                                .padding(Dimens.Gutter)
+                                .padding(start = Dimens.Gutter, bottom = Dimens.Gutter, end = ParkitButtonWidth + Dimens.Gutter * 2)
                                 .widthIn(max = 820.dp),
                         )
                     }
+                    ParkitMapControl(state, actions, Modifier.align(Alignment.BottomEnd).padding(Dimens.Gutter))
                 }
             }
             if (wide) {
                 FeedPanel(
                     state = state,
-                    spots = SpotQueries.feed(matching, state.visibleSpotIds, state.feedSort, state.following),
+                    matching = matching,
+                    filter = filter,
+                    onFilterChange = { filter = it },
                     actions = actions,
                     modifier = Modifier
                         .weight(0.38f)
                         .fillMaxHeight()
                         .background(Palette.BackgroundRaised),
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReachFilter(state: AppUiState, onToggle: () -> Unit) {
+    val shape = RoundedCornerShape(Dimens.ControlRadius)
+    val green = Palette.Success
+    Row(
+        modifier = Modifier.heightIn(min = 48.dp)
+            .clip(shape)
+            .background(green.copy(alpha = if (state.onlyRoundTrip) 0.19f else 0.08f))
+            .border(1.dp, green.copy(alpha = if (state.onlyRoundTrip) 0.85f else 0.30f), shape)
+            .toggleable(state.onlyRoundTrip, role = Role.Checkbox, onValueChange = { onToggle() })
+            .padding(horizontal = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Outlined.BatteryChargingFull, contentDescription = null, tint = green, modifier = Modifier.size(23.dp))
+        Column {
+            Text("왕복 가능만", style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
+            if (state.usableRangeKm != null) state.battery?.let {
+                Text("배터리 ${it.percent}%", style = MaterialTheme.typography.labelMedium.tabular(), color = Palette.TextSecondary)
             }
         }
     }
@@ -209,7 +266,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit, voice: V
                 )
             } else if (query.isEmpty()) {
                 Text(
-                    if (voice.canListen) "장소, 지역, 작성자 검색 · 말로도 찾아요" else "장소, 지역, 작성자 검색",
+                    "장소, 지역, 작성자 검색",
                     style = MaterialTheme.typography.bodyLarge,
                     color = Palette.TextTertiary,
                 )
@@ -254,9 +311,9 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit, voice: V
 }
 
 @Composable
-private fun CategoryFilters(selected: Category?, onSelect: (Category?) -> Unit) {
+private fun CategoryFilters(selected: Category?, onSelect: (Category?) -> Unit, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        modifier = modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         TextTab("전체", selected == null, onClick = { onSelect(null) })
@@ -276,13 +333,14 @@ private fun PreviewCard(
     modifier: Modifier = Modifier,
 ) {
     val saved = spot.id in state.saved
-    val shape = RoundedCornerShape(4.dp)
+    val shape = RoundedCornerShape(14.dp)
     Row(
         modifier = modifier
             .clip(shape)
             .background(Palette.BackgroundRaised.copy(alpha = 0.97f))
             .border(1.dp, Palette.Rule, shape)
             .clickable(role = Role.Button, onClickLabel = "자세히 보기", onClick = onOpen)
+            .heightIn(min = MapPlaceCardHeight)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(20.dp),
@@ -292,17 +350,12 @@ private fun PreviewCard(
             contentDescription = spot.title,
             modifier = Modifier
                 .size(152.dp)
-                .clip(RoundedCornerShape(4.dp)),
+                .clip(RoundedCornerShape(Dimens.PhotoRadius)),
         )
-        // Three lines, readable in a glance from the driver's seat: what, may we, and how far/when.
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text(spot.title, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CarCampingBadge(spot.carCamping, iconSize = 20.dp, stale = spot.carCampingStale)
-                state.tripReach(spot)?.let { verdict ->
-                    Icon(Icons.Outlined.BatteryChargingFull, contentDescription = null, tint = verdict.color(), modifier = Modifier.size(20.dp))
-                    Text(verdict.label, style = MaterialTheme.typography.bodyMedium.tabular(), color = verdict.color(), maxLines = 1, softWrap = false)
-                }
                 spot.carCampingCheckedDaysAgo?.let {
                     Text(
                         carCampingCheckedLabel(it),
@@ -314,14 +367,33 @@ private fun PreviewCard(
                     )
                 }
             }
+            state.tripReach(spot)?.let { verdict ->
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Outlined.BatteryChargingFull, contentDescription = null, tint = verdict.color(), modifier = Modifier.size(20.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(verdict.label, style = MaterialTheme.typography.bodyMedium, color = verdict.color())
+                        if (verdict != Reach.SHORT) state.tripArrivalPercent(spot)?.let {
+                            Text("도착 시 배터리 약 $it%", style = MaterialTheme.typography.labelLarge.tabular(), color = Palette.TextSecondary)
+                        }
+                    }
+                }
+            }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Outlined.NearMe, contentDescription = null, tint = Palette.TextSecondary, modifier = Modifier.size(20.dp))
-                val sun = spot.category.sunMoment?.let { moment -> sunTimesToday(spot.location)?.let { "${moment.label} ${formatClock(it.at(moment))}" } }
+                val routeSeconds = state.remainingRouteSeconds(spot)
+                val travelTime = when {
+                    routeSeconds != null -> "${formatDuration(routeSeconds)} 소요"
+                    else -> state.estimatedTripSeconds(spot)?.let { "약 ${formatDuration(it)} 소요" }
+                }
+                val tripSummary = if (travelTime != null) {
+                    val distance = state.remainingRouteKm(spot) ?: distanceKm(state.here, spot.location)
+                    "${formatKm(distance)} · ${travelTime.replace(' ', '\u00A0')}"
+                } else "${distanceLabel(state, spot)} · ${spot.region}"
                 Text(
-                    listOfNotNull(distanceLabel(state, spot), spot.region, sun).joinToString(" · "),
+                    tripSummary,
                     style = MaterialTheme.typography.bodyMedium.tabular(),
                     color = Palette.TextSecondary,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -331,7 +403,7 @@ private fun PreviewCard(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ActionButton(
                     text = if (saved) "저장됨" else "저장",
-                    icon = if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                    icon = if (saved) Icons.Rounded.Star else Icons.Rounded.StarBorder,
                     onClick = onToggleSave,
                     active = saved,
                     modifier = Modifier.weight(1f),
@@ -342,40 +414,61 @@ private fun PreviewCard(
     }
 }
 
-/** Slides the banner in from the top and keeps the last suggestion while it slides away again. */
+private val ParkitButtonWidth = 124.dp
+private val MapPlaceCardHeight = 184.dp
+
 @Composable
-private fun ParkitBannerHost(state: AppUiState, actions: AppViewModel, modifier: Modifier = Modifier) {
-    var shown by remember { mutableStateOf(state.parkit) }
-    if (state.parkit != null) shown = state.parkit
-    AnimatedVisibility(
-        visible = state.parkit != null,
-        enter = slideInVertically { -it } + fadeIn(),
-        exit = slideOutVertically { -it } + fadeOut(),
-        modifier = modifier,
-    ) {
-        ParkitBanner(
-            nearSpot = state.spot(shown?.nearSpotId),
-            suggestionAt = shown?.at,
-            canShowArrivalChecklist = state.drivingState == DrivingState.PARKED,
-            note = shown?.note.orEmpty(),
-            voice = state.voice,
-            onNote = actions::listenForParkitNote,
-            onSend = actions::sendParkit,
-            onDismiss = actions::dismissParkit,
+private fun ParkitMapControl(state: AppUiState, actions: AppViewModel, modifier: Modifier = Modifier) {
+    var expanded by remember { mutableStateOf(false) }
+    val suggestion = state.parkit
+    LaunchedEffect(suggestion == null) {
+        if (suggestion == null) expanded = false
+    }
+    Column(modifier, horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (expanded && suggestion != null) {
+            ParkitActions(
+                nearSpot = state.spot(suggestion.nearSpotId),
+                suggestionAt = suggestion.at,
+                canShowArrivalChecklist = state.drivingState == DrivingState.PARKED,
+                note = suggestion.note,
+                voice = state.voice,
+                onNote = actions::listenForParkitNote,
+                onSend = actions::sendParkit,
+                modifier = Modifier.padding(bottom = 52.dp).widthIn(max = 400.dp),
+            )
+        }
+        val shape = RoundedCornerShape(14.dp)
+        Column(
             modifier = Modifier
-                .padding(Dimens.Gutter)
-                .widthIn(max = 980.dp),
-        )
+                .width(ParkitButtonWidth)
+                .heightIn(min = MapPlaceCardHeight)
+                .clip(shape)
+                .background(Palette.Accent)
+                .then(if (expanded) Modifier.border(2.dp, Palette.OnAccent, shape) else Modifier)
+                .clickable(role = Role.Button, onClickLabel = if (expanded) "파킷 접기" else "현재 위치 파킷하기") {
+                    if (expanded) {
+                        expanded = false
+                        actions.dismissParkit()
+                    } else if (suggestion != null || state.hereFromNavigation) {
+                        if (suggestion == null) actions.suggestParkit(manual = true)
+                        expanded = true
+                    } else {
+                        actions.showLocationUnavailable()
+                    }
+                }
+                .padding(vertical = 8.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            ParkItMark(56.dp, tint = Palette.OnAccent)
+            Text("파킷", style = MaterialTheme.typography.titleLarge, color = Palette.OnAccent)
+            Text("내 장소 공유", style = MaterialTheme.typography.labelMedium, color = Palette.OnAccent)
+        }
     }
 }
 
-/**
- * Appears when the car has just stopped. A new place goes to the phone to become a post; a known
- * one is marked visited so the phone can ask whether its tips held up. The accent here marks the one
- * action the moment is about, as 길 안내 does on the preview card.
- */
 @Composable
-private fun ParkitBanner(
+private fun ParkitActions(
     nearSpot: Spot?,
     suggestionAt: Long?,
     canShowArrivalChecklist: Boolean,
@@ -383,81 +476,74 @@ private fun ParkitBanner(
     voice: VoiceUi,
     onNote: () -> Unit,
     onSend: () -> Unit,
-    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listening = voice.listening == ListenPurpose.PARKIT_NOTE
     var showChecklist by remember(suggestionAt) { mutableStateOf(false) }
     var checked by remember(suggestionAt) { mutableStateOf(emptySet<String>()) }
-    val shape = RoundedCornerShape(4.dp)
-    Row(
+    val shape = RoundedCornerShape(14.dp)
+    Column(
         modifier = modifier
             .clip(shape)
-            .background(Palette.BackgroundRaised.copy(alpha = 0.97f))
-            .border(1.dp, Palette.Accent, shape)
-            .padding(start = 24.dp, top = 16.dp, end = 16.dp, bottom = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
+            .background(Palette.BackgroundRaised)
+            .border(1.dp, Palette.Rule, shape)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(Icons.Outlined.PushPin, contentDescription = null, tint = Palette.Accent, modifier = Modifier.size(44.dp))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                if (nearSpot != null) "'${nearSpot.title}'에 왔어요" else "여기, 파킷할까요?",
-                style = MaterialTheme.typography.titleLarge,
+        Text(
+            nearSpot?.title ?: "현재 위치",
+            style = MaterialTheme.typography.titleLarge,
+            color = Palette.TextPrimary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        when {
+            // A spoken line goes with the place, so the post on the phone starts with the moment itself.
+            listening -> Text(
+                voice.heard.ifBlank { "듣고 있어요. 이곳에 대해 한마디 남겨 주세요" }.let { if (voice.heard.isBlank()) it else "“$it”" },
+                style = MaterialTheme.typography.bodyMedium,
                 color = Palette.TextPrimary,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            when {
-                // A spoken line goes with the place, so the post on the phone starts with the moment itself.
-                listening -> Text(
-                    voice.heard.ifBlank { "듣고 있어요. 이곳에 대해 한마디 남겨 주세요" }.let { if (voice.heard.isBlank()) it else "“$it”" },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Palette.TextPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                note.isNotBlank() -> Text(
-                    "메모 “$note”",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Palette.TextPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                else -> Text(
-                    if (nearSpot != null) "방문 완료로 표시하고, 꿀팁이 맞았는지 휴대폰에서 알려줘요" else "방금 세운 곳을 휴대폰으로 보내 사진과 꿀팁을 더해요",
+            note.isNotBlank() -> Text(
+                "메모 “$note”",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Palette.TextPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            else -> Text(
+                if (nearSpot != null) "${nearSpot.title} 방문을 기록하고 휴대폰에서 후기를 쓸 수 있어요." else "현재 위치를 보내고 휴대폰에서 사진과 후기를 더할 수 있어요.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Palette.TextSecondary,
+            )
+        }
+        if (canShowArrivalChecklist && nearSpot != null) {
+            ActionButton(
+                if (showChecklist) "쉬어가기 접기" else "쉬어가기",
+                Icons.Outlined.CheckCircle,
+                { showChecklist = !showChecklist },
+            )
+            if (showChecklist) {
+                Text(
+                    answerAboutPlace(PlaceQuestion.PARKING, nearSpot).orEmpty(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Palette.TextSecondary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
                 )
-            }
-            if (canShowArrivalChecklist && nearSpot != null) {
-                ActionButton(
-                    if (showChecklist) "쉬어가기 접기" else "쉬어가기",
-                    Icons.Outlined.CheckCircle,
-                    { showChecklist = !showChecklist },
-                )
-                if (showChecklist) {
-                    Text(
-                        answerAboutPlace(PlaceQuestion.PARKING, nearSpot).orEmpty(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Palette.TextSecondary,
-                    )
-                    val items = nearSpot.products.map { it.name }.distinct().take(2)
-                        .ifEmpty { listOf("예약과 운영 시간 확인", "현장 이용 안내 확인") }
-                    items.forEach { item ->
-                        val done = item in checked
-                        Row(
-                            Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(done, role = Role.Checkbox) {
-                                checked = if (it) checked + item else checked - item
-                            },
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Checkbox(checked = done, onCheckedChange = null)
-                            Text(item, style = MaterialTheme.typography.bodyMedium, color = Palette.TextPrimary)
-                        }
+                val items = nearSpot.products.map { it.name }.distinct().take(2)
+                    .ifEmpty { listOf("예약과 운영 시간 확인", "현장 이용 안내 확인") }
+                items.forEach { item ->
+                    val done = item in checked
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(done, role = Role.Checkbox) {
+                            checked = if (it) checked + item else checked - item
+                        },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Checkbox(checked = done, onCheckedChange = null)
+                        Text(item, style = MaterialTheme.typography.bodyMedium, color = Palette.TextPrimary)
                     }
                 }
             }
@@ -467,15 +553,15 @@ private fun ParkitBanner(
                 text = when {
                     listening -> "듣는 중"
                     note.isNotBlank() -> "다시 말하기"
-                    else -> "말로 메모"
+                    else -> "음성 메모"
                 },
                 icon = Icons.Outlined.Mic,
                 onClick = onNote,
                 active = listening,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
-        ActionButton("파킷하기", Icons.Outlined.PushPin, onSend, primary = true)
-        ActionButton("닫기", Icons.Outlined.Close, onDismiss)
+        ActionButton("휴대폰으로 보내기", Icons.Outlined.PushPin, onSend, modifier = Modifier.fillMaxWidth(), primary = true)
     }
 }
 
@@ -485,9 +571,19 @@ fun distanceLabel(state: AppUiState, spot: Spot): String {
 }
 
 @Composable
-private fun FeedPanel(state: AppUiState, spots: List<Spot>, actions: AppViewModel, modifier: Modifier = Modifier) {
+private fun FeedPanel(
+    state: AppUiState,
+    matching: List<Spot>,
+    filter: MapFeedFilter,
+    onFilterChange: (MapFeedFilter) -> Unit,
+    actions: AppViewModel,
+    modifier: Modifier = Modifier,
+) {
     val visibleIds = state.visibleSpotIds
     val inView = if (visibleIds == null) state.spots else state.spots.filter { it.id in visibleIds }
+    val sorts = if (filter == MapFeedFilter.ALL) FeedSort.entries else listOf(FeedSort.POPULAR, FeedSort.LATEST)
+    val sort = state.feedSort.takeIf { it in sorts } ?: FeedSort.LATEST
+    val spots = SpotQueries.feed(matching, visibleIds, sort, state.following)
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2),
         modifier = modifier,
@@ -498,7 +594,8 @@ private fun FeedPanel(state: AppUiState, spots: List<Spot>, actions: AppViewMode
         item(span = StaggeredGridItemSpan.FullLine) {
             Column {
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(SpotQueries.regionTitle(inView), style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
+                    val title = if (filter == MapFeedFilter.ALL) SpotQueries.regionTitle(inView) else "지도에 보이는 곳"
+                    Text(title, style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
                     Text(
                         "${spots.size}곳",
                         style = MaterialTheme.typography.titleSmall.tabular(),
@@ -506,10 +603,12 @@ private fun FeedPanel(state: AppUiState, spots: List<Spot>, actions: AppViewMode
                         modifier = Modifier.padding(bottom = 6.dp),
                     )
                 }
-                Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    FeedSort.entries.forEach { sort ->
-                        TextTab(sort.label, state.feedSort == sort, onClick = { actions.setFeedSort(sort) })
-                    }
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    MapFeedTabs(filter, onFilterChange, Modifier.weight(1f))
+                    FeedSortMenu(sort, sorts, actions::setFeedSort)
                 }
                 Hairline()
             }
@@ -518,7 +617,7 @@ private fun FeedPanel(state: AppUiState, spots: List<Spot>, actions: AppViewMode
             item(span = StaggeredGridItemSpan.FullLine) {
                 EmptyState(
                     icon = Icons.Outlined.PhotoCamera,
-                    title = if (state.feedSort == FeedSort.FOLLOWING) "팔로잉한 사람의 사진이 없어요" else "이 지역의 사진이 아직 없어요",
+                    title = if (sort == FeedSort.FOLLOWING) "팔로잉한 사람의 사진이 없어요" else filter.emptyTitle,
                     body = "지도를 옮기거나 필터를 바꿔 보세요.",
                 )
             }
@@ -531,6 +630,46 @@ private fun FeedPanel(state: AppUiState, spots: List<Spot>, actions: AppViewMode
                 onOpen = { actions.openSpot(spot.id) },
                 onToggleSave = { actions.toggleSave(spot.id) },
             )
+        }
+    }
+}
+
+@Composable
+private fun MapFeedTabs(
+    filter: MapFeedFilter,
+    onSelect: (MapFeedFilter) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        MapFeedFilter.entries.forEach { option ->
+            TextTab(option.label, filter == option, onClick = { onSelect(option) })
+        }
+    }
+}
+
+@Composable
+private fun FeedSortMenu(sort: FeedSort, options: List<FeedSort>, onSelect: (FeedSort) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        Box(
+            Modifier.size(Dimens.TouchTarget)
+                .clip(RoundedCornerShape(Dimens.ControlRadius))
+                .clickable(role = Role.Button) { expanded = true },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.AutoMirrored.Outlined.Sort, contentDescription = "정렬 · ${sort.label}", tint = Palette.TextPrimary)
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.label) },
+                    modifier = Modifier.semantics { selected = sort == option },
+                    onClick = {
+                        onSelect(option)
+                        expanded = false
+                    },
+                )
+            }
         }
     }
 }

@@ -81,7 +81,7 @@ fun PhoneApp(state: PhoneUiState, actions: PhoneViewModel) {
             Box(Modifier.weight(1f)) {
                 when (route) {
                     is PhoneRoute.Detail -> state.spot(route.spotId)?.let { spot ->
-                        screens.SaveableStateProvider("detail:${spot.id}") { PostDetailScreen(spot, state, actions) }
+                        screens.SaveableStateProvider("detail:${spot.id}:${route.showReviews}") { PostDetailScreen(spot, state, actions, route.showReviews) }
                     }
                     PhoneRoute.Notifications -> NotificationsScreen(state, actions)
                     PhoneRoute.Share -> state.draft?.let { ShareFlow(it, state, actions) }
@@ -158,11 +158,11 @@ private fun androidx.compose.foundation.layout.RowScope.NavItem(icon: ImageVecto
 @Composable
 private fun Toast(state: PhoneUiState, actions: PhoneViewModel, modifier: Modifier = Modifier) {
     val toast = state.toast
-    var lastText by remember { mutableStateOf("") }
-    if (toast != null) lastText = toast.text
+    var shown by remember { mutableStateOf(toast) }
+    if (toast != null) shown = toast
     LaunchedEffect(toast?.id) {
         if (toast != null) {
-            delay(2_600)
+            delay(if (toast.supporting != null) 6_000 else 2_600)
             actions.consumeToast(toast.id)
         }
     }
@@ -176,7 +176,18 @@ private fun Toast(state: PhoneUiState, actions: PhoneViewModel, modifier: Modifi
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = Palette.Success, modifier = Modifier.size(22.dp))
-            Text(lastText, style = MaterialTheme.typography.bodyMedium, color = Palette.TextPrimary)
+            Column(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(shown?.text.orEmpty(), style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
+                shown?.supporting?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary) }
+            }
+            shown?.let { message ->
+                message.open?.let { open ->
+                    Text("알림 보기", Modifier.clickable {
+                        actions.consumeToast(message.id)
+                        open()
+                    }.padding(8.dp), color = Palette.Accent, style = MaterialTheme.typography.labelLarge)
+                }
+            }
         }
     }
 }

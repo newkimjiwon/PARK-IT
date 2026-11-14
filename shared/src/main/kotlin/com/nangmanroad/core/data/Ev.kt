@@ -5,8 +5,8 @@ import kotlin.math.roundToInt
 /** What the car's battery says about a trip to a place, before anyone looks for a charger. */
 enum class Reach(val label: String) {
     ROUND_TRIP("왕복 가능"),
-    ONE_WAY("편도만 · 도착 후 충전"),
-    SHORT("충전 후 출발"),
+    ONE_WAY("도착 후 충전 필요"),
+    SHORT("출발 전 충전 필요"),
 }
 
 /** Mixed-road economy of a mid-size EV in km per kWh; conservative so the verdict errs on caution. */
@@ -14,6 +14,8 @@ const val DEFAULT_KM_PER_KWH = 5.0
 
 /** Straight-line distance padded for real roads, same factor the sun plans use. */
 private const val ROAD_FACTOR = 1.3
+
+fun estimatedRoadKm(straightKm: Double): Double = straightKm * ROAD_FACTOR
 
 /** Never plan down to zero: keep this share of the pack for detours, heating and the unknown. */
 private const val RESERVE_SHARE = 0.15
@@ -24,7 +26,7 @@ fun usableRangeKm(percent: Int, capacityKwh: Double, kmPerKwh: Double = DEFAULT_
 
 /** Whether [usableRangeKm] covers the road distance there and back, there only, or neither. */
 fun reach(straightKm: Double, usableRangeKm: Double): Reach =
-    reachForRoadDistance(straightKm * ROAD_FACTOR, usableRangeKm)
+    reachForRoadDistance(estimatedRoadKm(straightKm), usableRangeKm)
 
 fun reachForRoadDistance(roadKm: Double, usableRangeKm: Double): Reach = when {
     usableRangeKm >= roadKm * 2 -> Reach.ROUND_TRIP

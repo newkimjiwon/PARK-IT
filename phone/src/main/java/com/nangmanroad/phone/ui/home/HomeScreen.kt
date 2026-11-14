@@ -23,13 +23,13 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.PeopleOutline
@@ -126,6 +126,9 @@ fun HomeScreen(state: PhoneUiState, actions: PhoneViewModel) {
                     gap = 6.dp,
                     trailing = { VisitConditionChips(state.visitConditions, actions::toggleVisitCondition) },
                 )
+                if (state.facilities.isNotEmpty() || state.visitConditions.isNotEmpty()) {
+                    Text("조건에 맞는 장소 ${feed.size}곳", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary, modifier = Modifier.padding(horizontal = 20.dp))
+                }
             }
         }
         if (feed.isEmpty()) {
@@ -189,7 +192,7 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                 .padding(horizontal = 16.dp)
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .clickable(role = Role.Button, onClickLabel = "${spot.title} 보기") { actions.openSpot(spot.id) },
         ) {
             HorizontalPager(pager, Modifier.fillMaxSize()) { page ->
@@ -228,12 +231,12 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
             }
         }
         Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Action(if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, state.likeCount(spot).toString()) { actions.toggleLike(spot.id) }
+            Action(if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, state.likeCount(spot).toString()) { actions.toggleLike(spot.id) }
             Action(Icons.Outlined.ChatBubbleOutline, spot.commentCount.toString()) { actions.openSpot(spot.id) }
-            Action(Icons.Outlined.DirectionsCar, "차로 보내기") { actions.sendToCar(spot.id) }
+            Action(Icons.Outlined.DirectionsCar, "차량으로 보내기", description = "이 장소를 차량으로 보내기") { actions.sendToCar(spot.id) }
             Spacer(Modifier.weight(1f))
             Action(Icons.Outlined.TipsAndUpdates, "꿀팁 ${spot.tips.size}") { actions.openSpot(spot.id) }
-            Action(if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder, null) { actions.toggleSave(spot.id) }
+            Action(if (saved) Icons.Rounded.Star else Icons.Rounded.StarBorder, null) { actions.toggleSave(spot.id) }
         }
         if (spot.story.isNotBlank()) {
             Text(
@@ -249,7 +252,7 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
 }
 
 @Composable
-private fun Action(icon: ImageVector, label: String?, onClick: () -> Unit) {
+private fun Action(icon: ImageVector, label: String?, description: String? = label, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(4.dp))
@@ -258,7 +261,7 @@ private fun Action(icon: ImageVector, label: String?, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        Icon(icon, contentDescription = label, tint = Palette.TextPrimary, modifier = Modifier.size(24.dp))
+        Icon(icon, contentDescription = description, tint = Palette.TextPrimary, modifier = Modifier.size(24.dp))
         if (label != null) Text(label, style = MaterialTheme.typography.labelLarge.tabular(), color = Palette.TextSecondary)
     }
 }

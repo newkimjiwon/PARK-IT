@@ -15,12 +15,16 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,6 +35,7 @@ import com.nangmanroad.core.data.Category
 import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.SpotQueries
 import com.nangmanroad.core.map.MapCamera
+import com.nangmanroad.core.map.MapMarkerMode
 import com.nangmanroad.core.map.PhotoMap
 import com.nangmanroad.core.map.PhotoMapStyle
 import com.nangmanroad.core.ui.FacilityFilterRow
@@ -60,6 +65,7 @@ fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
     val spots = SpotQueries.matching(state.spots, state.mapCategory, "", state.facilities)
         .filter { it.visitConditions.containsAll(state.visitConditions) }
     val selected = state.spot(state.mapSelectedId)?.takeIf { it in spots }
+    var markerMode by rememberSaveable { mutableStateOf(MapMarkerMode.PHOTO) }
 
     Column(Modifier.fillMaxSize()) {
         Text("지도", style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary, modifier = Modifier.padding(start = 20.dp, top = 12.dp))
@@ -78,6 +84,9 @@ fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
             gap = 6.dp,
             trailing = { VisitConditionChips(state.visitConditions, actions::toggleVisitCondition) },
         )
+        if (state.facilities.isNotEmpty() || state.visitConditions.isNotEmpty()) {
+            Text("조건에 맞는 장소 ${spots.size}곳", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary, modifier = Modifier.padding(horizontal = 20.dp))
+        }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             PhotoMap(
                 spots = spots,
@@ -86,6 +95,11 @@ fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
                 onSelect = { actions.selectOnMap(it.id) },
                 onVisibleChange = {},
                 style = PhoneMapStyle,
+                markerMode = markerMode,
+                savedIds = state.saved,
+                myAuthorId = state.me.id,
+                likedIds = state.liked,
+                onMarkerModeChange = { markerMode = it },
                 modifier = Modifier.fillMaxSize(),
             )
             if (selected != null) {
@@ -95,14 +109,14 @@ fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
                         .align(Alignment.BottomCenter)
                         .padding(16.dp)
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(Palette.BackgroundRaised)
                         .clickable(role = Role.Button, onClickLabel = "자세히 보기") { actions.openSpot(selected.id) }
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    SpotPhoto(selected.photos.first(), selected.title, Modifier.size(84.dp).clip(RoundedCornerShape(3.dp)))
+                    SpotPhoto(selected.photos.first(), selected.title, Modifier.size(84.dp).clip(RoundedCornerShape(10.dp)))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(selected.category.label, style = MaterialTheme.typography.labelMedium, color = Palette.TextSecondary)
                         Text(selected.title, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -112,12 +126,12 @@ fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
                     Box(
                         Modifier
                             .size(44.dp)
-                            .clip(RoundedCornerShape(4.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .background(Palette.Surface)
                             .clickable(role = Role.Button, onClickLabel = if (saved) "저장 취소" else "저장") { actions.toggleSave(selected.id) },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder, null, tint = Palette.TextPrimary)
+                        Icon(if (saved) Icons.Rounded.Star else Icons.Rounded.StarBorder, null, tint = Palette.TextPrimary)
                     }
                 }
             }

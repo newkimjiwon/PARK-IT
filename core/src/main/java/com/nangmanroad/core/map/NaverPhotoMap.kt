@@ -1,6 +1,7 @@
 package com.nangmanroad.core.map
 
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,6 +30,7 @@ import com.naver.maps.map.CameraUpdate
 import com.naver.maps.map.NaverMapSdk
 import com.naver.maps.map.Projection
 import com.naver.maps.map.compose.ExperimentalNaverMapApi
+import com.naver.maps.map.compose.MapOptions
 import com.naver.maps.map.compose.MapProperties
 import com.naver.maps.map.compose.MapType
 import com.naver.maps.map.compose.MapUiSettings
@@ -62,7 +64,7 @@ private fun Offset.inside(size: IntSize): Boolean = x >= 0f && y >= 0f && x <= s
 internal fun NaverPhotoMap(
     spots: List<Spot>,
     selectedId: String?,
-    here: LatLng,
+    here: LatLng?,
     onSelect: (Spot) -> Unit,
     onVisibleChange: (Set<String>) -> Unit,
     modifier: Modifier,
@@ -71,6 +73,14 @@ internal fun NaverPhotoMap(
     onMapTap: ((LatLng) -> Unit)?,
     herePulse: Long?,
     mapConfig: MapConfig,
+    cameraRequest: MapCamera?,
+    onLocationUnavailable: (() -> Unit)?,
+    droppedPin: LatLng?,
+    markerMode: MapMarkerMode,
+    savedIds: Set<String>,
+    myAuthorId: String?,
+    likedIds: Set<String>,
+    onMarkerModeChange: ((MapMarkerMode) -> Unit)?,
 ) {
     val context = LocalContext.current
     remember(context, mapConfig) {
@@ -87,7 +97,15 @@ internal fun NaverPhotoMap(
     }
 
     val camera = rememberCameraPositionState {
-        position = CameraPosition(style.initialCamera.center.toNaver(), naverZoomFor(style.initialCamera.zoom))
+        position = CameraPosition(
+            style.initialCamera.center.toNaver(),
+            style.naverOverviewZoom ?: naverZoomFor(style.initialCamera.zoom),
+        )
+    }
+    LaunchedEffect(cameraRequest) {
+        cameraRequest?.let {
+            camera.move(CameraUpdate.scrollAndZoomTo(it.center.toNaver(), naverZoomFor(it.zoom)))
+        }
     }
     var viewSize by remember { mutableStateOf(IntSize.Zero) }
     val clusterRadius = with(LocalDensity.current) { style.clusterRadius.toPx() }
@@ -104,7 +122,7 @@ internal fun NaverPhotoMap(
             clusterMarkers(ordered.map { it to projection.toScreen(it.location) }, clusterRadius)
         }
     }
-    val herePosition = remember(cameraPosition, moving, projection, here) { projection?.toScreen(here) }
+    val herePosition = remember(cameraPosition, moving, projection, here) { here?.let { projection?.toScreen(it) } }
 
     LaunchedEffect(clusters, viewSize) {
         if (projection != null && viewSize != IntSize.Zero) {
@@ -112,15 +130,16 @@ internal fun NaverPhotoMap(
         }
     }
 
-    Box(modifier.clipToBounds().onSizeChanged { viewSize = it }) {
+    Box(modifier.clipToBounds().background(Palette.MapSea).onSizeChanged { viewSize = it }) {
         NaverMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = camera,
+            options = MapOptions(useTextureView = true),
             properties = MapProperties(
                 mapType = MapType.Navi,
                 isNightModeEnabled = Palette.dark,
                 isBuildingLayerGroupEnabled = false,
-                minZoom = 5.5,
+                minZoom = style.naverMinZoom,
                 maxZoom = 18.0,
                 symbolScale = 0.9f,
                 backgroundColor = Palette.MapSea,
@@ -149,6 +168,10 @@ internal fun NaverPhotoMap(
                     position = cluster.position,
                     style = style,
                     tint = markerTint(cluster.lead),
+                    mode = markerMode,
+                    saved = cluster.items.any { it.id in savedIds },
+                    mine = cluster.items.any { it.author.id == myAuthorId },
+                    liked = cluster.items.any { it.id in likedIds },
                     onClick = {
                         if (cluster.items.size > 1) {
                             val target = CameraUpdate.scrollAndZoomTo(cluster.lead.location.toNaver(), cameraPosition.zoom + 2)
@@ -162,16 +185,22 @@ internal fun NaverPhotoMap(
         }
 
         herePosition?.let { HerePulse(it, herePulse) }
+        droppedPin?.let { point -> projection?.toScreen(point)?.let { DroppedPin(it) } }
+
+        fun focus(point: LatLng) {
+            val zoom = maxOf(cameraPosition.zoom, FOCUS_ZOOM)
+            camera.move(CameraUpdate.scrollAndZoomTo(point.toNaver(), zoom).animate(CameraAnimation.Easing))
+        }
 
         MapControls(
             style = style,
             onZoomIn = { camera.move(CameraUpdate.zoomIn().animate(CameraAnimation.Easing)) },
             onZoomOut = { camera.move(CameraUpdate.zoomOut().animate(CameraAnimation.Easing)) },
-            onFocus = {
-                val focus = spots.firstOrNull { it.id == selectedId }?.location ?: here
-                val zoom = maxOf(cameraPosition.zoom, FOCUS_ZOOM)
-                camera.move(CameraUpdate.scrollAndZoomTo(focus.toNaver(), zoom).animate(CameraAnimation.Easing))
-            },
+            onHere = onLocationUnavailable ?: { if (here != null) focus(here) },
+            onFocus = (droppedPin ?: spots.firstOrNull { it.id == selectedId }?.location)?.let { point -> { focus(point) } },
+            showHere = onMapTap == null,
+            markerMode = markerMode,
+            onMarkerModeChange = onMarkerModeChange,
         )
     }
 }

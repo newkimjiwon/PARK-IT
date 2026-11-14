@@ -7,7 +7,7 @@ data class LatLng(val latitude: Double, val longitude: Double)
 
 @Serializable
 enum class Category(val label: String) {
-    SEA_SUNSET("바다와 노을"),
+    SEA_SUNSET("해안과 노을"),
     STARS("별이 보이는 곳"),
     FOREST("산과 숲"),
     LAKE_RIVER("호수와 강"),

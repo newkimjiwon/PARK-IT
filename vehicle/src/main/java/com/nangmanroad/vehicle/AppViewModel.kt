@@ -19,7 +19,9 @@ import com.nangmanroad.core.data.Reach
 import com.nangmanroad.core.data.PlaceQuestion
 import com.nangmanroad.core.data.answerAboutPlace
 import com.nangmanroad.core.data.placeQuestions
-import com.nangmanroad.core.data.reach
+import com.nangmanroad.core.data.arrivalPercent
+import com.nangmanroad.core.data.estimatedRoadKm
+import com.nangmanroad.core.data.estimatedDriveSeconds
 import com.nangmanroad.core.data.reachForRoadDistance
 import com.nangmanroad.core.data.usableRangeKm
 import com.nangmanroad.core.sync.Limits
@@ -84,7 +86,7 @@ sealed interface Screen {
     data class Detail(val spotId: String, val returnTo: Screen) : Screen
 }
 
-data class ToastMessage(val text: String, val id: Long = System.nanoTime())
+data class ToastMessage(val text: String, val id: Long = System.nanoTime(), val supporting: String? = null, val spotId: String? = null)
 
 /** What the car hands to the phone, and how it is named on both screens. */
 enum class PhoneHandoff(val label: String, val toastObject: String) {
@@ -175,17 +177,30 @@ data class AppUiState(
     /** Kilometres the pack can still cover with a reserve kept back, or null when unknown. */
     val usableRangeKm: Double? get() = battery?.let { usableRangeKm(it.percent, it.capacityKwh) }
 
-    fun remainingRouteKm(spot: Spot): Double? = destination
-        ?.takeIf { it.name == spot.title && it.remainMeters > 0 && (routedSpotId == null || routedSpotId == spot.id) }
-        ?.let { it.remainMeters / 1000.0 }
+    private fun routeFor(spot: Spot): ActiveDestination? = destination
+        ?.takeIf { it.name == spot.title && (routedSpotId == null || routedSpotId == spot.id) }
 
-    fun tripReach(spot: Spot): Reach? = usableRangeKm?.let { range ->
-        val roadKm = remainingRouteKm(spot)
-        when {
-            roadKm != null -> reachForRoadDistance(roadKm, range)
-            hereFromNavigation -> reach(distanceKm(here, spot.location), range)
-            else -> null
-        }
+    fun remainingRouteKm(spot: Spot): Double? = routeFor(spot)
+        ?.remainMeters?.takeIf { it > 0 }?.let { it / 1000.0 }
+
+    private fun tripRoadKm(spot: Spot): Double? = remainingRouteKm(spot)
+        ?: if (hereFromNavigation) estimatedRoadKm(distanceKm(here, spot.location)) else null
+
+    fun remainingRouteSeconds(spot: Spot): Int? = routeFor(spot)?.remainSeconds?.takeIf { it > 0 }
+
+    fun estimatedTripSeconds(spot: Spot): Int? = tripRoadKm(spot)
+        ?.let(::estimatedDriveSeconds)?.coerceAtLeast(60)
+
+    fun tripReach(spot: Spot): Reach? {
+        val range = usableRangeKm ?: return null
+        val roadKm = tripRoadKm(spot) ?: return null
+        return reachForRoadDistance(roadKm, range)
+    }
+
+    fun tripArrivalPercent(spot: Spot): Int? {
+        val pack = battery?.takeIf { it.capacityKwh > 0 } ?: return null
+        val roadKm = tripRoadKm(spot) ?: return null
+        return arrivalPercent(pack.percent, pack.capacityKwh, roadKm)
     }
 
     /** Driving hides photos, feeds and long text; the preview lets us demo it while parked. */
@@ -307,15 +322,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 delay(SYNC_REFRESH_MS)
                 val current = _state.value
                 if (current.session != null && !current.showDrivingView) {
-                    val before = current.fromPhone
+                    val before = current.user.carQueue.associate { it.id to it.sentAt }
                     if (repository.refresh().isSuccess) {
                         retryParkits(current.session.user.id)
                         sendCarReceipts(current.session, includeReceived = true)
                     }
-                    val arrived = _state.value.fromPhone.firstOrNull { it !in before }
+                    val arrived = repository.state.value.carQueue.firstNotNullOfOrNull { item ->
+                        item.spotId?.takeIf { before[item.id] != item.sentAt }
+                    }
                     arrived?.let { id ->
                         _state.value.spot(id)?.let {
-                            toast("휴대폰에서 '${it.title}'을(를) 보냈어요")
+                            toast("휴대폰에서 장소를 받았어요", "${it.title} · ${it.region}", it.id)
                             announce(phoneSentAnnouncement(it.title))
                         }
                     }
@@ -346,16 +363,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         voiceInput.start()
     }
 
-    fun openSpot(spotId: String) = _state.update {
-        it.copy(screen = Screen.Detail(spotId, returnTo = it.screen.base()), selectedSpotId = spotId)
+    fun openSpot(spotId: String) {
+        dismissParkit()
+        _state.update { it.copy(screen = Screen.Detail(spotId, returnTo = it.screen.base()), selectedSpotId = spotId) }
     }
 
     fun selectSpot(spotId: String) = _state.update { it.copy(selectedSpotId = spotId) }
 
-    fun showMap() = leaveAccount { it.copy(screen = Screen.Map) }
+    fun showMap() {
+        dismissParkit()
+        leaveAccount { it.copy(screen = Screen.Map) }
+    }
 
-    fun showAlbum(tab: AlbumTab? = null) = leaveAccount {
-        it.copy(screen = Screen.Album, albumTab = tab ?: it.albumTab)
+    fun showLocationUnavailable() = toast("차량 내비게이션에서 현재 위치를 아직 받지 못했어요")
+
+    fun showAlbum(tab: AlbumTab? = null) {
+        dismissParkit()
+        leaveAccount { it.copy(screen = Screen.Album, albumTab = tab ?: it.albumTab) }
     }
 
     fun back() = leaveAccount { current ->
@@ -384,6 +408,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     // Account and pairing
 
     fun openAccount() {
+        dismissParkit()
         _state.update { it.copy(screen = Screen.Account) }
         if (_state.value.session == null) startPairing()
     }
@@ -468,7 +493,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             repository.sendToPhone("${kind.name.lowercase()}:${product?.id ?: spot.id}", label, spot.id)
                 .onSuccess {
                     toast(
-                        if (_state.value.session != null) "${kind.toastObject} 휴대폰으로 보냈어요"
+                        if (_state.value.session != null) "휴대폰으로 보냈어요: $label"
                         else "${kind.toastObject} 담아 두었어요. 계정을 연결하면 휴대폰으로 보낼 수 있어요",
                     )
                 }
@@ -527,9 +552,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 _state.update { it.copy(parkit = null, parkitPulse = System.currentTimeMillis()) }
                 if (repository.sendParkit(userId, request).isSuccess) {
                     parkitOutbox.edit().remove(key).apply()
-                    toast("휴대폰으로 보냈어요")
+                    toast(
+                        "파킷을 휴대폰으로 보냈어요",
+                        "${near?.title ?: nearestRegion(suggestion.location)} · 휴대폰 알림의 파킷리스트에서 이어서 작성할 수 있어요.",
+                    )
                 } else {
-                    toast("전송 대기 중 · 정차 중 연결되면 다시 보낼게요")
+                    toast("파킷 전송 대기 중", "정차 중 연결이 돌아오면 다시 보낼게요.")
                 }
             }
         }
@@ -584,6 +612,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setDrivingPreview(enabled: Boolean) {
+        if (enabled) dismissParkit()
         _state.update { it.copy(drivingPreview = enabled) }
         // The preview stands in for pulling away, so it gets the same spoken briefing.
         if (enabled) briefOnDeparture() else if (_state.value.drivingState != DrivingState.DRIVING) quietDown()
@@ -747,7 +776,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun updateVoice(transform: (VoiceUi) -> VoiceUi) = _state.update { it.copy(voice = transform(it.voice)) }
 
-    fun toast(text: String) = _state.update { it.copy(toast = ToastMessage(text)) }
+    fun toast(text: String) = toast(text, null)
+
+    private fun toast(text: String, supporting: String?, spotId: String? = null) =
+        _state.update { it.copy(toast = ToastMessage(text, supporting = supporting, spotId = spotId)) }
 
     fun consumeToast(id: Long) = _state.update { if (it.toast?.id == id) it.copy(toast = null) else it }
 

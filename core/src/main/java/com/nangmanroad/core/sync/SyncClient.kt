@@ -83,9 +83,14 @@ class SyncClient(
     /** Uploads a photo and returns its server path, e.g. "/photos/3f2a.jpg". */
     suspend fun uploadPhoto(file: File): String {
         val type = if (file.extension.equals("png", ignoreCase = true)) ContentType.Image.PNG else ContentType.Image.JPEG
+        val bytes = try {
+            file.readBytes()
+        } catch (e: IOException) {
+            throw SyncException(400, "첨부한 사진을 읽을 수 없어요. 사진을 다시 골라 주세요")
+        }
         return call(HttpMethod.Post, "/api/photos") {
             contentType(type)
-            setBody(file.readBytes())
+            setBody(bytes)
         }.body<UploadedPhoto>().path
     }
 

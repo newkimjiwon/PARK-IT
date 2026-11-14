@@ -8,6 +8,8 @@ import android.os.CancellationSignal
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
 import android.media.ExifInterface
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
@@ -25,10 +27,13 @@ import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.Visibility
 import com.nangmanroad.core.data.VisitCondition
 import com.nangmanroad.core.sync.NewPost
+import com.nangmanroad.core.sync.Limits
 import com.nangmanroad.core.sync.NewTip
 import com.nangmanroad.core.sync.SentItem
+import com.nangmanroad.core.sync.isParkit
 import com.nangmanroad.core.sync.Session
 import com.nangmanroad.core.sync.SpotRepository
+import com.nangmanroad.core.sync.SyncException
 import com.nangmanroad.core.sync.UserList
 import com.nangmanroad.core.sync.UserState
 import com.nangmanroad.core.sync.list
@@ -49,12 +54,14 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.util.UUID
+import kotlin.math.roundToInt
 
 enum class PhoneTab { HOME, MAP, SHARE, CAR, MY }
 
 sealed interface PhoneRoute {
-    data class Detail(val spotId: String) : PhoneRoute
+    data class Detail(val spotId: String, val showReviews: Boolean = false) : PhoneRoute
     data object Notifications : PhoneRoute
     data object Share : PhoneRoute
 }
@@ -74,6 +81,9 @@ data class ShareDraft(
     val photoLocation: LatLng? = null,
     val region: Region? = null,
     val pin: LatLng? = null,
+    val mapCenter: LatLng? = null,
+    val usesCurrentPin: Boolean = false,
+    val locationRequestId: Long? = null,
     val title: String = "",
     val story: String = "",
     val category: Category? = null,
@@ -92,11 +102,11 @@ data class ShareDraft(
 ) {
     val fromCar: Boolean get() = parkitId != null
 
-    /** Photos, then the place, then the words; tips and gear are optional extras on the last step. */
+    /** Pick a location first. Photos and optional details follow. */
     fun canContinue(): Boolean = when (step) {
-        0 -> photos.isNotEmpty() && !importing
-        1 -> region != null
-        else -> title.isNotBlank() && category != null && tips.values.all { it.summary.isNotBlank() } && !publishing
+        0 -> region != null && pin != null
+        1 -> photos.isNotEmpty() && !importing
+        else -> title.isNotBlank() && category != null && !publishing
     }
 
     companion object {
@@ -104,7 +114,7 @@ data class ShareDraft(
     }
 }
 
-data class ToastMessage(val text: String, val id: Long = System.nanoTime())
+data class ToastMessage(val text: String, val id: Long = System.nanoTime(), val supporting: String? = null, val open: (() -> Unit)? = null)
 
 /** Sign-in screen state; [offline] means the user chose to try the app without the server. */
 data class AccountUi(
@@ -186,7 +196,23 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
                 Triple(user, spots, session to online)
             }.collect { (user, spots, sessionAndOnline) ->
                 val (session, online) = sessionAndOnline
+                val previous = _state.value
+                val oldInbox = previous.fromCar.associate { it.id to it.sentAt }
                 _state.update { it.copy(user = user, spots = spots, account = it.account.copy(session = session, online = online)) }
+                if (session != null && foreground) {
+                    val received = user.phoneInbox.firstOrNull { oldInbox[it.id] != it.sentAt }
+                    if (received != null) {
+                        toast(
+                            if (received.isParkit) "차량에서 파킷이 왔어요" else "차량에서 보낸 항목이 왔어요",
+                            if (received.isParkit) {
+                                val place = spots.firstOrNull { it.id == received.spotId }
+                                val name = place?.title ?: received.location?.let { Regions.nearest(it).address } ?: received.label
+                                val next = if (place == null) "사진과 후기를 더해 공유할 수 있어요." else "장소를 열어 방문 후기를 남길 수 있어요."
+                                "$name · $next"
+                            } else received.label,
+                        ) { openNotifications() }
+                    }
+                }
             }
         }
         viewModelScope.launch {
@@ -203,15 +229,17 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         if (visible) viewModelScope.launch { repository.refresh() }
     }
 
-    fun useCurrentLocation() {
+    fun useCurrentLocation(forShare: Boolean = false) {
         if (_state.value.locating) return
         val context = getApplication<Application>()
         val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         if (!fine && !coarse) {
-            toast("위치 권한이 없어요. 서울 기준으로 가까운 곳을 보여드려요.")
+            toast(if (forShare) "지도에서 직접 위치를 지정할 수 있어요." else "위치 권한이 없어요. 서울 기준으로 가까운 곳을 보여드려요.")
             return
         }
+        val requestId = if (forShare) System.nanoTime() else null
+        if (requestId != null) updateDraft { it.copy(locationRequestId = requestId) }
         _state.update { it.copy(locating = true) }
         viewModelScope.launch {
             val manager = context.getSystemService(LocationManager::class.java)
@@ -238,6 +266,16 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
                 }
             _state.update {
                 it.copy(here = position ?: DefaultLocation, usesDeviceLocation = position != null, locating = false)
+            }
+            if (requestId != null) updateDraft { draft ->
+                when {
+                    draft.locationRequestId != requestId || draft.step != 0 -> draft
+                    position == null -> draft.copy(locationRequestId = null)
+                    else -> draft.copy(
+                        pin = position, region = Regions.nearest(position), mapCenter = position,
+                        usesCurrentPin = true, locationRequestId = null,
+                    )
+                }
             }
             if (position == null) toast("현재 위치를 찾지 못했어요. 위치 설정을 확인해 주세요.")
         }
@@ -279,7 +317,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(tab = tab, stack = emptyList()) }
     }
 
-    fun openSpot(spotId: String) = push(PhoneRoute.Detail(spotId))
+    fun openSpot(spotId: String, showReviews: Boolean = false) = push(PhoneRoute.Detail(spotId, showReviews))
 
     fun openNotifications() = push(PhoneRoute.Notifications)
 
@@ -334,7 +372,10 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         val spot = _state.value.spot(spotId) ?: return
         viewModelScope.launch {
             repository.sendToCar(spot)
-                .onSuccess { toast(if (_state.value.account.session != null) "차량으로 보냈어요" else "차량으로 보낼 목록에 담았어요") }
+                .onSuccess {
+                    if (repository.session.value != null) toast("차량으로 보냈어요", "${spot.title} · 차량의 휴대폰 메뉴에서 볼 수 있어요")
+                    else toast("보낼 목록에 담았어요", "계정을 연결한 뒤 이 장소를 다시 보내 주세요.")
+                }
                 .onFailure(::showError)
         }
     }
@@ -421,48 +462,85 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         if (draft.step == 0) back() else updateDraft { it.copy(step = it.step - 1) }
     }
 
-    fun addSamplePhoto(url: String) = updateDraft { if (url in it.photos) it else it.copy(photos = it.photos + url) }
+    fun addSamplePhoto(url: String) = updateDraft {
+        if (url in it.photos || it.importing || it.photos.size >= Limits.PHOTOS) it
+        else it.copy(photos = it.photos + url)
+    }
 
     fun removeDraftPhoto(url: String) = updateDraft { it.copy(photos = it.photos - url) }
 
-    /** Copies picked photos into app storage (the picker's URIs are temporary) and reads any GPS tag. */
+    /** Reads any GPS tag and saves the picker photo in the JPEG format accepted by the server. */
     fun importPhotos(uris: List<Uri>) {
-        if (uris.isEmpty()) return
+        val draft = _state.value.draft ?: return
+        if (uris.isEmpty() || draft.importing) return
+        val picked = uris.take((Limits.PHOTOS - draft.photos.size).coerceAtLeast(0))
+        if (picked.isEmpty()) {
+            toast("사진은 ${Limits.PHOTOS}장까지 올릴 수 있어요")
+            return
+        }
         updateDraft { it.copy(importing = true) }
         viewModelScope.launch {
             val imported = withContext(Dispatchers.IO) {
-                uris.mapNotNull { uri ->
-                    runCatching {
-                        val file = File(photoDir, "${UUID.randomUUID()}.jpg")
-                        getApplication<Application>().contentResolver.openInputStream(uri)!!.use { input ->
-                            file.outputStream().use { input.copyTo(it) }
-                        }
-                        val gps = FloatArray(2)
-                        val location = if (ExifInterface(file.path).getLatLong(gps)) LatLng(gps[0].toDouble(), gps[1].toDouble()) else null
-                        "file://${file.path}" to location
-                    }.getOrNull()
-                }
+                picked.mapNotNull(::preparePhoto)
+            }
+            if (_state.value.draft?.importing != true) {
+                withContext(Dispatchers.IO) { imported.forEach { (file, _) -> file.delete() } }
+                return@launch
             }
             val location = imported.firstNotNullOfOrNull { it.second }
-            updateDraft { draft ->
-                draft.copy(
+            updateDraft { current ->
+                current.copy(
                     importing = false,
-                    photos = draft.photos + imported.map { it.first },
-                    photoLocation = draft.photoLocation ?: location,
-                    region = draft.region ?: location?.let(Regions::nearest),
-                    pin = draft.pin ?: location,
+                    photos = current.photos + imported.map { (file, _) -> "file://${file.path}" },
+                    photoLocation = current.photoLocation ?: location,
+                    region = current.region ?: location?.let(Regions::nearest),
+                    pin = current.pin ?: location,
                 )
             }
-            if (imported.size < uris.size) toast("일부 사진을 불러오지 못했어요")
+            when {
+                imported.isEmpty() -> toast("사진을 불러오지 못했어요. 다른 사진을 골라 주세요")
+                imported.size < picked.size -> toast("일부 사진을 불러오지 못했어요")
+                picked.size < uris.size -> toast("사진은 ${Limits.PHOTOS}장까지 올릴 수 있어요")
+            }
         }
     }
 
-    fun chooseRegion(region: Region) = updateDraft { it.copy(region = region, pin = region.center) }
+    private fun preparePhoto(uri: Uri): Pair<File, LatLng?>? {
+        val resolver = getApplication<Application>().contentResolver
+        val gps = FloatArray(2)
+        val location = runCatching {
+            resolver.openInputStream(uri)?.use { input ->
+                if (ExifInterface(input).getLatLong(gps)) LatLng(gps[0].toDouble(), gps[1].toDouble()) else null
+            }
+        }.getOrNull()
+        val file = File(photoDir, "${UUID.randomUUID()}.jpg")
+        return runCatching {
+            val bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri)) { decoder, info, _ ->
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                val (width, height) = info.size.run { width to height }
+                val scale = 1920.0 / maxOf(width, height)
+                if (scale < 1.0) decoder.setTargetSize(
+                    (width * scale).roundToInt().coerceAtLeast(1),
+                    (height * scale).roundToInt().coerceAtLeast(1),
+                )
+            }
+            try {
+                val saved = file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it) }
+                if (!saved) throw IOException("Could not encode the selected photo")
+            } finally {
+                bitmap.recycle()
+            }
+            file to location
+        }.onFailure { file.delete() }.getOrNull()
+    }
 
-    fun dropPin(point: LatLng) = updateDraft { it.copy(pin = point, region = Regions.nearest(point)) }
+    fun chooseRegion(region: Region) = updateDraft { it.copy(region = region, pin = region.center, mapCenter = region.center, usesCurrentPin = false, locationRequestId = null) }
+
+    fun dropPin(point: LatLng) = updateDraft { it.copy(pin = point, region = Regions.nearest(point), usesCurrentPin = false, locationRequestId = null) }
 
     fun publish() {
         val draft = _state.value.draft ?: return
+        if (draft.step != ShareDraft.STEP_COUNT - 1 || !draft.canContinue()) return
         val region = draft.region ?: return
         val category = draft.category ?: return
         val post = NewPost(
@@ -473,7 +551,10 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
             category = category,
             story = draft.story.trim(),
             photos = draft.photos,
-            tips = draft.tips.map { (kind, tip) -> NewTip(kind, tip.status, tip.summary.trim(), tip.summary.trim()) },
+            tips = draft.tips.mapNotNull { (kind, tip) ->
+                val summary = tip.summary.trim()
+                if (summary.isEmpty()) null else NewTip(kind, tip.status, summary, summary)
+            },
             products = draft.products,
             visibility = draft.visibility,
             approximateLocation = draft.approximate,
@@ -484,15 +565,25 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         )
         updateDraft { it.copy(publishing = true) }
         viewModelScope.launch {
+            val serverPost = repository.session.value != null
             val result = repository.publish(post)
             result
                 .onSuccess { spot ->
                     _state.update { it.copy(draft = null, tab = PhoneTab.HOME, stack = listOf(PhoneRoute.Detail(spot.id)), mapSelectedId = spot.id) }
-                    toast(if (draft.visibility == Visibility.PRIVATE) "나만 볼 수 있게 저장했어요" else "지도와 피드에 공개했어요")
+                    when {
+                        !serverPost -> toast("이 휴대폰에 장소를 저장했어요")
+                        draft.visibility == Visibility.PRIVATE -> toast("나만 볼 수 있게 올렸어요")
+                        draft.visibility == Visibility.FOLLOWERS -> toast("팔로워에게만 공유했어요")
+                        else -> toast("지도와 피드에 공개했어요")
+                    }
                 }
                 .onFailure { error ->
                     updateDraft { it.copy(publishing = false) }
-                    showError(error)
+                    if (error is SyncException && error.status == null) {
+                        toast("장소를 올리지 못했어요", "로컬 서버를 확인한 뒤 작성한 글을 다시 올려 주세요")
+                    } else {
+                        showError(error)
+                    }
                 }
             // The car's 파킷 has done its job once the post is up.
             if (result.isSuccess) draft.parkitId?.let { id -> repository.removeFromPhone(id) }
@@ -527,7 +618,10 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun toast(text: String) = _state.update { it.copy(toast = ToastMessage(text)) }
+    fun toast(text: String) = toast(text, null)
+
+    private fun toast(text: String, supporting: String?, open: (() -> Unit)? = null) =
+        _state.update { it.copy(toast = ToastMessage(text, supporting = supporting, open = open)) }
 
     fun consumeToast(id: Long) = _state.update { if (it.toast?.id == id) it.copy(toast = null) else it }
 

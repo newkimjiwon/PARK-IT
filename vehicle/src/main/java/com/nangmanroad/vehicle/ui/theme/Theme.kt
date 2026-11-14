@@ -16,9 +16,8 @@ import com.nangmanroad.core.ui.Pretendard
 object Dimens {
     val TouchTarget = 64.dp
     val Gutter = 24.dp
-    /** Buttons, fields and panels: nearly square, edges drawn with 1px rules rather than shadows. */
-    val ControlRadius = 4.dp
-    val PhotoRadius = 2.dp
+    val ControlRadius = 10.dp
+    val PhotoRadius = 10.dp
     val RailWidth = 104.dp
 }
 

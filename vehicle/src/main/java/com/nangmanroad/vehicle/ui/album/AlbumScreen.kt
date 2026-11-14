@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.PersonAddAlt
 import androidx.compose.material.icons.outlined.PhoneAndroid
@@ -110,7 +110,7 @@ fun AlbumScreen(state: AppUiState, actions: AppViewModel) {
         if (spots.isEmpty()) {
             item(span = StaggeredGridItemSpan.FullLine) {
                 when (state.albumTab) {
-                    AlbumTab.SAVED -> EmptyState(Icons.Outlined.BookmarkBorder, "저장한 장소가 없어요", "마음에 드는 사진의 책갈피를 눌러 저장해 보세요.")
+                    AlbumTab.SAVED -> EmptyState(Icons.Rounded.StarBorder, "저장한 장소가 없어요", "마음에 드는 사진의 별을 눌러 저장해 보세요.")
                     AlbumTab.VISITED -> EmptyState(
                         Icons.Outlined.CheckCircle,
                         "아직 다녀온 곳이 없어요",

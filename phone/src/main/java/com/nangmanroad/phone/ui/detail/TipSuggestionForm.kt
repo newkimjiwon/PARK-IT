@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -105,6 +106,9 @@ fun LabeledField(
     /** Same number the server enforces (see Limits); typing stops there and a counter shows near the end. */
     maxLength: Int? = null,
     secure: Boolean = false,
+    fieldModifier: Modifier = Modifier,
+    search: Boolean = false,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     onChange: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -133,9 +137,14 @@ fun LabeledField(
                 textStyle = MaterialTheme.typography.bodyMedium.copy(color = Palette.TextPrimary),
                 cursorBrush = SolidColor(Palette.TextPrimary),
                 visualTransformation = if (secure) PasswordVisualTransformation() else VisualTransformation.None,
-                keyboardOptions = if (secure) KeyboardOptions(keyboardType = KeyboardType.Password) else KeyboardOptions.Default,
-                singleLine = secure,
-                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = when {
+                    secure -> KeyboardOptions(keyboardType = KeyboardType.Password)
+                    search -> KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search)
+                    else -> KeyboardOptions.Default
+                },
+                keyboardActions = keyboardActions,
+                singleLine = secure || search,
+                modifier = fieldModifier.fillMaxWidth(),
             )
         }
     }

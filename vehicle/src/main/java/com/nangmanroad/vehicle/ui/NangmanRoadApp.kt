@@ -22,13 +22,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.PhoneAndroid
-import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -92,7 +91,7 @@ fun NangmanRoadApp(state: AppUiState, actions: AppViewModel) {
             }
         }
 
-        Toast(state, actions, Modifier.align(Alignment.BottomCenter).padding(bottom = 40.dp))
+        if (!state.showDrivingView) Toast(state, actions, Modifier.align(Alignment.BottomCenter).padding(bottom = 40.dp))
     }
 }
 
@@ -110,7 +109,7 @@ private fun SideRail(state: AppUiState, actions: AppViewModel) {
     ) {
         ParkItMark(size = 44.dp, modifier = Modifier.padding(bottom = 12.dp))
         RailButton(Icons.Outlined.Map, "지도", state.screen == Screen.Map, onClick = actions::showMap)
-        RailButton(Icons.Outlined.BookmarkBorder, "저장", onAlbum && state.albumTab == AlbumTab.SAVED) {
+        RailButton(Icons.Rounded.StarBorder, "저장", onAlbum && state.albumTab == AlbumTab.SAVED) {
             actions.showAlbum(AlbumTab.SAVED)
         }
         RailButton(Icons.Outlined.CheckCircle, "다녀온 곳", onAlbum && state.albumTab == AlbumTab.VISITED) {
@@ -118,10 +117,6 @@ private fun SideRail(state: AppUiState, actions: AppViewModel) {
         }
         RailButton(Icons.Outlined.PhoneAndroid, "휴대폰", onAlbum && state.albumTab == AlbumTab.FROM_PHONE, badge = state.fromPhone.size) {
             actions.showAlbum(AlbumTab.FROM_PHONE)
-        }
-        RailButton(Icons.Outlined.PushPin, "파킷", state.parkit != null) {
-            actions.showMap()
-            actions.suggestParkit(manual = true)
         }
         Spacer(Modifier.weight(1f))
         RailButton(
@@ -170,7 +165,7 @@ private fun Toast(state: AppUiState, actions: AppViewModel, modifier: Modifier =
     val toast = state.toast
     LaunchedEffect(toast?.id) {
         if (toast != null) {
-            delay(2_800)
+            delay(if (toast.supporting != null) 6_500 else 2_800)
             actions.consumeToast(toast.id)
         }
     }
@@ -184,7 +179,16 @@ private fun Toast(state: AppUiState, actions: AppViewModel, modifier: Modifier =
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = Palette.Success, modifier = Modifier.size(30.dp))
-            Text(toast?.text.orEmpty(), style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(toast?.text.orEmpty(), style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
+                toast?.supporting?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary) }
+            }
+            toast?.spotId?.let { spotId ->
+                com.nangmanroad.vehicle.ui.components.ActionButton("장소 열기", null, {
+                    actions.consumeToast(toast.id)
+                    actions.openSpot(spotId)
+                })
+            }
         }
     }
 }

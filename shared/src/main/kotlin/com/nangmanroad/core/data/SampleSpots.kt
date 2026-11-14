@@ -18,6 +18,9 @@ object SampleSpots {
     private val village = unsplash("1542086043-08aee8fd3c21")
     private val road = unsplash("1696226549788-1a60cba184f1")
 
+    private val hillNight = unsplash("1475274047050-1d0c0975c63e")
+    private val riverside = unsplash("1501785888041-af3ef285b470")
+
     private val romance = Author("u-romance", "낭만을찾아서", "강원도를 여행 중이에요")
     private val nightSky = Author("u-nightsky", "밤하늘수집가", "별 보이는 곳만 골라 다녀요")
     private val weekend = Author("u-weekend", "주말의기록", "주말마다 짧게 떠나요")
@@ -232,7 +235,7 @@ object SampleSpots {
             category = Category.STARS,
             author = nightSky,
             story = "언덕 위로 올라가면 도시 불빛이 거의 없어요. 별자리 앱 없이도 북두칠성이 또렷해요.",
-            photos = listOf(night, road),
+            photos = listOf(hillNight, road),
             likeCount = 175,
             saveCount = 88,
             postedDaysAgo = 12,
@@ -294,7 +297,7 @@ object SampleSpots {
             category = Category.LAKE_RIVER,
             author = romance,
             story = "넓은 모래톱 옆으로 강물이 천천히 흘러요. 그늘에 의자 하나 두고 오후 내내 쉬었어요.",
-            photos = listOf(lake, tent),
+            photos = listOf(riverside, tent),
             likeCount = 121,
             saveCount = 59,
             postedDaysAgo = 20,

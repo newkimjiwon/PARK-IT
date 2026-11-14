@@ -1,21 +1,17 @@
 package com.nangmanroad.core.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.Image
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -29,22 +25,20 @@ const val BRAND_NAME = "PARK-IT"
 const val BRAND_NAME_KO = "파킷"
 const val BRAND_TAGLINE = "당신의 경험이 누군가의 목적지가 되는 곳"
 
-/** The crescent P and background used by the launcher icon. */
+/** The location pin, crescent and star used by the launcher icon. */
 @Composable
-fun ParkItMark(size: Dp = 40.dp, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(size)
-            .clip(RoundedCornerShape(size / 4))
-            .background(colorResource(R.color.parkit_brand)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Image(
-            painterResource(R.drawable.ic_parkit_glyph),
-            contentDescription = BRAND_NAME_KO,
-            modifier = Modifier.size(size * 0.7f),
-        )
-    }
+fun ParkItMark(
+    size: Dp = 40.dp,
+    modifier: Modifier = Modifier,
+    tint: Color? = null,
+    contentDescription: String? = BRAND_NAME_KO,
+) {
+    Image(
+        painterResource(R.drawable.ic_parkit_glyph),
+        contentDescription = contentDescription,
+        modifier = modifier.size(size),
+        colorFilter = tint?.let { ColorFilter.tint(it) },
+    )
 }
 
 /**

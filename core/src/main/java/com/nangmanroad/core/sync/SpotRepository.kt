@@ -217,10 +217,14 @@ class SpotRepository(
             return Result.success(spot)
         }
         return remote {
-            val photos = post.photos.map { photo ->
+            val uploaded = post.photos.distinct().associateWith { photo ->
                 if (photo.startsWith("file://")) withContext(Dispatchers.IO) { client.uploadPhoto(File(photo.removePrefix("file://"))) } else photo
             }
-            client.createPost(post.copy(photos = photos)).also { created ->
+            val syncedPost = post.copy(
+                photos = post.photos.map(uploaded::getValue),
+                products = post.products.map { it.copy(imageUrl = uploaded[it.imageUrl] ?: it.imageUrl) },
+            )
+            client.createPost(syncedPost).also { created ->
                 _spots.value = listOf(created) + _spots.value.filter { it.id != created.id }
             }
         }

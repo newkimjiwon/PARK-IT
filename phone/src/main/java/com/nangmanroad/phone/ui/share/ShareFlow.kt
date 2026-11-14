@@ -1,5 +1,7 @@
 package com.nangmanroad.phone.ui.share
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,6 +13,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,6 +27,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -37,7 +45,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -45,14 +56,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.Role
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.Category
-import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.Product
 import com.nangmanroad.core.data.SampleSpots
-import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.Visibility
@@ -78,16 +91,19 @@ import com.nangmanroad.phone.ui.map.PhoneMapStyle
 import java.util.UUID
 
 private val stepTitles = listOf(
-    "사진을 골라주세요",
     "어디였나요?",
+    "사진을 골라주세요",
     "어떤 곳이었나요?",
 )
 
 /** Sample landscapes for trying the flow on an emulator with an empty gallery. */
 private val samplePhotos = SampleSpots.all.flatMap { it.photos }.distinct()
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ShareFlow(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewModel) {
+    var reviewing by rememberSaveable { mutableStateOf(false) }
+    val keyboardVisible = WindowInsets.isImeVisible
     Column(Modifier.fillMaxSize().imePadding()) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -97,23 +113,41 @@ fun ShareFlow(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewModel) {
                 modifier = Modifier.size(44.dp).clip(CircleShape).clickable(onClick = actions::draftBack).padding(10.dp),
             )
             Text("장소 공유", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, modifier = Modifier.weight(1f).padding(start = 4.dp))
-            Text("${draft.step + 1}/${ShareDraft.STEP_COUNT}", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary, modifier = Modifier.padding(end = 12.dp))
+            if (!reviewing) Text("${draft.step + 1}/${ShareDraft.STEP_COUNT}", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary, modifier = Modifier.padding(end = 12.dp))
         }
         Box(Modifier.fillMaxWidth().height(3.dp).background(Palette.Surface)) {
             Box(Modifier.fillMaxWidth((draft.step + 1f) / ShareDraft.STEP_COUNT).height(3.dp).background(Palette.TextPrimary))
         }
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            if (draft.step == 0 && !draft.fromCar) item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Chip("새 장소 등록", !reviewing, { reviewing = false })
+                    Chip("기존 장소 후기", reviewing, { reviewing = true })
+                }
+            }
+            if (reviewing) {
+                item {
+                    var query by rememberSaveable { mutableStateOf("") }
+                    LabeledField("장소 검색", query, "장소 이름 또는 지역") { query = it }
+                    val matches = state.spots.filter { it.title.contains(query.trim(), true) || it.region.contains(query.trim(), true) }
+                    if (matches.isEmpty()) Text("일치하는 장소가 없어요")
+                    matches.take(8).forEach { spot ->
+                        SecondaryButton(spot.title, { actions.openSpot(spot.id, showReviews = true) }, Modifier.fillMaxWidth().padding(top = 6.dp))
+                    }
+                }
+                return@LazyColumn
+            }
             item {
                 Text(stepTitles[draft.step], style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
             }
             when (draft.step) {
-                0 -> item { PhotoStep(draft, actions) }
-                1 -> item { PlaceStep(draft, actions) }
+                0 -> item { PlaceStep(draft, state, actions) }
+                1 -> item { PhotoStep(draft, actions) }
                 else -> item { StoryStep(draft, state, actions) }
             }
         }
         val last = draft.step == ShareDraft.STEP_COUNT - 1
-        PrimaryButton(
+        if (!reviewing && !keyboardVisible) PrimaryButton(
             text = when {
                 last && draft.publishing -> "올리는 중…"
                 last -> "공유하기"
@@ -174,9 +208,23 @@ private fun PhotoStep(draft: ShareDraft, actions: PhoneViewModel) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
-private fun PlaceStep(draft: ShareDraft, actions: PhoneViewModel) {
+private fun PlaceStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewModel) {
+    val context = LocalContext.current
+    val focus = LocalFocusManager.current
+    val searchResults = remember { BringIntoViewRequester() }
+    val keyboardVisible = WindowInsets.isImeVisible
+    var searchFocused by remember { mutableStateOf(false) }
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        if (grants.values.any { it }) actions.useCurrentLocation(forShare = true)
+        else actions.toast("지도에서 직접 위치를 지정할 수 있어요.")
+    }
     var query by rememberSaveable { mutableStateOf("") }
+    var province by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(searchFocused, keyboardVisible, query.isNotBlank()) {
+        if (searchFocused && keyboardVisible) searchResults.bringIntoView()
+    }
     val pin = draft.pin
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         if (draft.photoLocation != null) {
@@ -198,26 +246,70 @@ private fun PlaceStep(draft: ShareDraft, actions: PhoneViewModel) {
                 Text("차량이 세운 위치를 받았어요. 틀리면 지도를 눌러 고쳐 주세요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextPrimary)
             }
         }
-        LabeledField("시·군 검색", query, "예: 강릉, 태안, 제천") { query = it }
+        if (!draft.fromCar) SecondaryButton(
+            when {
+                state.locating -> "위치 확인 중"
+                draft.usesCurrentPin -> "내 위치 다시 확인"
+                else -> "내 위치 사용"
+            },
+            {
+                val permissions = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+                if (permissions.any { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }) {
+                    actions.useCurrentLocation(forShare = true)
+                } else {
+                    permission.launch(permissions)
+                }
+            },
+            Modifier.fillMaxWidth(),
+            enabled = !state.locating,
+        )
+        Text("시·도", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(Regions.search(query).take(12), key = { it.short }) { region ->
-                Chip(region.short, draft.region == region, { actions.chooseRegion(region) })
+            item { Chip("전체", province == null, { province = null }) }
+            items(Regions.all.map { it.short.substringBefore(' ') }.distinct()) { name ->
+                Chip(name, province == name, { province = name; query = "" })
+            }
+        }
+        Column(Modifier.bringIntoViewRequester(searchResults), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LabeledField(
+                "시·군·구 검색",
+                query,
+                "예: 강릉, 태안, 제천",
+                fieldModifier = Modifier.onFocusChanged { searchFocused = it.isFocused },
+                search = true,
+                keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
+            ) { query = it }
+            if (query.isNotBlank()) {
+                val matches = Regions.search(query).filter { province == null || it.short.substringBefore(' ') == province }
+                if (matches.isEmpty()) Text("검색 결과가 없어요. 지도에서 직접 찍을 수 있어요.")
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(matches, key = { it.short }) { region ->
+                        Chip(region.short, draft.region == region, {
+                            focus.clearFocus()
+                            actions.chooseRegion(region)
+                        })
+                    }
+                }
+            }
+            if (searchFocused && keyboardVisible) {
+                TextButton(onClick = { focus.clearFocus() }) { Text("키보드 닫기") }
             }
         }
         Text("지도를 눌러 정확한 위치를 찍을 수 있어요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
-        val marker = pin?.let { draftMarker(draft, it) }
         PhotoMap(
-            spots = listOfNotNull(marker),
-            selectedId = marker?.id,
-            here = OffMap,
+            spots = emptyList(),
+            selectedId = null,
+            here = state.here.takeIf { state.usesDeviceLocation },
+            droppedPin = pin,
             onSelect = {},
             onVisibleChange = {},
             style = PhoneMapStyle.copy(initialCamera = MapCamera(pin ?: PhoneMapStyle.initialCamera.center, if (pin != null) 2.5f else 0.9f), controlsPadding = PaddingValues(8.dp)),
             onMapTap = actions::dropPin,
+            cameraRequest = draft.mapCenter?.let { MapCamera(it, 2.5f) },
             modifier = Modifier.fillMaxWidth().height(320.dp).clip(RoundedCornerShape(4.dp)),
         )
         draft.region?.let {
-            Text("선택한 지역: ${it.address}", style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
+            Text(if (draft.usesCurrentPin) "내 위치를 찍었어요 · ${it.address} 주변" else "선택한 지역: ${it.address}", style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Chip("정확한 위치", !draft.approximate, { actions.updateDraft { it.copy(approximate = false) } })
@@ -242,16 +334,6 @@ private fun PlaceStep(draft: ShareDraft, actions: PhoneViewModel) {
         }
     }
 }
-
-/** The map needs a "here" dot; the share flow has no live location, so park it off-screen. */
-private val OffMap = LatLng(0.0, 0.0)
-
-private fun draftMarker(draft: ShareDraft, at: LatLng) = Spot(
-    id = "draft", title = draft.title.ifBlank { "새 장소" }, region = draft.region?.short.orEmpty(), address = draft.region?.address.orEmpty(),
-    location = at, category = draft.category ?: Category.QUIET, author = SampleSpots.authors.first(), story = "",
-    photos = draft.photos.ifEmpty { listOf("") }, likeCount = 0, saveCount = 0, postedDaysAgo = 0,
-    tips = emptyList(), products = emptyList(), comments = emptyList(),
-)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -324,7 +406,7 @@ private fun CarCampingQuestion(draft: ShareDraft, actions: PhoneViewModel) {
 @Composable
 private fun TipStep(draft: ShareDraft, actions: PhoneViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("다음 방문자가 알아야 할 것이 있다면 골라 한 줄씩 적어 주세요. 없으면 그냥 공유해도 돼요.", style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary)
+        Text("다음 방문자에게 알려줄 내용을 한 줄씩 적어 주세요. 비워 둔 항목은 게시할 때 빠져요.", style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             TipKind.entries.forEach { kind ->
                 val chosen = kind in draft.tips
@@ -370,7 +452,6 @@ private fun ItemStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewM
     var name by rememberSaveable { mutableStateOf("") }
     var reason by rememberSaveable { mutableStateOf("") }
     var price by rememberSaveable { mutableStateOf("") }
-    var sponsored by rememberSaveable { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("직접 써 본 캠핑·여행 용품이 있다면 추천해 주세요. 없으면 건너뛰어도 돼요.", style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary)
         draft.products.forEach { product ->
@@ -396,10 +477,6 @@ private fun ItemStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewM
             LabeledField("준비물 이름", name, "예: 휴대용 무드 랜턴") { name = it }
             LabeledField("추천 이유", reason, "예: 조명이 없는 곳에서 밤 풍경을 오래 볼 수 있어요") { reason = it }
             LabeledField("가격 (선택, 원)", price, "예: 39000") { price = it.filter(Char::isDigit) }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip("직접 구매", !sponsored, { sponsored = false })
-                Chip("광고·제휴", sponsored, { sponsored = true })
-            }
             SecondaryButton("준비물 추가", {
                 val product = Product(
                     id = "p-${UUID.randomUUID()}",
@@ -407,11 +484,11 @@ private fun ItemStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewM
                     reason = reason.trim(),
                     recommender = state.me.name,
                     priceWon = price.toIntOrNull(),
-                    isSponsored = sponsored,
+                    isSponsored = false,
                     imageUrl = draft.photos.firstOrNull().orEmpty(),
                 )
                 actions.updateDraft { it.copy(products = it.products + product) }
-                name = ""; reason = ""; price = ""; sponsored = false
+                name = ""; reason = ""; price = ""
             }, Modifier.fillMaxWidth(), enabled = name.isNotBlank() && reason.isNotBlank(), container = Palette.Surface)
         }
     }

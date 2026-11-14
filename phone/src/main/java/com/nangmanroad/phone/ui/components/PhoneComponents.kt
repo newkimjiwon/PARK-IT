@@ -51,7 +51,7 @@ fun Chip(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
 ) {
-    val shape = RoundedCornerShape(3.dp)
+    val shape = RoundedCornerShape(8.dp)
     Row(
         modifier = modifier
             .heightIn(min = 40.dp)
@@ -123,7 +123,7 @@ fun PrimaryButton(
     Row(
         modifier = modifier
             .heightIn(min = 52.dp)
-            .clip(RoundedCornerShape(4.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(if (enabled) Palette.Accent else Palette.Surface)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 14.dp),
@@ -150,7 +150,7 @@ fun SecondaryButton(
     Row(
         modifier = modifier
             .heightIn(min = 44.dp)
-            .clip(RoundedCornerShape(4.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(if (active) Palette.SurfaceHigh else container)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),

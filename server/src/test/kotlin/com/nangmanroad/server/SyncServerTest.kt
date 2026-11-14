@@ -3,6 +3,7 @@ package com.nangmanroad.server
 import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.Category
 import com.nangmanroad.core.data.LatLng
+import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.Visibility
@@ -25,6 +26,7 @@ import com.nangmanroad.core.sync.UserList
 import com.nangmanroad.core.sync.CarCampingReport
 import com.nangmanroad.core.sync.DEMO_ACCOUNT_PASSWORD
 import com.nangmanroad.core.sync.UserState
+import com.nangmanroad.core.sync.UploadedPhoto
 import com.nangmanroad.core.sync.isParkit
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -37,10 +39,14 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.testApplication
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import javax.imageio.ImageIO
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import kotlin.test.assertEquals
+import kotlin.test.assertContentEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -377,5 +383,35 @@ class SyncServerTest {
         }.body<UserState>()
         assertEquals(setOf("s-taean"), state.saved)
         assertEquals(HttpStatusCode.OK, client.get("/api/spots") { bearerAuth(session.token) }.status)
+    }
+
+    @Test
+    fun `a photo upload and private place post survive a server restart`() = testApplication {
+        val store = SyncStore(folder.root)
+        application { syncModule(store) }
+        val http = createClient { install(ContentNegotiation) { json(Api.json) } }
+        val session = http.post("/api/session") {
+            contentType(ContentType.Application.Json)
+            setBody(SignInRequest("윤슬을따라", DEMO_ACCOUNT_PASSWORD))
+        }.body<Session>()
+        val image = ByteArrayOutputStream().use { output ->
+            ImageIO.write(BufferedImage(32, 24, BufferedImage.TYPE_INT_RGB), "jpg", output)
+            output.toByteArray()
+        }
+        val upload = http.post("/api/photos") {
+            bearerAuth(session.token)
+            contentType(ContentType.Image.JPEG)
+            setBody(image)
+        }.body<UploadedPhoto>()
+        val published = http.post("/api/spots") {
+            bearerAuth(session.token)
+            contentType(ContentType.Application.Json)
+            setBody(post("로컬 장소 게시 테스트", Visibility.PRIVATE).copy(photos = listOf(upload.path)))
+        }.body<Spot>()
+
+        val reloaded = SyncStore(folder.root).spots(session.user.id).single { it.id == published.id }
+        assertEquals(Visibility.PRIVATE, reloaded.visibility)
+        assertEquals(listOf(upload.path), reloaded.photos)
+        assertContentEquals(image, http.get(upload.path).body<ByteArray>())
     }
 }

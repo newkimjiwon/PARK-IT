@@ -116,6 +116,9 @@ fun ProfileScreen(state: PhoneUiState, actions: PhoneViewModel) {
                     onSelect = { actions.openSpot(it.id) },
                     onVisibleChange = {},
                     style = PhoneMapStyle.copy(markerSize = 44.dp, clusterRadius = 48.dp, controlsPadding = PaddingValues(8.dp), initialCamera = MapCamera(LatLng(36.4, 127.9), 0.9f)),
+                    savedIds = state.saved,
+                    myAuthorId = state.me.id,
+                    likedIds = state.liked,
                     markerTint = { spot ->
                         when {
                             spot.author.id == state.me.id -> SharedTint

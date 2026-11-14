@@ -3,7 +3,8 @@ param(
     [string]$Avd = 'Pleos_Connect_2_1',
     [string]$BuildRoot = $env:PARKIT_BUILD_ROOT,
     [string]$DataDirectory = $env:PARKIT_DATA_DIR,
-    [switch]$Verify
+    [switch]$Verify,
+    [switch]$Offline
 )
 
 $ErrorActionPreference = 'Stop'
@@ -52,6 +53,8 @@ if ($listener) {
     Wait-Process -Id $process.ProcessId -Timeout 10 -ErrorAction SilentlyContinue
 }
 
+$revision = & git -C $source rev-parse --short HEAD 2>$null
+Write-Host "Source: $source (Git $revision)"
 Write-Host 'Preparing and building PARK-IT...'
 foreach ($module in @('core', 'gradle', 'phone', 'server', 'shared', 'vehicle')) {
     $target = Join-Path $stage $module
@@ -74,13 +77,15 @@ if (Test-Path -LiteralPath $localProperties -PathType Leaf) {
 } elseif (Test-Path -LiteralPath $stagedProperties -PathType Leaf) {
     Remove-Item -LiteralPath $stagedProperties
 }
+$gradleOptions = @('--console=plain', '-Pnangmanroad.syncUrl=http://10.0.2.2:8080')
+if ($Offline) { $gradleOptions += '--offline' }
 $tasks = @(':server:installDist', ':vehicle:assembleDebug', ':phone:assembleDebug')
 if ($Verify) {
     $tasks += @(':server:test', ':core:testDebugUnitTest', ':vehicle:testDebugUnitTest', ':phone:testDebugUnitTest')
 }
 Push-Location -LiteralPath $stage
 try {
-    & '.\gradlew.bat' --console=plain @tasks
+    & '.\gradlew.bat' @gradleOptions @tasks
     if ($LASTEXITCODE -ne 0) { throw "Build failed (Gradle exit $LASTEXITCODE)." }
 } finally {
     Pop-Location
@@ -125,26 +130,43 @@ if (!$booted) { throw "Pleos did not finish booting. See $stage\emulator.err.log
 $androidUser = "$user".Trim()
 
 foreach ($app in @('vehicle', 'phone')) {
-    & $adb -s $serial install -r (Join-Path $stage "$app\build\outputs\apk\debug\$app-debug.apk")
-    if ($LASTEXITCODE -ne 0) { throw "Could not install the $app app." }
+    $apk = Join-Path $stage "$app\build\outputs\apk\debug\$app-debug.apk"
+    & $adb -s $serial install --user $androidUser -r $apk
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Retrying $app installation without streaming..."
+        for ($retry = 0; $retry -lt 10; $retry++) {
+            if ((& $adb devices) -match "^$serial\s+device\s*$") { break }
+            Start-Sleep -Seconds 1
+        }
+        & $adb -s $serial install --no-streaming --user $androidUser -r $apk
+        if ($LASTEXITCODE -ne 0) { throw "Could not install the $app app." }
+    }
 }
-& $adb -s $serial shell am start --user $androidUser --display 0 -n com.nangmanroad.vehicle/.MainActivity
-if ($LASTEXITCODE -ne 0) { throw 'Could not open the vehicle app.' }
-
-& $adb -s $serial emu multidisplay add 1 1080 2400 420 0
-if ($LASTEXITCODE -ne 0) { throw 'Could not create the phone display.' }
-$phoneDisplay = $null
-for ($attempt = 0; $attempt -lt 20; $attempt++) {
+function Get-PhoneDisplay {
     $displays = (& $adb -s $serial shell dumpsys display) -join [char]10
-    $match = [regex]::Match($displays, 'DisplayInfo\{"Emulator 2D Display", displayId (\d+),[^\r\n]*real 1080 x 2400')
-    if ($match.Success) { $phoneDisplay = $match.Groups[1].Value; break }
-    Start-Sleep -Seconds 1
+    $match = [regex]::Match($displays, 'DisplayInfo\{"Emulator 2D Display", displayId (\d+),[^\r\n]*real 800 x 1440')
+    if ($match.Success) { $match.Groups[1].Value }
+}
+
+$phoneDisplay = Get-PhoneDisplay
+if (!$phoneDisplay) {
+    # Match the Pleos display height so both apps fit side by side in one emulator window.
+    & $adb -s $serial emu multidisplay add 1 800 1440 320 0
+    if ($LASTEXITCODE -ne 0) { throw 'Could not create the phone display.' }
+    for ($attempt = 0; $attempt -lt 20; $attempt++) {
+        $phoneDisplay = Get-PhoneDisplay
+        if ($phoneDisplay) { break }
+        Start-Sleep -Seconds 1
+    }
 }
 if (!$phoneDisplay) { throw 'The Pleos emulator did not expose the portrait display.' }
+# Start after the display is ready. The resumed-activity check below verifies both launches.
+& $adb -s $serial shell am start --user $androidUser --display 0 -n com.nangmanroad.vehicle/.MainActivity
+if ($LASTEXITCODE -ne 0) { throw 'Could not open the vehicle app.' }
 & $adb -s $serial shell am start --user $androidUser --display $phoneDisplay -n com.nangmanroad.phone/.MainActivity
 if ($LASTEXITCODE -ne 0) { throw 'Could not open the phone app.' }
 
-for ($attempt = 0; $attempt -lt 12; $attempt++) {
+for ($attempt = 0; $attempt -lt 25; $attempt++) {
     $activities = (& $adb -s $serial shell dumpsys activity activities) -join [char]10
     if ($activities -match 'topResumedActivity=.*com\.nangmanroad\.vehicle/' -and
         $activities -match 'topResumedActivity=.*com\.nangmanroad\.phone/') {

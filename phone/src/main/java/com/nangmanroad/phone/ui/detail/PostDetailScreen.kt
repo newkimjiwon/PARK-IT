@@ -29,12 +29,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.TaskAlt
@@ -69,9 +71,6 @@ import com.nangmanroad.core.ui.Avatar
 import com.nangmanroad.core.ui.CarCampingBadge
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.OfficialPlaceSection
-import com.nangmanroad.core.ui.PlaceAssistantDialog
-import com.nangmanroad.core.data.PlaceQuestion
-import com.nangmanroad.core.data.answerAboutPlace
 import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.core.data.byImportance
@@ -98,32 +97,15 @@ import java.util.Locale
 private enum class DetailTab(val label: String) { TIPS("꿀팁"), ITEMS("준비물"), COMMENTS("댓글") }
 
 @Composable
-fun PostDetailScreen(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
-    var tab by rememberSaveable { mutableStateOf(DetailTab.TIPS) }
+fun PostDetailScreen(spot: Spot, state: PhoneUiState, actions: PhoneViewModel, showReviews: Boolean = false) {
+    var tab by rememberSaveable { mutableStateOf(if (showReviews) DetailTab.COMMENTS else DetailTab.TIPS) }
     var replyTo by rememberSaveable { mutableStateOf<String?>(null) }
     var suggesting by rememberSaveable { mutableStateOf(false) }
     var reportingChange by rememberSaveable { mutableStateOf(false) }
-    var assistantOpen by rememberSaveable(spot.id) { mutableStateOf(false) }
-    if (assistantOpen) {
-        PlaceAssistantDialog(
-            spot.title,
-            listOf(PlaceQuestion.PARKING, PlaceQuestion.NIGHT, PlaceQuestion.CAMPING, PlaceQuestion.TIPS),
-            onAnswer = { answerAboutPlace(it, spot) ?: "차량 화면에서 확인할 수 있어요." },
-            onDismiss = { assistantOpen = false },
-        )
-    }
-
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize().imePadding()) {
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 24.dp)) {
             item { Gallery(spot, onBack = actions::back) }
             item { Header(spot, state, actions) }
-            item {
-                SecondaryButton(
-                    "장소 도우미",
-                    { assistantOpen = true },
-                    Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                )
-            }
             item {
                 TabRow(Modifier.padding(top = 20.dp)) {
                     TextTab(DetailTab.TIPS.label, tab == DetailTab.TIPS, { tab = DetailTab.TIPS }, count = spot.tips.size)
@@ -243,7 +225,10 @@ private fun Header(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
     val following = spot.author.id in state.following
     Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("${spot.province} · ${spot.category.label}", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Tag(spot.province, Palette.TextSecondary)
+                Tag(spot.category.label, Palette.TextSecondary)
+            }
             Text(spot.title, style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
             Text(
                 "${spot.address}${if (spot.approximateLocation) " (대략적인 위치)" else ""} · ${distanceFromHere(state.here, spot, state.usesDeviceLocation)}",
@@ -261,10 +246,11 @@ private fun Header(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                     )
                 }
             }
-            // Anyone who has been there can say whether the night is still allowed; the newest word wins.
+            spot.carCampingCheckedDaysAgo?.let { Meta(carCampingCheckedLabel(it)) }
+            Meta(if (state.account.session != null) "제출한 상태는 장소를 볼 수 있는 사용자에게 반영돼요." else "제출한 상태는 이 기기에 반영돼요.")
             Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    spot.carCampingCheckedDaysAgo?.let { "${carCampingCheckedLabel(it)} · 다녀왔다면" } ?: "다녀왔다면",
+                    "차박 상태 제보",
                     style = MaterialTheme.typography.labelMedium,
                     color = Palette.TextSecondary,
                 )
@@ -284,13 +270,13 @@ private fun Header(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
             else SecondaryButton(if (following) "팔로잉" else "팔로우", { actions.toggleFollow(spot.author.id) }, active = following)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SecondaryButton(state.likeCount(spot).toString(), { actions.toggleLike(spot.id) }, Modifier.weight(1f), if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, active = liked)
-            SecondaryButton(state.saveCount(spot).toString(), { actions.toggleSave(spot.id) }, Modifier.weight(1f), if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder, active = saved)
-            SecondaryButton(if (visited) "다녀왔어요" else "다녀왔다면", { actions.toggleVisited(spot.id) }, Modifier.weight(1.3f), Icons.Outlined.CheckCircle, active = visited)
+            SecondaryButton(state.likeCount(spot).toString(), { actions.toggleLike(spot.id) }, Modifier.weight(1f), if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, active = liked)
+            SecondaryButton(state.saveCount(spot).toString(), { actions.toggleSave(spot.id) }, Modifier.weight(1f), if (saved) Icons.Rounded.Star else Icons.Rounded.StarBorder, active = saved)
+            SecondaryButton(if (visited) "방문 기록됨" else "방문 기록", { actions.toggleVisited(spot.id) }, Modifier.weight(1.3f), Icons.Outlined.CheckCircle, active = visited)
         }
         val queued = spot.id in state.carQueue
         if (queued) {
-            SecondaryButton("차량으로 보낼 목록에 있어요", { actions.removeFromCar(spot.id) }, Modifier.fillMaxWidth().heightIn(min = 52.dp), Icons.Outlined.DirectionsCar, active = true)
+            SecondaryButton(if (state.account.session == null) "전송 대기 · 목록에서 빼기" else "차량 전송 목록에서 빼기", { actions.removeFromCar(spot.id) }, Modifier.fillMaxWidth().heightIn(min = 52.dp), Icons.Outlined.DirectionsCar, active = true)
         } else {
             PrimaryButton("차량으로 보내기", { actions.sendToCar(spot.id) }, Modifier.fillMaxWidth(), icon = Icons.Outlined.DirectionsCar)
         }

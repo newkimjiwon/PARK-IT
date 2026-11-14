@@ -62,9 +62,16 @@ fun NotificationsScreen(state: PhoneUiState, actions: PhoneViewModel) {
                 Text("알림", style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
             }
         }
-        if (state.fromCar.isNotEmpty()) {
-            item { Text("차량에서 보낸 항목", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)) }
-            items(state.fromCar, key = { "car-${it.id}" }) { item ->
+        val (parkits, otherItems) = state.fromCar.partition { it.isParkit }
+        listOf("파킷리스트" to parkits, "차량에서 보낸 항목" to otherItems).forEach { (title, entries) ->
+            if (entries.isEmpty()) return@forEach
+            item(key = title) {
+                Text(title, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+                if (title == "파킷리스트") {
+                    Text("차량에서 남긴 위치와 음성 메모", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+                }
+            }
+            items(entries, key = { "car-${it.id}" }) { item ->
                 val spot = state.spot(item.spotId)
                 // A 파킷 at a new place starts a post there; at a known spot it opens that spot's tips.
                 val newPlace = item.isParkit && spot == null && item.location != null
@@ -86,8 +93,8 @@ fun NotificationsScreen(state: PhoneUiState, actions: PhoneViewModel) {
                         }
                         Text(
                             when {
-                                newPlace -> "눌러서 이 위치로 장소 공유 시작"
-                                item.isParkit && spot != null -> "눌러서 꿀팁이 맞았는지 알려주기"
+                                newPlace -> "사진과 후기를 더해 장소 공유"
+                                item.isParkit && spot != null -> "장소 상세에서 방문 후기나 정보를 남길 수 있어요"
                                 spot != null -> "눌러서 장소 보기"
                                 else -> "차량 화면에서 보낸 항목"
                             },
@@ -102,6 +109,8 @@ fun NotificationsScreen(state: PhoneUiState, actions: PhoneViewModel) {
                 }
                 Hairline()
             }
+        }
+        if (state.fromCar.isNotEmpty()) {
             item { Text("활동 알림", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, modifier = Modifier.padding(top = 24.dp, bottom = 4.dp)) }
         }
         items(samples) { notice ->

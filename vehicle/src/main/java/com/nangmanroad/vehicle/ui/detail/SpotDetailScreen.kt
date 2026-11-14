@@ -28,13 +28,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.outlined.Directions
-import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -59,7 +59,6 @@ import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.rangeLabel
 import com.nangmanroad.core.data.formatKm
 import com.nangmanroad.core.data.Reach
-import com.nangmanroad.core.data.PlaceQuestion
 import com.nangmanroad.core.data.Regions
 import com.nangmanroad.core.data.carCampingCheckedLabel
 import com.nangmanroad.core.data.carCampingStale
@@ -75,7 +74,6 @@ import com.nangmanroad.vehicle.ui.map.distanceLabel
 import com.nangmanroad.vehicle.ui.theme.Dimens
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.OfficialPlaceSection
-import com.nangmanroad.core.ui.PlaceAssistantDialog
 import com.nangmanroad.core.ui.tabular
 
 private enum class DetailTab(val label: String) { TIPS("방문 꿀팁"), ITEMS("준비물"), COMMENTS("댓글") }
@@ -83,7 +81,6 @@ private enum class DetailTab(val label: String) { TIPS("방문 꿀팁"), ITEMS("
 @Composable
 fun SpotDetailScreen(spot: Spot, state: AppUiState, actions: AppViewModel) {
     var tab by rememberSaveable(spot.id) { mutableStateOf(DetailTab.TIPS) }
-    var assistantOpen by rememberSaveable(spot.id) { mutableStateOf(false) }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= 1100.dp
@@ -95,7 +92,7 @@ fun SpotDetailScreen(spot: Spot, state: AppUiState, actions: AppViewModel) {
                     contentPadding = PaddingValues(horizontal = 40.dp, vertical = 28.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
-                    detailBody(spot, state, actions, tab, onAssistant = { assistantOpen = true }) { tab = it }
+                    detailBody(spot, state, actions, tab) { tab = it }
                 }
             }
         } else {
@@ -105,18 +102,9 @@ fun SpotDetailScreen(spot: Spot, state: AppUiState, actions: AppViewModel) {
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
                 item { PhotoGallery(spot, onBack = actions::back, modifier = Modifier.fillMaxWidth().height(900.dp)) }
-                detailBody(spot, state, actions, tab, horizontalPadding = 28.dp, onAssistant = { assistantOpen = true }) { tab = it }
+                detailBody(spot, state, actions, tab, horizontalPadding = 28.dp) { tab = it }
             }
         }
-    }
-    if (assistantOpen && !state.showDrivingView) {
-        PlaceAssistantDialog(
-            spot.title,
-            PlaceQuestion.entries,
-            onAnswer = { actions.placeAnswer(spot, it) },
-            onDismiss = { assistantOpen = false },
-            targetHeight = Dimens.TouchTarget,
-        )
     }
 }
 
@@ -126,12 +114,10 @@ private fun LazyListScope.detailBody(
     actions: AppViewModel,
     tab: DetailTab,
     horizontalPadding: androidx.compose.ui.unit.Dp = 0.dp,
-    onAssistant: () -> Unit,
     onTab: (DetailTab) -> Unit,
 ) {
     val pad = Modifier.padding(horizontal = horizontalPadding)
     item { RouteRow(spot, state, actions, pad) }
-    item { ActionButton("장소 도우미", null, onAssistant, modifier = pad) }
     spot.officialPlace?.let { info -> item { OfficialPlaceSection(info, pad) } }
     item { AuthorRow(spot, state, actions, pad) }
     item {
@@ -227,17 +213,17 @@ private fun AuthorRow(spot: Spot, state: AppUiState, actions: AppViewModel, modi
         ActionButton(if (following) "팔로잉" else "팔로우", null, { actions.toggleFollow(spot.author.id) }, active = following)
         ActionButton(
             state.likeCount(spot).toString(),
-            if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+            if (liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
             { actions.toggleLike(spot.id) },
             active = liked,
         )
         ActionButton(
             state.saveCount(spot).toString(),
-            if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+            if (saved) Icons.Rounded.Star else Icons.Rounded.StarBorder,
             { actions.toggleSave(spot.id) },
             active = saved,
         )
-        ActionButton("휴대폰", Icons.Outlined.PhoneAndroid, { actions.sendToPhone(PhoneHandoff.SPOT, spot) })
+        ActionButton("휴대폰으로 보내기", Icons.Outlined.PhoneAndroid, { actions.sendToPhone(PhoneHandoff.SPOT, spot) })
     }
 }
 

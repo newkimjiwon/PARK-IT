@@ -15,3 +15,6 @@ Thumbs.db
 
 # Local sync server data (accounts, posts, uploaded photos)
 server/data/
+
+# Local Word reports and lock files
+*.docx
