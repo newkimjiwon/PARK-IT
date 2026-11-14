@@ -139,7 +139,7 @@ fun DrivingScreen(
                 listOf(
                     "목적지와 남은 거리, 남은 시간, 도착 예정 시각",
                     "도착 시 배터리와 일몰까지 남은 시간",
-                    "차박 가능 여부와 도착 전 꿀팁 세 가지",
+                    "차박 상태와 도착 전 꿀팁 세 가지",
                 ).forEachIndexed { index, line ->
                     Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text("${index + 1}", style = MaterialTheme.typography.titleLarge.tabular(), color = Palette.TextTertiary)

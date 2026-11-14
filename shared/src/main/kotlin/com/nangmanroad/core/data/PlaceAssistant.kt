@@ -30,7 +30,7 @@ fun answerAboutPlace(question: PlaceQuestion, spot: Spot): String? = when (quest
         ?: "야간 이용 조건을 확인하지 못했어요."
     PlaceQuestion.CAMPING -> when {
         spot.carCampingStale -> "확인한 지 오래된 차박 정보입니다. 방문 전에 현장 안내를 확인하세요."
-        spot.carCamping == CarCamping.CHECK -> "차박 허용 여부는 현장 확인이 필요해요."
+        spot.carCamping == CarCamping.CHECK -> "차박이 되는지는 현장에서 확인해야 해요."
         else -> "${spot.carCamping.label}으로 기록되어 있어요. 현장 안내도 확인하세요."
     }
     PlaceQuestion.TIPS -> spot.tips.byImportance().firstOrNull()?.let {

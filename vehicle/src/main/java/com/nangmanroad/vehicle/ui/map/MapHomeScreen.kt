@@ -134,7 +134,7 @@ fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
                             label = if (state.usableRangeKm != null) "지금 갈 수 있는 곳만 · 배터리 ${state.battery!!.percent}%" else "지금 갈 수 있는 곳만",
                             on = state.onlyRoundTrip,
                             onToggle = actions::toggleOnlyRoundTrip,
-                            onClickLabel = "배터리로 왕복 가능하고 차박이 금지되지 않은 곳만",
+                            onClickLabel = "배터리로 왕복할 수 있고 차박이 금지되지 않은 곳만",
                         )
                     }
                 }
@@ -413,7 +413,7 @@ private fun ParkitBanner(
             when {
                 // A spoken line goes with the place, so the post on the phone starts with the moment itself.
                 listening -> Text(
-                    voice.heard.ifBlank { "듣고 있어요. 이곳에 대해 한마디 남겨 주세요" }.let { if (voice.heard.isBlank()) it else "“$it”" },
+                    voice.heard.ifBlank { "듣고 있어요. 이곳이 어땠는지 한마디 남겨 주세요" }.let { if (voice.heard.isBlank()) it else "“$it”" },
                     style = MaterialTheme.typography.bodyMedium,
                     color = Palette.TextPrimary,
                     maxLines = 2,

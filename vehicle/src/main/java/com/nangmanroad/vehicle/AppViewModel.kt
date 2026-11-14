@@ -670,14 +670,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 batteryReadout(tripFacts())
             } else {
                 val verdict = current.tripReach(spot)
-                if (verdict == null) "차량의 배터리와 현재 위치를 확인하면 이동 가능 여부를 알 수 있어요."
+                if (verdict == null) "배터리와 현재 위치가 확인되면 갈 수 있는지 알려 드려요."
                 else {
                     val basis = if (current.remainingRouteKm(spot) != null) "남은 도로 경로" else "직선거리를 보정한 값"
                     "배터리 ${current.battery?.percent}% · ${verdict.label}. $basis 기준 추정이에요."
                 }
             }
             PlaceQuestion.ETA -> if (current.remainingRouteKm(spot) == null) {
-                "이 장소의 길 안내를 시작하면 도착 시간을 확인할 수 있어요."
+                "길 안내를 시작하면 도착 시간을 알려 드려요."
             } else etaReadout(tripFacts())
             else -> requireNotNull(answerAboutPlace(question, spot))
         }

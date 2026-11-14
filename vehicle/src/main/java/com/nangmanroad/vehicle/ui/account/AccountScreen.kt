@@ -122,7 +122,7 @@ private fun VoiceGuidanceRow(state: AppUiState, actions: AppViewModel) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("음성 안내", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
             Text(
-                "출발할 때 남은 거리, 도착 시 배터리, 일몰, 차박 여부와 꿀팁을 읽어 줘요. 1km 남으면 꿀팁을 한 번 더, 휴대폰에서 장소가 오면 알려 줘요.",
+                "출발할 때 남은 거리, 도착 시 배터리, 일몰, 차박 상태와 꿀팁을 읽어 줘요. 1km 남으면 꿀팁을 한 번 더, 휴대폰에서 장소가 오면 알려 줘요.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Palette.TextSecondary,
             )

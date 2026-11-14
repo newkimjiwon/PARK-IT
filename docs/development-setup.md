@@ -18,8 +18,8 @@
 ## 1. Android Studio와 JDK 설치
 
 1. 위 링크에서 Android Studio와 JDK 17을 내려받아 각 PC에 설치합니다. 약관이 표시되면 내용을 확인하고 동의합니다.
-2. Android Studio를 처음 열어 설치 마법사를 진행합니다. Android SDK 설치 위치를 기억해 둡니다. 외장 드라이브에 저장하고 싶다면 **처음부터 SDK 위치를 외장 드라이브로 선택**합니다.
-3. Android Studio의 **Settings / Preferences → Build, Execution, Deployment → Build Tools → Gradle → Gradle JDK**에서 설치한 JDK 17의 홈 디렉터리를 선택합니다. 프로젝트를 연 뒤 설정이 보이는 경우 해당 단계에서 지정합니다.
+2. Android Studio를 처음 열어 설치 마법사를 끝까지 따라갑니다. Android SDK 설치 위치를 기억해 둡니다. 외장 드라이브에 저장하고 싶다면 **처음부터 SDK 위치를 외장 드라이브로 선택**합니다.
+3. Android Studio의 **Settings / Preferences → Build, Execution, Deployment → Build Tools → Gradle → Gradle JDK**에서 설치한 JDK 17의 홈 디렉터리를 선택합니다. 프로젝트를 연 뒤 설정이 보이면 그때 지정합니다.
 4. 터미널에서도 JDK 17을 사용할 경우 `JAVA_HOME`을 JDK 17 홈으로 설정합니다. Android Studio의 Gradle JDK와 터미널의 `JAVA_HOME`은 별도 설정입니다.
 
 macOS 터미널에서 시스템에 등록된 JDK 17을 선택하는 예시:
@@ -84,7 +84,7 @@ git switch --detach 959981d960ec71144accb27af5ae5d341e72a644
 
 Android Studio에서 샘플 폴더를 열고 Gradle Sync를 마친 다음, 실행 대상으로 Pleos 가상 기기를 선택하고 **Run**을 누릅니다. IDE에서 SDK 경로 또는 Gradle JDK를 묻는 경우 1~2단계의 경로를 지정합니다.
 
-터미널 빌드도 가능합니다. 먼저 해당 터미널의 `JAVA_HOME`이 JDK 17인지 확인하세요. SDK를 찾지 못하면 Android Studio에서 샘플을 열어 SDK 경로를 지정하거나 `ANDROID_HOME`을 실제 SDK 위치로 설정합니다.
+터미널에서도 빌드할 수 있습니다. 먼저 그 터미널의 `JAVA_HOME`이 JDK 17인지 확인하세요. SDK를 찾지 못하면 Android Studio에서 샘플을 열어 SDK 경로를 지정하거나 `ANDROID_HOME`을 실제 SDK 위치로 설정합니다.
 
 macOS:
 
@@ -185,5 +185,5 @@ avdmanager create avd -n NangmanRoad_Phone -k "system-images;android-35;google_a
 
 - SDK, JDK, Android Studio, 가상 기기 이미지, `.gradle` 캐시와 빌드 산출물은 각자의 PC에 둡니다. 저장소에 올리지 않습니다.
 - `local.properties`, 개인별 SDK 경로와 Pleos 클라이언트 시크릿 등 인증 정보도 저장소에 올리지 않습니다.
-- Vehicle State와 NaviHelper의 사용 가능 상태 및 다른 SDK의 제공 여부는 [Pleos SDK 사용 안내](https://document.pleos.ai/docs/pleos-only/create-my-project)에서 확인합니다. 공모전 기획 전에 실제 API 제공 상태를 확인하세요.
+- Vehicle State와 NaviHelper를 쓸 수 있는지, 다른 SDK가 제공되는지는 [Pleos SDK 사용 안내](https://document.pleos.ai/docs/pleos-only/create-my-project)에서 확인합니다. 공모전 기획 전에 실제 API 제공 상태를 확인하세요.
 - SDK나 가상 기기를 외장 드라이브에 둔 경우, 실행 중에는 드라이브를 분리하지 않습니다. Android Studio와 에뮬레이터를 종료한 뒤 운영체제에서 안전하게 추출합니다.

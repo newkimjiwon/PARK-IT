@@ -292,11 +292,11 @@ private fun RouteRow(spot: Spot, state: AppUiState, actions: AppViewModel, modif
                     if (charger != null) {
                         val area = if (verdict == Reach.SHORT) "출발지 주변" else "목적지 주변"
                         Text("$area · $charger", style = MaterialTheme.typography.bodyMedium, color = Palette.TextPrimary)
-                        Text("충전기 이용 가능 여부는 출발 전에 확인하세요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+                        Text("충전기를 쓸 수 있는지는 출발 전에 확인하세요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
                     }
                 }
             } else {
-                Text("배터리 또는 현재 위치를 확인하면 이동 가능 여부를 표시합니다.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+                Text("배터리와 현재 위치가 확인되면 갈 수 있는지 보여 드려요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
             }
             if (spot.bestTime.isNotBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

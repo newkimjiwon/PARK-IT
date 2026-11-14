@@ -156,7 +156,7 @@ fun PostDetailScreen(spot: Spot, state: PhoneUiState, actions: PhoneViewModel, s
                                 }, Modifier.fillMaxWidth())
                             }
                             Text(
-                                "차박·주차 허용 여부는 현장 안내문으로 다시 확인하세요.",
+                                "차박·주차가 되는지는 현장 안내문으로 다시 확인하세요.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Palette.TextTertiary,
                             )
@@ -550,7 +550,7 @@ private fun CommentComposer(replyingTo: String?, onCancelReply: () -> Unit, onSe
             ) {
                 if (text.isEmpty()) {
                     Text(
-                        if (question && replyingTo == null) "이 장소에 대해 궁금한 점을 물어보세요" else "따뜻한 이야기를 남겨 주세요",
+                        if (question && replyingTo == null) "이 장소에서 궁금한 점을 물어보세요" else "따뜻한 이야기를 남겨 주세요",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Palette.TextTertiary,
                     )
