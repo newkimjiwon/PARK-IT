@@ -47,7 +47,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.nangmanroad.core.sync.CarTransferProgress
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.core.ui.SpotPhoto
@@ -58,6 +57,8 @@ import com.nangmanroad.phone.data.CarDemoState
 import com.nangmanroad.phone.ui.components.Hairline
 import com.nangmanroad.phone.ui.components.SectionHeader
 import com.nangmanroad.phone.ui.components.StatusLabel
+import com.nangmanroad.phone.ui.components.TransferStage
+import com.nangmanroad.phone.ui.components.transferStatus
 import com.nangmanroad.phone.ui.components.Tag
 import com.nangmanroad.phone.ui.components.PrimaryButton
 import com.nangmanroad.phone.ui.components.SecondaryButton
@@ -142,9 +143,9 @@ fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
             state.spot(transfer.spotId)?.let { it to transfer }
         }
         if (queued.isEmpty()) {
-            item { Text("장소 상세에서 '차량으로 보내기'를 누르면 여기에 모여요.", style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary) }
+            item { Text("장소 상세에서 '차량으로 보내기'를 누르면 여기에 모이고, 차량이 받았는지도 여기서 볼 수 있어요.", style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary) }
         }
-        queued.forEach { (spot, transfer) ->
+        queued.forEach { (spot, _) ->
             item(key = "queued-${spot.id}") {
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(3.dp)).clickable { actions.openSpot(spot.id) }.padding(vertical = 6.dp),
@@ -154,17 +155,18 @@ fun CarScreen(state: PhoneUiState, actions: PhoneViewModel) {
                     SpotPhoto(spot.photos.first(), null, Modifier.size(56.dp).clip(RoundedCornerShape(3.dp)))
                     Column(Modifier.weight(1f)) {
                         Text(spot.title, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
-                        Text(
-                            when {
-                                state.account.session == null -> "이 휴대폰에만 저장"
-                                transfer.carProgress == CarTransferProgress.GUIDANCE_STARTED -> "길 안내 시작"
-                                transfer.carProgress == CarTransferProgress.RECEIVED -> "차량 수신"
-                                state.user.linkedCars == 0 -> "차량 연결 대기"
-                                else -> "보냄 / 차량 수신 대기"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Palette.TextSecondary,
-                        )
+                        val status = state.transferStatus(spot.id)
+                        if (status != null) {
+                            StatusLabel(
+                                status.label,
+                                when (status.stage) {
+                                    TransferStage.DONE -> Palette.Success
+                                    TransferStage.SENT -> Palette.TextSecondary
+                                    TransferStage.WAITING -> Palette.Warning
+                                },
+                            )
+                            Text(status.detail, style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+                        }
                     }
                     Icon(Icons.Outlined.Close, "목록에서 빼기", tint = Palette.TextSecondary, modifier = Modifier.size(36.dp).clip(CircleShape).clickable { actions.removeFromCar(spot.id) }.padding(6.dp))
                 }

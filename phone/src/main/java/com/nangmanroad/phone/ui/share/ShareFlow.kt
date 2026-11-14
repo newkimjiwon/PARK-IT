@@ -1,5 +1,6 @@
 package com.nangmanroad.phone.ui.share
 
+import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.MyLocation
+import androidx.compose.material.icons.outlined.RateReview
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -46,40 +48,44 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.Category
 import com.nangmanroad.core.data.LatLng
 import com.nangmanroad.core.data.Product
+import com.nangmanroad.core.data.Regions
 import com.nangmanroad.core.data.SampleSpots
 import com.nangmanroad.core.data.Spot
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.Visibility
 import com.nangmanroad.core.data.VisitCondition
-import com.nangmanroad.core.sync.Limits
+import com.nangmanroad.core.data.distanceKm
 import com.nangmanroad.core.map.MapCamera
 import com.nangmanroad.core.map.PhotoMap
+import com.nangmanroad.core.sync.Limits
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.core.ui.icon
 import com.nangmanroad.core.ui.label
 import com.nangmanroad.phone.DraftTip
+import com.nangmanroad.phone.LocationPurpose
 import com.nangmanroad.phone.PhoneUiState
 import com.nangmanroad.phone.PhoneViewModel
 import com.nangmanroad.phone.ShareDraft
-import com.nangmanroad.core.data.Regions
 import com.nangmanroad.phone.ui.components.Chip
 import com.nangmanroad.phone.ui.components.PrimaryButton
 import com.nangmanroad.phone.ui.components.SecondaryButton
-import com.nangmanroad.phone.ui.components.Tag
 import com.nangmanroad.phone.ui.detail.LabeledField
 import com.nangmanroad.phone.ui.map.PhoneMapStyle
 import java.util.UUID
 
+// Where first: a place already on the map gets a review instead of a duplicate, and a new place
+// starts from a pin. Photos and the story follow.
 private val stepTitles = listOf(
-    "사진을 골라주세요",
     "어디였나요?",
+    "사진을 골라주세요",
     "어떤 곳이었나요?",
 )
 
@@ -107,8 +113,8 @@ fun ShareFlow(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewModel) {
                 Text(stepTitles[draft.step], style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
             }
             when (draft.step) {
-                0 -> item { PhotoStep(draft, actions) }
-                1 -> item { PlaceStep(draft, actions) }
+                0 -> item { PlaceStep(draft, state, actions) }
+                1 -> item { PhotoStep(draft, actions) }
                 else -> item { StoryStep(draft, state, actions) }
             }
         }
@@ -117,12 +123,128 @@ fun ShareFlow(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewModel) {
             text = when {
                 last && draft.publishing -> "올리는 중…"
                 last -> "공유하기"
+                draft.step == 0 && draft.existingSpotId != null -> "위에서 후기 또는 새 장소를 골라 주세요"
+                draft.step == 0 && draft.pin == null -> "지도에서 위치를 정해 주세요"
                 else -> "다음 단계"
             },
             onClick = { if (last) actions.publish() else actions.draftNext() },
             enabled = draft.canContinue(),
             modifier = Modifier.fillMaxWidth().padding(16.dp),
         )
+    }
+}
+
+@Composable
+private fun PlaceStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewModel) {
+    var query by rememberSaveable { mutableStateOf("") }
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        actions.useCurrentLocation(LocationPurpose.SHARE_DRAFT)
+    }
+    val askLocation = { permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }
+    val pin = draft.pin
+    val existing = state.spot(draft.existingSpotId)
+
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        if (draft.fromCar) {
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(Palette.Success.copy(alpha = 0.14f)).padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(Icons.Outlined.DirectionsCar, null, tint = Palette.Success)
+                Text("차량이 세운 위치를 받았어요. 틀리면 지도를 눌러 고쳐 주세요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextPrimary)
+            }
+        } else {
+            Text(
+                "지도에서 위치를 먼저 정해요. 이미 올라온 장소의 사진을 누르면 새로 만들지 않고 후기를 남길 수 있어요.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Palette.TextSecondary,
+            )
+        }
+        SecondaryButton(
+            if (state.locating) "위치 확인 중…" else "내 위치에서 시작",
+            askLocation,
+            Modifier.fillMaxWidth(),
+            icon = Icons.Outlined.MyLocation,
+            enabled = !state.locating,
+        )
+        LabeledField("시·군 검색", query, "예: 강릉, 태안, 제천") { query = it }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(Regions.search(query).take(12), key = { it.short }) { region ->
+                Chip(region.short, draft.region == region && existing == null, { actions.chooseRegion(region) })
+            }
+        }
+        PhotoMap(
+            // Places already shared stay on the map, so the same spot gets a review, not a second post.
+            spots = state.spots,
+            selectedId = existing?.id,
+            pin = pin.takeIf { existing == null },
+            here = state.here.takeIf { state.usesDeviceLocation },
+            onSelect = { actions.pickExistingSpot(it.id) },
+            onVisibleChange = {},
+            style = PhoneMapStyle.copy(initialCamera = MapCamera(pin ?: PhoneMapStyle.initialCamera.center, if (pin != null) 2.5f else 0.9f), controlsPadding = PaddingValues(8.dp)),
+            onMapTap = actions::dropPin,
+            focus = draft.mapFocus,
+            onMyLocation = askLocation,
+            modifier = Modifier.fillMaxWidth().height(340.dp).clip(RoundedCornerShape(4.dp)),
+        )
+        if (existing != null) {
+            ExistingPlaceCard(existing, pin, onReview = actions::reviewExistingSpot, onNewPlace = actions::keepAsNewPlace)
+        } else {
+            Text(
+                if (pin == null) "지역을 고르거나 지도를 눌러 위치를 찍어 주세요." else "지도를 다시 누르면 핀을 옮길 수 있어요.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Palette.TextSecondary,
+            )
+            val region = draft.region
+            if (region != null && pin != null) {
+                val away = distanceKm(region.center, pin)
+                Text(
+                    if (away > REGION_NEAR_KM) "가장 가까운 등록 지역: ${region.address} (핀에서 약 ${away.toInt()}km)" else "선택한 지역: ${region.address}",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Palette.TextPrimary,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Chip("정확한 위치", !draft.approximate, { actions.updateDraft { it.copy(approximate = false) } })
+                    Chip("시·군까지만", draft.approximate, { actions.updateDraft { it.copy(approximate = true) } })
+                }
+                Text(
+                    if (draft.approximate) "게시물에는 시·군 중심에 표시돼요. 찍은 핀은 저장되지 않아요." else "게시물에 찍은 핀 그대로 표시돼요.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Palette.TextSecondary,
+                )
+            }
+        }
+    }
+}
+
+/** A pin this far from the region's centre is labelled as "nearest region", not as that region. */
+private const val REGION_NEAR_KM = 40.0
+
+/**
+ * The pin landed on (or next to) a place that is already shared. The same place twice helps nobody,
+ * so the first offer is a review on it; "새 장소로 등록" stays for a different place close by.
+ */
+@Composable
+private fun ExistingPlaceCard(spot: Spot, pin: LatLng?, onReview: () -> Unit, onNewPlace: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).border(1.dp, Palette.TextPrimary, RoundedCornerShape(4.dp)).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            SpotPhoto(spot.photos.first(), null, Modifier.size(64.dp).clip(RoundedCornerShape(3.dp)))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("이미 올라온 장소예요", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
+                Text(spot.title, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    listOfNotNull(spot.region, pin?.let { "핀에서 ${(distanceKm(it, spot.location) * 1000).toInt()}m" }).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Palette.TextSecondary,
+                )
+            }
+        }
+        PrimaryButton("이 장소에 후기 남기기", onReview, Modifier.fillMaxWidth(), icon = Icons.Outlined.RateReview)
+        SecondaryButton("다른 곳이에요 · 새 장소로 등록", onNewPlace, Modifier.fillMaxWidth())
     }
 }
 
@@ -174,59 +296,20 @@ private fun PhotoStep(draft: ShareDraft, actions: PhoneViewModel) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PlaceStep(draft: ShareDraft, actions: PhoneViewModel) {
-    var query by rememberSaveable { mutableStateOf("") }
-    val pin = draft.pin
+private fun StoryStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewModel) {
+    var showTips by rememberSaveable { mutableStateOf(draft.tips.isNotEmpty()) }
+    var showItems by rememberSaveable { mutableStateOf(draft.products.isNotEmpty()) }
+    var showAudience by rememberSaveable { mutableStateOf(draft.visibility != Visibility.PUBLIC) }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        if (draft.photoLocation != null) {
-            Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(Palette.Success.copy(alpha = 0.14f)).padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(Icons.Outlined.MyLocation, null, tint = Palette.Success)
-                Text("사진의 위치를 찾았어요. 틀리면 지도를 눌러 고쳐 주세요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextPrimary)
+        LabeledField("제목", draft.title, "예: 파도 소리만 들리는 작은 해변", maxLength = Limits.TITLE) { title -> actions.updateDraft { it.copy(title = title) } }
+        LabeledField("경험", draft.story, "언제 갔고, 무엇이 좋았고, 무엇이 불편했는지", minHeight = 120, maxLength = Limits.STORY) { story -> actions.updateDraft { it.copy(story = story) } }
+        Text("테마를 고르면 지도와 홈의 필터에 잡혀요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Category.entries.forEach { category ->
+                Chip(category.label, draft.category == category, { actions.updateDraft { it.copy(category = category) } })
             }
-        } else if (draft.fromCar) {
-            Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).background(Palette.Success.copy(alpha = 0.14f)).padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(Icons.Outlined.DirectionsCar, null, tint = Palette.Success)
-                Text("차량이 세운 위치를 받았어요. 틀리면 지도를 눌러 고쳐 주세요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextPrimary)
-            }
-        }
-        LabeledField("시·군 검색", query, "예: 강릉, 태안, 제천") { query = it }
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(Regions.search(query).take(12), key = { it.short }) { region ->
-                Chip(region.short, draft.region == region, { actions.chooseRegion(region) })
-            }
-        }
-        Text("지도를 눌러 정확한 위치를 찍을 수 있어요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
-        val marker = pin?.let { draftMarker(draft, it) }
-        PhotoMap(
-            spots = listOfNotNull(marker),
-            selectedId = marker?.id,
-            here = OffMap,
-            onSelect = {},
-            onVisibleChange = {},
-            style = PhoneMapStyle.copy(initialCamera = MapCamera(pin ?: PhoneMapStyle.initialCamera.center, if (pin != null) 2.5f else 0.9f), controlsPadding = PaddingValues(8.dp)),
-            onMapTap = actions::dropPin,
-            modifier = Modifier.fillMaxWidth().height(320.dp).clip(RoundedCornerShape(4.dp)),
-        )
-        draft.region?.let {
-            Text("선택한 지역: ${it.address}", style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Chip("정확한 위치", !draft.approximate, { actions.updateDraft { it.copy(approximate = false) } })
-            Chip("시·군까지만", draft.approximate, { actions.updateDraft { it.copy(approximate = true) } })
-            Text(
-                if (draft.approximate) "지도에는 시·군 중심에 표시돼요" else "찍은 위치 그대로 표시돼요",
-                style = MaterialTheme.typography.bodySmall,
-                color = Palette.TextSecondary,
-            )
         }
         CarCampingQuestion(draft, actions)
         Text("직접 확인한 방문 조건", style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
@@ -238,34 +321,6 @@ private fun PlaceStep(draft: ShareDraft, actions: PhoneViewModel) {
                         it.copy(visitConditions = confirmed)
                     }
                 })
-            }
-        }
-    }
-}
-
-/** The map needs a "here" dot; the share flow has no live location, so park it off-screen. */
-private val OffMap = LatLng(0.0, 0.0)
-
-private fun draftMarker(draft: ShareDraft, at: LatLng) = Spot(
-    id = "draft", title = draft.title.ifBlank { "새 장소" }, region = draft.region?.short.orEmpty(), address = draft.region?.address.orEmpty(),
-    location = at, category = draft.category ?: Category.QUIET, author = SampleSpots.authors.first(), story = "",
-    photos = draft.photos.ifEmpty { listOf("") }, likeCount = 0, saveCount = 0, postedDaysAgo = 0,
-    tips = emptyList(), products = emptyList(), comments = emptyList(),
-)
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun StoryStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewModel) {
-    var showTips by rememberSaveable { mutableStateOf(draft.tips.isNotEmpty()) }
-    var showItems by rememberSaveable { mutableStateOf(draft.products.isNotEmpty()) }
-    var showAudience by rememberSaveable { mutableStateOf(draft.visibility != Visibility.PUBLIC) }
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        LabeledField("제목", draft.title, "예: 파도 소리만 들리는 작은 해변", maxLength = Limits.TITLE) { title -> actions.updateDraft { it.copy(title = title) } }
-        LabeledField("경험", draft.story, "언제 갔고, 무엇이 좋았고, 무엇이 불편했는지", minHeight = 120, maxLength = Limits.STORY) { story -> actions.updateDraft { it.copy(story = story) } }
-        Text("분류를 고르면 지도와 홈의 필터에 잡혀요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Category.entries.forEach { category ->
-                Chip(category.label, draft.category == category, { actions.updateDraft { it.copy(category = category) } })
             }
         }
         LabeledField("언제 가면 좋아요? (선택)", draft.bestTime, "예: 맑은 날 일몰 30분 전부터, 가을 새벽 물안개", maxLength = Limits.BEST_TIME) { bestTime ->
@@ -292,20 +347,20 @@ private fun StoryStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneView
 
 /**
  * "Can the night be spent here?" is the first thing the next driver looks for, so it is asked where
- * the place is described, not buried among tips. "현장 확인" stays the honest default; a reason is
- * invited only once the author commits to 가능 or 금지.
+ * the place is described, not buried among tips. "현장 확인 필요" stays the honest default; a reason
+ * is invited only once the author commits to 가능 or 금지.
  */
 @Composable
 private fun CarCampingQuestion(draft: ShareDraft, actions: PhoneViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("이곳에서 밤을 보내도 되나요?", style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
         Text(
-            "다음 운전자가 가장 먼저 보는 정보예요. 확실하지 않으면 '현장 확인'으로 두세요.",
+            "다음 운전자가 가장 먼저 보는 정보예요. 확실하지 않으면 '${CarCamping.CHECK.label}'로 두세요.",
             style = MaterialTheme.typography.bodySmall,
             color = Palette.TextSecondary,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CarCamping.entries.forEach { status ->
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(CarCamping.entries) { status ->
                 Chip(status.label, draft.carCamping == status, { actions.updateDraft { it.copy(carCamping = status) } }, icon = status.icon())
             }
         }
@@ -365,12 +420,16 @@ private fun placeholderFor(kind: TipKind) = when (kind) {
     TipKind.CAUTION -> "예: 밀물 때 바위 쪽은 위험해요"
 }
 
+/**
+ * What the author took along. Only a name and why it helped: asking the author to label their own
+ * item "bought" or "sponsored" read like an ad form, so that choice is gone and a shared item is
+ * always a plain recommendation.
+ */
 @Composable
 private fun ItemStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewModel) {
     var name by rememberSaveable { mutableStateOf("") }
     var reason by rememberSaveable { mutableStateOf("") }
     var price by rememberSaveable { mutableStateOf("") }
-    var sponsored by rememberSaveable { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("직접 써 본 캠핑·여행 용품이 있다면 추천해 주세요. 없으면 건너뛰어도 돼요.", style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary)
         draft.products.forEach { product ->
@@ -379,10 +438,7 @@ private fun ItemStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewM
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(product.name, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
-                        if (product.isSponsored) Tag("광고·제휴", Palette.Warning)
-                    }
+                    Text(product.name, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
                     Text(product.reason, style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
                 }
                 Icon(Icons.Outlined.Delete, "빼기", tint = Palette.TextSecondary, modifier = Modifier.size(36.dp).clip(CircleShape)
@@ -394,25 +450,22 @@ private fun ItemStep(draft: ShareDraft, state: PhoneUiState, actions: PhoneViewM
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             LabeledField("준비물 이름", name, "예: 휴대용 무드 랜턴") { name = it }
-            LabeledField("추천 이유", reason, "예: 조명이 없는 곳에서 밤 풍경을 오래 볼 수 있어요") { reason = it }
+            LabeledField("써 보니 어땠나요?", reason, "예: 조명이 없는 곳에서 밤 풍경을 오래 볼 수 있어요") { reason = it }
             LabeledField("가격 (선택, 원)", price, "예: 39000") { price = it.filter(Char::isDigit) }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip("직접 구매", !sponsored, { sponsored = false })
-                Chip("광고·제휴", sponsored, { sponsored = true })
-            }
             SecondaryButton("준비물 추가", {
                 val product = Product(
                     id = "p-${UUID.randomUUID()}",
-                    name = name.trim(),
+                    // Either field alone is enough; a missing name borrows the start of the reason.
+                    name = name.trim().ifEmpty { reason.trim().take(24) },
                     reason = reason.trim(),
                     recommender = state.me.name,
                     priceWon = price.toIntOrNull(),
-                    isSponsored = sponsored,
+                    isSponsored = false,
                     imageUrl = draft.photos.firstOrNull().orEmpty(),
                 )
                 actions.updateDraft { it.copy(products = it.products + product) }
-                name = ""; reason = ""; price = ""; sponsored = false
-            }, Modifier.fillMaxWidth(), enabled = name.isNotBlank() && reason.isNotBlank(), container = Palette.Surface)
+                name = ""; reason = ""; price = ""
+            }, Modifier.fillMaxWidth(), enabled = name.isNotBlank() || reason.isNotBlank(), container = Palette.Surface)
         }
     }
 }

@@ -1,6 +1,9 @@
 package com.nangmanroad.phone.ui.detail
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,11 +22,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -38,6 +44,8 @@ import com.nangmanroad.core.ui.label
 import com.nangmanroad.phone.ui.components.Chip
 import com.nangmanroad.phone.ui.components.PrimaryButton
 import com.nangmanroad.phone.ui.components.SecondaryButton
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** Inline form for adding a visitor tip to someone else's post. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -96,6 +104,10 @@ fun TipSuggestionForm(
     }
 }
 
+/** Roughly how long the keyboard takes to finish sliding in. */
+private const val KEYBOARD_SETTLE_MS = 320L
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LabeledField(
     label: String,
@@ -107,7 +119,10 @@ fun LabeledField(
     secure: Boolean = false,
     onChange: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    // The keyboard takes half the screen; once it is up, bring the focused field back into view.
+    val bringIntoView = remember { BringIntoViewRequester() }
+    val scope = rememberCoroutineScope()
+    Column(Modifier.bringIntoViewRequester(bringIntoView), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary, modifier = Modifier.weight(1f))
             if (maxLength != null && value.length >= maxLength * 0.8) {
@@ -135,7 +150,12 @@ fun LabeledField(
                 visualTransformation = if (secure) PasswordVisualTransformation() else VisualTransformation.None,
                 keyboardOptions = if (secure) KeyboardOptions(keyboardType = KeyboardType.Password) else KeyboardOptions.Default,
                 singleLine = secure,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().onFocusEvent { focus ->
+                    if (focus.isFocused) scope.launch {
+                        delay(KEYBOARD_SETTLE_MS)
+                        bringIntoView.bringIntoView()
+                    }
+                },
             )
         }
     }

@@ -84,7 +84,8 @@ sealed interface Screen {
     data class Detail(val spotId: String, val returnTo: Screen) : Screen
 }
 
-data class ToastMessage(val text: String, val id: Long = System.nanoTime())
+/** [openSpotId] turns the toast into "open this place": used when the phone sends one over. */
+data class ToastMessage(val text: String, val id: Long = System.nanoTime(), val openSpotId: String? = null)
 
 /** What the car hands to the phone, and how it is named on both screens. */
 enum class PhoneHandoff(val label: String, val toastObject: String) {
@@ -315,7 +316,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     val arrived = _state.value.fromPhone.firstOrNull { it !in before }
                     arrived?.let { id ->
                         _state.value.spot(id)?.let {
-                            toast("휴대폰에서 '${it.title}'을(를) 보냈어요")
+                            toast("휴대폰에서 '${it.title}'을(를) 받았어요", openSpotId = id)
                             announce(phoneSentAnnouncement(it.title))
                         }
                     }
@@ -346,16 +347,38 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         voiceInput.start()
     }
 
-    fun openSpot(spotId: String) = _state.update {
-        it.copy(screen = Screen.Detail(spotId, returnTo = it.screen.base()), selectedSpotId = spotId)
+    // Leaving the map (or pressing 지도 again) closes the 파킷 banner, so the rail's highlight and the
+    // screen never disagree about what is open.
+
+    fun openSpot(spotId: String) {
+        dismissParkit()
+        _state.update { it.copy(screen = Screen.Detail(spotId, returnTo = it.screen.base()), selectedSpotId = spotId) }
     }
 
     fun selectSpot(spotId: String) = _state.update { it.copy(selectedSpotId = spotId) }
 
-    fun showMap() = leaveAccount { it.copy(screen = Screen.Map) }
+    fun showMap() {
+        dismissParkit()
+        leaveAccount { it.copy(screen = Screen.Map) }
+    }
 
-    fun showAlbum(tab: AlbumTab? = null) = leaveAccount {
-        it.copy(screen = Screen.Album, albumTab = tab ?: it.albumTab)
+    /** The rail's 파킷하기 button: the map with the offer for where the car is now. */
+    fun openParkit() {
+        leaveAccount { it.copy(screen = Screen.Map) }
+        suggestParkit(manual = true)
+    }
+
+    fun showAlbum(tab: AlbumTab? = null) {
+        dismissParkit()
+        leaveAccount { it.copy(screen = Screen.Album, albumTab = tab ?: it.albumTab) }
+    }
+
+    /**
+     * The map's crosshair button. The map moves to the car by itself once the navigation has a fix;
+     * without one "here" is only a default, so say so instead of jumping somewhere else.
+     */
+    fun myLocationPressed() {
+        if (!_state.value.hereFromNavigation) toast("차량 내비게이션에 연결되지 않아 현재 위치를 알 수 없어요. 연결되면 다시 눌러 주세요")
     }
 
     fun back() = leaveAccount { current ->
@@ -384,6 +407,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     // Account and pairing
 
     fun openAccount() {
+        dismissParkit()
         _state.update { it.copy(screen = Screen.Account) }
         if (_state.value.session == null) startPairing()
     }
@@ -468,11 +492,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             repository.sendToPhone("${kind.name.lowercase()}:${product?.id ?: spot.id}", label, spot.id)
                 .onSuccess {
                     toast(
-                        if (_state.value.session != null) "${kind.toastObject} 휴대폰으로 보냈어요"
-                        else "${kind.toastObject} 담아 두었어요. 계정을 연결하면 휴대폰으로 보낼 수 있어요",
+                        if (_state.value.session != null) "${kind.toastObject} 휴대폰으로 보냈어요. 휴대폰 알림에서 열 수 있어요"
+                        else "전송 대기 · ${kind.toastObject} 담아 두었어요. 왼쪽 아래 '계정 연결'을 마치면 휴대폰으로 보내져요",
                     )
                 }
-                .onFailure { toast(it.message ?: "휴대폰으로 보내지 못했어요") }
+                .onFailure { toast("휴대폰으로 보내지 못했어요. ${it.message ?: "연결 상태를 확인해 주세요"} · 다시 눌러 주세요") }
         }
     }
 
@@ -493,7 +517,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             .minByOrNull { distanceKm(it.location, current.here) }
             ?.takeIf { distanceKm(it.location, current.here) <= NEAR_SPOT_KM }
             ?.id
-        _state.update { it.copy(parkit = ParkitSuggestion(current.here, System.currentTimeMillis(), near)) }
+        // The banner lives on the map, so an offer made on another screen brings the map forward.
+        leaveAccount { it.copy(parkit = ParkitSuggestion(current.here, System.currentTimeMillis(), near), screen = Screen.Map) }
         if (!manual) announce(parkitPrompt(current.spot(near)?.title, canTakeNote = current.voice.canListen))
     }
 
@@ -747,7 +772,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun updateVoice(transform: (VoiceUi) -> VoiceUi) = _state.update { it.copy(voice = transform(it.voice)) }
 
-    fun toast(text: String) = _state.update { it.copy(toast = ToastMessage(text)) }
+    fun toast(text: String, openSpotId: String? = null) = _state.update { it.copy(toast = ToastMessage(text, openSpotId = openSpotId)) }
 
     fun consumeToast(id: Long) = _state.update { if (it.toast?.id == id) it.copy(toast = null) else it }
 

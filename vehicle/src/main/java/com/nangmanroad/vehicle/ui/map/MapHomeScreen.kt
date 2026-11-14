@@ -143,7 +143,9 @@ fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
                     PhotoMap(
                         spots = matching,
                         selectedId = selected?.id,
-                        here = state.here,
+                        // Without a navigation fix "here" is only a default; draw no dot rather than a wrong one.
+                        here = state.here.takeIf { state.hereFromNavigation },
+                        onMyLocation = actions::myLocationPressed,
                         onSelect = { actions.selectSpot(it.id) },
                         onVisibleChange = actions::onVisibleSpotsChanged,
                         herePulse = state.parkitPulse,
@@ -424,11 +426,13 @@ private fun ParkitBanner(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                // Say what the button does before it is pressed: what is kept, and what the phone gets.
                 else -> Text(
-                    if (nearSpot != null) "방문 완료로 표시하고, 꿀팁이 맞았는지 휴대폰에서 알려줘요" else "방금 세운 곳을 휴대폰으로 보내 사진과 꿀팁을 더해요",
+                    if (nearSpot != null) "파킷하기를 누르면 방문 기록이 남고, 휴대폰 알림에서 꿀팁이 맞았는지 알려줄 수 있어요"
+                    else "파킷하기를 누르면 지금 세운 위치와 시각이 저장돼요. 휴대폰 알림에서 열어 사진과 꿀팁을 더하면 장소로 공유돼요",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Palette.TextSecondary,
-                    maxLines = 2,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -467,7 +471,7 @@ private fun ParkitBanner(
                 text = when {
                     listening -> "듣는 중"
                     note.isNotBlank() -> "다시 말하기"
-                    else -> "말로 메모"
+                    else -> "음성 메모"
                 },
                 icon = Icons.Outlined.Mic,
                 onClick = onNote,

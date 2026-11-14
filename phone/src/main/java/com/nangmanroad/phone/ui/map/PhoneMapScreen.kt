@@ -37,8 +37,13 @@ import com.nangmanroad.core.ui.FacilityFilterRow
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.tabular
 import com.nangmanroad.core.ui.SpotPhoto
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.nangmanroad.phone.LocationPurpose
 import com.nangmanroad.phone.PhoneUiState
 import com.nangmanroad.phone.PhoneViewModel
+import com.nangmanroad.phone.ui.components.FilterSummary
 import com.nangmanroad.phone.ui.components.TabRow
 import com.nangmanroad.phone.ui.components.TextTab
 import com.nangmanroad.phone.ui.components.VisitConditionChips
@@ -56,6 +61,9 @@ val PhoneMapStyle = PhotoMapStyle(
 
 @Composable
 fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        actions.useCurrentLocation(LocationPurpose.MAP)
+    }
     // The same facility chips as the home feed, so a filter chosen there carries over to the map.
     val spots = SpotQueries.matching(state.spots, state.mapCategory, "", state.facilities)
         .filter { it.visitConditions.containsAll(state.visitConditions) }
@@ -78,14 +86,25 @@ fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
             gap = 6.dp,
             trailing = { VisitConditionChips(state.visitConditions, actions::toggleVisitCondition) },
         )
+        FilterSummary(
+            conditions = state.facilities.size + state.visitConditions.size,
+            matches = spots.size,
+            onClear = actions::clearFilters,
+            modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 10.dp),
+        )
         Box(Modifier.weight(1f).fillMaxWidth()) {
             PhotoMap(
                 spots = spots,
                 selectedId = selected?.id,
-                here = state.here,
+                // Seoul is only the default for distances; the dot shows once the phone really knows where it is.
+                here = state.here.takeIf { state.usesDeviceLocation },
                 onSelect = { actions.selectOnMap(it.id) },
                 onVisibleChange = {},
                 style = PhoneMapStyle,
+                focus = state.mapFocus,
+                onMyLocation = {
+                    permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                },
                 modifier = Modifier.fillMaxSize(),
             )
             if (selected != null) {
@@ -104,7 +123,7 @@ fun PhoneMapScreen(state: PhoneUiState, actions: PhoneViewModel) {
                 ) {
                     SpotPhoto(selected.photos.first(), selected.title, Modifier.size(84.dp).clip(RoundedCornerShape(3.dp)))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(selected.category.label, style = MaterialTheme.typography.labelMedium, color = Palette.TextSecondary)
+                        Text("테마 · ${selected.category.label}", style = MaterialTheme.typography.labelMedium, color = Palette.TextSecondary)
                         Text(selected.title, style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text("${selected.region} · ${distanceFromHere(state.here, selected, state.usesDeviceLocation)}", style = MaterialTheme.typography.bodySmall.tabular(), color = Palette.TextSecondary)
                         Text("꿀팁 ${selected.tips.size} · 좋아요 ${state.likeCount(selected)}", style = MaterialTheme.typography.bodySmall.tabular(), color = Palette.TextSecondary)

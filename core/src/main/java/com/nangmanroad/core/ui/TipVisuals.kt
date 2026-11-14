@@ -40,6 +40,7 @@ import com.nangmanroad.core.data.FacilityKinds
 import com.nangmanroad.core.data.HoneyTip
 import com.nangmanroad.core.data.Reach
 import com.nangmanroad.core.data.facilityStatus
+import com.nangmanroad.core.data.facilityStatusLabel
 import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
 
@@ -89,7 +90,7 @@ fun FacilityStrip(tips: List<HoneyTip>, modifier: Modifier = Modifier, iconSize:
                 TipStatus.GOOD -> Palette.TextSecondary
                 else -> status.color()
             }
-            val description = "${kind.label} ${status?.label() ?: "정보 없음"}"
+            val description = "${kind.label} ${facilityStatusLabel(status)}"
             Icon(
                 kind.icon(),
                 contentDescription = null,
@@ -123,7 +124,7 @@ fun FacilityFilterRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FacilityKinds.forEach { kind ->
-            ToggleChip(kind.icon(), kind.label, kind in selected, { onToggle(kind) }, height = height, iconSize = iconSize, gap = gap, onClickLabel = "${kind.label} 있는 곳만")
+            ToggleChip(kind.icon(), kind.label, kind in selected, { onToggle(kind) }, height = height, iconSize = iconSize, gap = gap, onClickLabel = "${kind.label} 확인된 곳만")
         }
         trailing?.invoke(this)
     }

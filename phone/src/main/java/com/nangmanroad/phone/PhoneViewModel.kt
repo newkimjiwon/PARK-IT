@@ -24,6 +24,8 @@ import com.nangmanroad.core.data.TipKind
 import com.nangmanroad.core.data.TipStatus
 import com.nangmanroad.core.data.Visibility
 import com.nangmanroad.core.data.VisitCondition
+import com.nangmanroad.core.data.distanceKm
+import com.nangmanroad.core.map.MapFocus
 import com.nangmanroad.core.sync.NewPost
 import com.nangmanroad.core.sync.NewTip
 import com.nangmanroad.core.sync.SentItem
@@ -54,7 +56,8 @@ import java.util.UUID
 enum class PhoneTab { HOME, MAP, SHARE, CAR, MY }
 
 sealed interface PhoneRoute {
-    data class Detail(val spotId: String) : PhoneRoute
+    /** [toReviews] opens on the comments tab, where a review of an existing place is written. */
+    data class Detail(val spotId: String, val toReviews: Boolean = false) : PhoneRoute
     data object Notifications : PhoneRoute
     data object Share : PhoneRoute
 }
@@ -65,9 +68,16 @@ enum class ProfileTab(val label: String) { SHARED("공유한 장소"), SAVED("�
 
 data class DraftTip(val status: TipStatus = TipStatus.PREPARE, val summary: String = "")
 
+/** What a location fix is for, so it lands in the right place: the nearby feed, the map tab or the post being written. */
+enum class LocationPurpose { NEARBY, MAP, SHARE_DRAFT }
+
 /** The post being written in the three-step share flow. */
 data class ShareDraft(
     val step: Int = 0,
+    /** Where the share map should move next: a picked region or the device's position. */
+    val mapFocus: MapFocus? = null,
+    /** A place already shared that the pin landed on or next to; it gets a review instead of a duplicate. */
+    val existingSpotId: String? = null,
     val photos: List<String> = emptyList(),
     val importing: Boolean = false,
     val publishing: Boolean = false,
@@ -92,10 +102,10 @@ data class ShareDraft(
 ) {
     val fromCar: Boolean get() = parkitId != null
 
-    /** Photos, then the place, then the words; tips and gear are optional extras on the last step. */
+    /** The place first, then photos, then the words; tips and gear are optional extras on the last step. */
     fun canContinue(): Boolean = when (step) {
-        0 -> photos.isNotEmpty() && !importing
-        1 -> region != null
+        0 -> region != null && pin != null && existingSpotId == null
+        1 -> photos.isNotEmpty() && !importing
         else -> title.isNotBlank() && category != null && tips.values.all { it.summary.isNotBlank() } && !publishing
     }
 
@@ -130,6 +140,8 @@ data class PhoneUiState(
     val visitConditions: Set<VisitCondition> = emptySet(),
     val mapCategory: Category? = null,
     val mapSelectedId: String? = null,
+    /** Moves the map tab's camera, e.g. to the device's position once it is known. */
+    val mapFocus: MapFocus? = null,
     val profileTab: ProfileTab = ProfileTab.SHARED,
     val car: CarDemoState = CarDemoState(),
     val claimingCar: Boolean = false,
@@ -166,6 +178,8 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("phone_ui", Context.MODE_PRIVATE)
     private val photoDir = File(application.filesDir, "posts").apply { mkdirs() }
     private var foreground = false
+    /** Ids already in the inbox, so only what the car sends while the app is open is announced. */
+    private var knownInbox: Set<String>? = null
 
     private val _state = MutableStateFlow(
         PhoneUiState(
@@ -187,6 +201,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
             }.collect { (user, spots, sessionAndOnline) ->
                 val (session, online) = sessionAndOnline
                 _state.update { it.copy(user = user, spots = spots, account = it.account.copy(session = session, online = online)) }
+                announceFromCar(user, signedIn = session != null && online == true)
             }
         }
         viewModelScope.launch {
@@ -203,13 +218,33 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         if (visible) viewModelScope.launch { repository.refresh() }
     }
 
-    fun useCurrentLocation() {
+    /** Says once that the car sent something, with where to find it; the first load is not news. */
+    private fun announceFromCar(user: UserState, signedIn: Boolean) {
+        val ids = user.phoneInbox.map { it.id }.toSet()
+        val known = knownInbox
+        if (!signedIn) {
+            knownInbox = null
+            return
+        }
+        if (known != null) {
+            user.phoneInbox.firstOrNull { it.id !in known }?.let { toast("차량에서 '${it.label}'을(를) 보냈어요. 홈의 알림에서 열 수 있어요") }
+        }
+        knownInbox = ids
+    }
+
+    fun useCurrentLocation(purpose: LocationPurpose = LocationPurpose.NEARBY) {
         if (_state.value.locating) return
         val context = getApplication<Application>()
         val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         if (!fine && !coarse) {
-            toast("위치 권한이 없어요. 서울 기준으로 가까운 곳을 보여드려요.")
+            toast(
+                when (purpose) {
+                    LocationPurpose.NEARBY -> "위치 권한이 없어요. 서울 기준으로 가까운 곳을 보여드려요."
+                    LocationPurpose.MAP -> "위치 권한이 없어 내 위치로 이동할 수 없어요. 설정에서 허용할 수 있어요."
+                    LocationPurpose.SHARE_DRAFT -> "위치 권한이 없어요. 지역을 고르거나 지도를 눌러 위치를 찍어 주세요."
+                },
+            )
             return
         }
         _state.update { it.copy(locating = true) }
@@ -237,9 +272,25 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             _state.update {
-                it.copy(here = position ?: DefaultLocation, usesDeviceLocation = position != null, locating = false)
+                it.copy(
+                    here = position ?: DefaultLocation,
+                    usesDeviceLocation = position != null,
+                    locating = false,
+                    mapFocus = if (purpose == LocationPurpose.MAP && position != null) MapFocus(position, 3f) else it.mapFocus,
+                )
             }
-            if (position == null) toast("현재 위치를 찾지 못했어요. 위치 설정을 확인해 주세요.")
+            when {
+                position == null -> toast(
+                    if (purpose == LocationPurpose.SHARE_DRAFT) "현재 위치를 찾지 못했어요. 지도를 눌러 위치를 찍어 주세요."
+                    else "현재 위치를 찾지 못했어요. 위치 설정을 확인해 주세요.",
+                )
+                purpose == LocationPurpose.SHARE_DRAFT -> {
+                    val near = existingSpotNear(position)
+                    updateDraft {
+                        it.copy(pin = position, region = Regions.nearest(position), mapFocus = MapFocus(position, 3f), existingSpotId = near?.id)
+                    }
+                }
+            }
         }
     }
 
@@ -298,6 +349,8 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         it.copy(facilities = if (kind in it.facilities) it.facilities - kind else it.facilities + kind)
     }
 
+    fun clearFilters() = _state.update { it.copy(facilities = emptySet(), visitConditions = emptySet()) }
+
     fun setMapCategory(category: Category?) = _state.update { it.copy(mapCategory = category) }
 
     fun selectOnMap(spotId: String?) = _state.update { it.copy(mapSelectedId = spotId) }
@@ -316,8 +369,9 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleHelpful(tipId: String) = toggle(UserList.HELPFUL_TIPS, tipId)
 
+    /** A personal record only: it fills 마이 > 방문 완료 and tells nobody else anything. */
     fun toggleVisited(spotId: String) =
-        toggle(UserList.VISITED, spotId, onMessage = "방문 완료로 표시했어요. 꿀팁을 남겨 주시면 다음 방문자에게 큰 도움이 돼요")
+        toggle(UserList.VISITED, spotId, onMessage = "방문 기록에 남겼어요. 나만 보는 기록이에요", offMessage = "방문 기록에서 뺐어요")
 
     fun toggleProduct(productId: String) = toggle(UserList.SAVED_PRODUCTS, productId, onMessage = "관심 상품에 담았어요", offMessage = "관심 상품에서 뺐어요")
 
@@ -334,8 +388,18 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         val spot = _state.value.spot(spotId) ?: return
         viewModelScope.launch {
             repository.sendToCar(spot)
-                .onSuccess { toast(if (_state.value.account.session != null) "차량으로 보냈어요" else "차량으로 보낼 목록에 담았어요") }
-                .onFailure(::showError)
+                .onSuccess {
+                    // "Sent" only when it really left: waiting for a sign-in or a linked car is said as waiting.
+                    val current = _state.value
+                    toast(
+                        when {
+                            current.account.session == null -> "전송 대기 · 이 휴대폰에만 담았어요. 로그인하면 차량으로 보내져요"
+                            current.user.linkedCars == 0 -> "전송 대기 · 차량 탭에서 차량을 연결하면 전달돼요"
+                            else -> "차량으로 보냈어요. 차량이 받으면 '차량 수신'으로 바뀌어요"
+                        },
+                    )
+                }
+                .onFailure { toast("차량으로 보내지 못했어요. ${it.message ?: "연결 상태를 확인해 주세요"} · 다시 눌러 주세요") }
         }
     }
 
@@ -368,7 +432,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
     fun reportCarCamping(spotId: String, status: CarCamping) {
         viewModelScope.launch {
             repository.reportCarCamping(spotId, status, "")
-                .onSuccess { toast("차박 상태를 제보했어요. 고마워요!") }
+                .onSuccess { toast("차박 상태 제보를 접수했어요. 닉네임과 함께 모두에게 보여요") }
                 .onFailure(::showError)
         }
     }
@@ -457,9 +521,37 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun chooseRegion(region: Region) = updateDraft { it.copy(region = region, pin = region.center) }
+    /** A region moves the map there and leaves a provisional pin at its centre; a tap then sets the exact spot. */
+    fun chooseRegion(region: Region) = updateDraft {
+        it.copy(region = region, pin = region.center, mapFocus = MapFocus(region.center, 2.2f), existingSpotId = null)
+    }
 
-    fun dropPin(point: LatLng) = updateDraft { it.copy(pin = point, region = Regions.nearest(point)) }
+    fun dropPin(point: LatLng) {
+        val near = existingSpotNear(point)
+        updateDraft { it.copy(pin = point, region = Regions.nearest(point), existingSpotId = near?.id) }
+    }
+
+    /** Tapping a place that is already on the share map. */
+    fun pickExistingSpot(spotId: String) {
+        val spot = _state.value.spot(spotId) ?: return
+        updateDraft { it.copy(existingSpotId = spotId, pin = spot.location, region = Regions.nearest(spot.location)) }
+    }
+
+    /** "다른 곳이에요": keep the pin and go on with a new place. */
+    fun keepAsNewPlace() = updateDraft { it.copy(existingSpotId = null) }
+
+    /** Leaves the share flow for the existing place's reviews, so no second copy of it is created. */
+    fun reviewExistingSpot() {
+        val spotId = _state.value.draft?.existingSpotId ?: return
+        _state.update {
+            it.copy(draft = null, stack = it.stack.filter { route -> route != PhoneRoute.Share } + PhoneRoute.Detail(spotId, toReviews = true))
+        }
+        toast("이 장소에 후기를 남겨 주세요. 새 장소로 중복 등록되지 않아요")
+    }
+
+    private fun existingSpotNear(point: LatLng): Spot? = _state.value.spots
+        .minByOrNull { distanceKm(it.location, point) }
+        ?.takeIf { distanceKm(it.location, point) <= SAME_PLACE_KM }
 
     fun publish() {
         val draft = _state.value.draft ?: return
@@ -538,5 +630,7 @@ class PhoneViewModel(application: Application) : AndroidViewModel(application) {
         const val DEMO_USER_ID = "u-yunseul"
         const val KEY_OFFLINE = "offline"
         const val REFRESH_MS = 10_000L
+        /** A pin this close to a shared place is most likely that place. */
+        const val SAME_PLACE_KM = 0.3
     }
 }

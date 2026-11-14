@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
@@ -47,6 +48,7 @@ import com.nangmanroad.vehicle.Screen
 import com.nangmanroad.core.data.AlbumTab
 import com.nangmanroad.vehicle.ui.account.AccountScreen
 import com.nangmanroad.vehicle.ui.album.AlbumScreen
+import com.nangmanroad.vehicle.ui.components.ActionButton
 import com.nangmanroad.vehicle.ui.detail.SpotDetailScreen
 import com.nangmanroad.vehicle.ui.driving.DrivingScreen
 import com.nangmanroad.vehicle.ui.map.MapHomeScreen
@@ -109,7 +111,8 @@ private fun SideRail(state: AppUiState, actions: AppViewModel) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         ParkItMark(size = 44.dp, modifier = Modifier.padding(bottom = 12.dp))
-        RailButton(Icons.Outlined.Map, "지도", state.screen == Screen.Map, onClick = actions::showMap)
+        // While the 파킷 banner is open the highlight belongs to 파킷하기, not to both buttons.
+        RailButton(Icons.Outlined.Map, "지도", state.screen == Screen.Map && state.parkit == null, onClick = actions::showMap)
         RailButton(Icons.Outlined.BookmarkBorder, "저장", onAlbum && state.albumTab == AlbumTab.SAVED) {
             actions.showAlbum(AlbumTab.SAVED)
         }
@@ -119,10 +122,7 @@ private fun SideRail(state: AppUiState, actions: AppViewModel) {
         RailButton(Icons.Outlined.PhoneAndroid, "휴대폰", onAlbum && state.albumTab == AlbumTab.FROM_PHONE, badge = state.fromPhone.size) {
             actions.showAlbum(AlbumTab.FROM_PHONE)
         }
-        RailButton(Icons.Outlined.PushPin, "파킷", state.parkit != null) {
-            actions.showMap()
-            actions.suggestParkit(manual = true)
-        }
+        RailButton(Icons.Outlined.PushPin, "파킷하기", state.screen == Screen.Map && state.parkit != null, onClick = actions::openParkit)
         Spacer(Modifier.weight(1f))
         RailButton(
             icon = if (state.session != null) Icons.Outlined.AccountCircle else Icons.Outlined.Link,
@@ -130,16 +130,17 @@ private fun SideRail(state: AppUiState, actions: AppViewModel) {
             selected = state.screen == Screen.Account,
             onClick = actions::openAccount,
         )
-        RailButton(Icons.Outlined.DirectionsCar, "주행 화면", false) { actions.setDrivingPreview(true) }
+        // Parked, this only previews what driving shows; the name says so.
+        RailButton(Icons.Outlined.DirectionsCar, "주행 화면\n미리보기", false, twoLines = true) { actions.setDrivingPreview(true) }
     }
 }
 
 @Composable
-private fun RailButton(icon: ImageVector, label: String, selected: Boolean, badge: Int = 0, onClick: () -> Unit) {
+private fun RailButton(icon: ImageVector, label: String, selected: Boolean, badge: Int = 0, twoLines: Boolean = false, onClick: () -> Unit) {
     Box {
         Column(
             modifier = Modifier
-                .size(width = 88.dp, height = 88.dp)
+                .size(width = 88.dp, height = if (twoLines) 104.dp else 88.dp)
                 .clip(RoundedCornerShape(Dimens.ControlRadius))
                 .background(if (selected) Palette.Surface else Palette.Background)
                 .clickable(role = Role.Tab, onClick = onClick),
@@ -147,7 +148,12 @@ private fun RailButton(icon: ImageVector, label: String, selected: Boolean, badg
             verticalArrangement = Arrangement.Center,
         ) {
             Icon(icon, contentDescription = null, tint = if (selected) Palette.TextPrimary else Palette.TextSecondary, modifier = Modifier.size(32.dp))
-            Text(label, style = MaterialTheme.typography.labelMedium, color = if (selected) Palette.TextPrimary else Palette.TextSecondary)
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (selected) Palette.TextPrimary else Palette.TextSecondary,
+                textAlign = TextAlign.Center,
+            )
         }
         if (badge > 0) {
             Text(
@@ -170,7 +176,8 @@ private fun Toast(state: AppUiState, actions: AppViewModel, modifier: Modifier =
     val toast = state.toast
     LaunchedEffect(toast?.id) {
         if (toast != null) {
-            delay(2_800)
+            // A toast that offers something to open stays long enough to reach for it.
+            delay(if (toast.openSpotId != null) 7_000 else 2_800)
             actions.consumeToast(toast.id)
         }
     }
@@ -185,6 +192,12 @@ private fun Toast(state: AppUiState, actions: AppViewModel, modifier: Modifier =
         ) {
             Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = Palette.Success, modifier = Modifier.size(30.dp))
             Text(toast?.text.orEmpty(), style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
+            toast?.openSpotId?.let { spotId ->
+                ActionButton("장소 열기", null, {
+                    actions.consumeToast(toast.id)
+                    actions.openSpot(spotId)
+                })
+            }
         }
     }
 }

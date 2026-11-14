@@ -73,7 +73,7 @@ fun phoneSentAnnouncement(title: String): String = "휴대폰에서 장소를 �
 /** When the car stops after a drive and offers a 파킷. */
 fun parkitPrompt(nearSpotTitle: String?, canTakeNote: Boolean): String {
     val ask = if (nearSpotTitle != null) "${nearSpotTitle}에 왔어요. 방문 완료로 표시할까요?" else "여기, 파킷할까요?"
-    return if (canTakeNote) "$ask 말로 메모를 남길 수도 있어요." else ask
+    return if (canTakeNote) "$ask 음성 메모를 남길 수도 있어요." else ask
 }
 
 fun tipsReadout(spot: Spot?): String {

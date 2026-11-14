@@ -9,10 +9,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -58,6 +61,7 @@ import com.nangmanroad.phone.ui.profile.ProfileScreen
 import com.nangmanroad.phone.ui.share.ShareFlow
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PhoneApp(state: PhoneUiState, actions: PhoneViewModel) {
     val screens = rememberSaveableStateHolder()
@@ -81,7 +85,7 @@ fun PhoneApp(state: PhoneUiState, actions: PhoneViewModel) {
             Box(Modifier.weight(1f)) {
                 when (route) {
                     is PhoneRoute.Detail -> state.spot(route.spotId)?.let { spot ->
-                        screens.SaveableStateProvider("detail:${spot.id}") { PostDetailScreen(spot, state, actions) }
+                        screens.SaveableStateProvider("detail:${spot.id}:${route.toReviews}") { PostDetailScreen(spot, state, actions, startOnReviews = route.toReviews) }
                     }
                     PhoneRoute.Notifications -> NotificationsScreen(state, actions)
                     PhoneRoute.Share -> state.draft?.let { ShareFlow(it, state, actions) }
@@ -95,7 +99,8 @@ fun PhoneApp(state: PhoneUiState, actions: PhoneViewModel) {
                     }
                 }
             }
-            if (route != PhoneRoute.Share) BottomBar(state, actions)
+            // While typing, the tab bar would sit between the form and the keyboard and push the fields off screen.
+            if (route != PhoneRoute.Share && !WindowInsets.isImeVisible) BottomBar(state, actions)
         }
         Toast(state, actions, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 90.dp))
     }

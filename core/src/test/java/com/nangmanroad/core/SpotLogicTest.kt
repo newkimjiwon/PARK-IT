@@ -58,8 +58,13 @@ class SpotLogicTest {
         assertTrue(withToilet.isNotEmpty())
         // 강릉's toilet reports disagree, so it must not be promised.
         assertTrue(withToilet.none { it.id == "s-gangneung" })
+        // "준비하세요" is how visitors say "there is none": 경주's "주변에 없어요" is not a toilet.
+        assertTrue(withToilet.none { it.id == "s-gyeongju" })
+        // 고성 has a toilet but its power tip reads "외부 전원 없음", so toilet + power matches nothing.
         val toiletAndPower = SpotQueries.matching(spots, null, "", setOf(TipKind.TOILET, TipKind.POWER))
-        assertEquals(listOf("s-goseong"), toiletAndPower.map { it.id })
+        assertEquals(emptyList<String>(), toiletAndPower.map { it.id })
+        val toiletAndStore = SpotQueries.matching(spots, null, "", setOf(TipKind.TOILET, TipKind.STORE))
+        assertEquals(listOf("s-goseong"), toiletAndStore.map { it.id })
         // EV charging is its own facility: 강릉 and 양평 have confirmed chargers nearby, 고성 says nothing.
         val charging = SpotQueries.matching(spots, null, "", setOf(TipKind.CHARGING)).map { it.id }
         assertTrue(charging.containsAll(listOf("s-gangneung", "s-yangpyeong")) && "s-goseong" !in charging)

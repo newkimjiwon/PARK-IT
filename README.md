@@ -2,7 +2,9 @@
 
 Pleos Connect 차량용 앱을 만들기 위한 팀 저장소입니다. 차박, 드라이브 장소를 사진과 꿀팁으로 공유하는 차량 특화 SNS **PARK-IT(파킷)** 을 개발하고 있습니다. 슬로건은 "당신의 경험이 누군가의 목적지가 되는 곳"이며, 코드와 패키지 이름은 개발 초기 가칭인 낭만로드(`com.nangmanroad`)를 그대로 씁니다.
 
-**최근 변경** 차량 수신과 길 안내 시작 상태, 휴대폰 GPS 주변 검색과 방문 조건 필터, 현장 변경 제보, 정차 후 쉬어가기 체크리스트를 추가했습니다. 휴대폰의 수면 모드와 12V 배터리 및 공기질 표시는 데모입니다. 브라우저가 없는 기기에서 외부 링크를 누르면 안내를 표시합니다.
+**최근 변경 (2026-11-14)** 수정 요청 문서를 반영했습니다. 지역을 고르면 공유 지도가 따라가고, 차량 지도의 조준점은 항상 내 위치로 갑니다. 장소 공유는 지도에서 위치를 먼저 정하고 이미 올라온 장소는 후기로 연결합니다. 차량 전송은 대기, 전송 성공, 수신을 구분해 보여줍니다. 장소 도우미는 뺐습니다. 항목별 내용은 [수정 반영 기록](docs/fix-log-2026-11-14.md)에 있고, 이번 변경 이전에 찍은 스크린샷이 일부 남아 있습니다.
+
+**이전 변경** 차량 수신과 길 안내 시작 상태, 휴대폰 GPS 주변 검색과 방문 조건 필터, 현장 변경 제보, 정차 후 쉬어가기 체크리스트를 추가했습니다. 휴대폰의 수면 모드와 12V 배터리 및 공기질 표시는 데모입니다. 브라우저가 없는 기기에서 외부 링크를 누르면 안내를 표시합니다.
 
 <a name="실행-화면"></a>
 
@@ -57,14 +59,6 @@ Pleos 헤드유닛에서는 왼쪽 클러스터 옆 창에 앱이 열립니다. 
     <td><b>다녀온 곳</b> / 방문 기록</td>
     <td><b>공식 장소 정보</b> / 고캠핑 사진과 출처</td>
   </tr>
-  <tr>
-    <td><img src="docs/images/car-place-assistant.png" alt="정차 중 차량 앱의 장소 도우미"></td>
-    <td></td>
-  </tr>
-  <tr>
-    <td><b>장소 도우미</b> / 주차, 야간 이용, 차박, 방문 팁</td>
-    <td></td>
-  </tr>
 </table>
 
 ### 스마트폰 앱
@@ -84,27 +78,27 @@ Pleos 헤드유닛에서는 왼쪽 클러스터 옆 창에 앱이 열립니다. 
   </tr>
   <tr>
     <td><img src="docs/images/phone-tips.jpg" alt="장소 상세의 방문 꿀팁과 차량으로 보내기 버튼"></td>
-    <td><img src="docs/images/phone-share-photo.jpg" alt="장소 공유 1단계 사진 고르기"></td>
-    <td><img src="docs/images/phone-share-place.jpg" alt="장소 공유 2단계. 시, 군과 지도 핀, 위치 공개 수준, 차박 가능 여부"></td>
+    <td><img src="docs/images/phone-share-place.jpg" alt="장소 공유 1단계. 내 위치에서 시작, 시·군 검색, 지도의 핀과 이미 올라온 장소"></td>
+    <td><img src="docs/images/phone-share-photo.jpg" alt="장소 공유 2단계 사진 고르기"></td>
     <td><img src="docs/images/phone-car.jpg" alt="내 차량 탭의 차량 연결, 콘셉트 안내, 배터리와 도어, 창문, 온도, 공조 사양표"></td>
   </tr>
   <tr>
     <td><b>방문 꿀팁</b> / 차량으로 보내기</td>
-    <td><b>장소 공유 1/3</b> / 사진</td>
-    <td><b>장소 공유 2/3</b> / 위치, 위치 공개 수준, 차박 가능 여부</td>
+    <td><b>장소 공유 1/3</b> / 위치 먼저. 이미 올라온 장소는 후기로 연결</td>
+    <td><b>장소 공유 2/3</b> / 사진</td>
     <td><b>내 차량</b> / 차량 연결, 콘셉트 사양표</td>
   </tr>
   <tr>
     <td><img src="docs/images/phone-profile.jpg" alt="마이 화면의 프로필과 내 장소 지도"></td>
     <td><img src="docs/images/phone-notifications.jpg" alt="알림의 차량에서 보낸 항목"></td>
     <td><img src="docs/images/phone-current-home.jpg" alt="가까운 곳의 난지캠핑장 사진"></td>
-    <td><img src="docs/images/phone-current-assistant.jpg" alt="휴대폰 장소 도우미의 주차 답변"></td>
+    <td></td>
   </tr>
   <tr>
     <td><b>마이</b> / 내 장소 지도</td>
     <td><b>알림</b> / 차량에서 보낸 항목</td>
     <td><b>가까운 곳</b> / <a href="docs/images/phone-current-detail.jpg">난지캠핑장 상세</a></td>
-    <td><b>장소 도우미</b> / 주차 답변과 출처</td>
+    <td></td>
   </tr>
 </table>
 

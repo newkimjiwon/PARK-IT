@@ -64,6 +64,7 @@ import com.nangmanroad.core.ui.SpotPhoto
 import com.nangmanroad.phone.HomeTab
 import com.nangmanroad.phone.PhoneUiState
 import com.nangmanroad.phone.PhoneViewModel
+import com.nangmanroad.phone.ui.components.FilterSummary
 import com.nangmanroad.phone.ui.components.IconCircle
 import com.nangmanroad.phone.ui.components.TabRow
 import com.nangmanroad.phone.ui.components.TextTab
@@ -126,13 +127,18 @@ fun HomeScreen(state: PhoneUiState, actions: PhoneViewModel) {
                     gap = 6.dp,
                     trailing = { VisitConditionChips(state.visitConditions, actions::toggleVisitCondition) },
                 )
+                FilterSummary(
+                    conditions = state.facilities.size + state.visitConditions.size,
+                    matches = feed.size,
+                    onClear = actions::clearFilters,
+                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 8.dp),
+                )
             }
         }
-        if (feed.isEmpty()) {
+        if (feed.isEmpty() && state.facilities.isEmpty() && state.visitConditions.isEmpty()) {
             item {
                 Text(
-                    if (state.facilities.isNotEmpty() || state.visitConditions.isNotEmpty()) "선택한 조건을 모두 확인한 장소가 없어요."
-                    else "팔로우한 사람의 게시물이 아직 없어요. 마음에 드는 작성자를 팔로우해 보세요.",
+                    "팔로우한 사람의 게시물이 아직 없어요. 마음에 드는 작성자를 팔로우해 보세요.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Palette.TextSecondary,
                     modifier = Modifier.padding(horizontal = 20.dp),
@@ -211,10 +217,11 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                 )
             }
             Column(Modifier.align(Alignment.BottomStart).padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Region and theme are separate facts, so each gets its own label.
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    PhotoChip("${spot.province} · ${spot.category.label}")
+                    PhotoChip(spot.province)
+                    PhotoChip(spot.category.label)
                     CarCampingBadge(spot.carCamping, Modifier.background(Palette.Scrim, RoundedCornerShape(3.dp)), iconSize = 14.dp, stale = spot.carCampingStale)
-                    if (spot.tips.isNotEmpty()) PhotoChip("꿀팁 ${spot.tips.size}", accent = true)
                 }
                 // Facilities on their own line so the five icons never get clipped by the chips.
                 FacilityStrip(
@@ -223,7 +230,10 @@ fun PostCard(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                     iconSize = 16.dp,
                     gap = 8.dp,
                 )
-                if (spot.bestTime.isNotBlank()) PhotoChip(spot.bestTime, icon = Icons.Outlined.Schedule)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (spot.tips.isNotEmpty()) PhotoChip("꿀팁 ${spot.tips.size}", accent = true)
+                    if (spot.bestTime.isNotBlank()) PhotoChip(spot.bestTime, icon = Icons.Outlined.Schedule)
+                }
                 Text(spot.title, style = MaterialTheme.typography.headlineMedium, color = Palette.TextPrimary)
             }
         }

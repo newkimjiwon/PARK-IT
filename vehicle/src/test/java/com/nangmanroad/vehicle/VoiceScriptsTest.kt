@@ -124,7 +124,7 @@ class VoiceScriptsTest {
 
     @Test
     fun `the 파킷 prompt offers a spoken note only when the microphone works`() {
-        assertEquals("여기, 파킷할까요? 말로 메모를 남길 수도 있어요.", parkitPrompt(null, canTakeNote = true))
+        assertEquals("여기, 파킷할까요? 음성 메모를 남길 수도 있어요.", parkitPrompt(null, canTakeNote = true))
         assertEquals("강릉의 조용한 노을 명소에 왔어요. 방문 완료로 표시할까요?", parkitPrompt(gangneung.title, canTakeNote = false))
     }
 }

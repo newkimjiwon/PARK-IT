@@ -62,7 +62,7 @@ private fun Offset.inside(size: IntSize): Boolean = x >= 0f && y >= 0f && x <= s
 internal fun NaverPhotoMap(
     spots: List<Spot>,
     selectedId: String?,
-    here: LatLng,
+    here: LatLng?,
     onSelect: (Spot) -> Unit,
     onVisibleChange: (Set<String>) -> Unit,
     modifier: Modifier,
@@ -71,6 +71,9 @@ internal fun NaverPhotoMap(
     onMapTap: ((LatLng) -> Unit)?,
     herePulse: Long?,
     mapConfig: MapConfig,
+    focus: MapFocus?,
+    onMyLocation: (() -> Unit)?,
+    pin: LatLng?,
 ) {
     val context = LocalContext.current
     remember(context, mapConfig) {
@@ -91,6 +94,9 @@ internal fun NaverPhotoMap(
     }
     var viewSize by remember { mutableStateOf(IntSize.Zero) }
     val clusterRadius = with(LocalDensity.current) { style.clusterRadius.toPx() }
+    LaunchedEffect(focus?.id) {
+        focus?.let { camera.move(CameraUpdate.scrollAndZoomTo(it.center.toNaver(), naverZoomFor(it.zoom)).animate(CameraAnimation.Easing)) }
+    }
 
     // Reading the camera here re-runs the projection whenever the map moves.
     val cameraPosition = camera.position
@@ -104,7 +110,8 @@ internal fun NaverPhotoMap(
             clusterMarkers(ordered.map { it to projection.toScreen(it.location) }, clusterRadius)
         }
     }
-    val herePosition = remember(cameraPosition, moving, projection, here) { projection?.toScreen(here) }
+    val herePosition = remember(cameraPosition, moving, projection, here) { here?.let { projection?.toScreen(it) } }
+    val pinPosition = remember(cameraPosition, moving, projection, pin) { pin?.let { projection?.toScreen(it) } }
 
     LaunchedEffect(clusters, viewSize) {
         if (projection != null && viewSize != IntSize.Zero) {
@@ -162,15 +169,20 @@ internal fun NaverPhotoMap(
         }
 
         herePosition?.let { HerePulse(it, herePulse) }
+        pinPosition?.let { PinMarker(it) }
 
         MapControls(
             style = style,
             onZoomIn = { camera.move(CameraUpdate.zoomIn().animate(CameraAnimation.Easing)) },
             onZoomOut = { camera.move(CameraUpdate.zoomOut().animate(CameraAnimation.Easing)) },
-            onFocus = {
-                val focus = spots.firstOrNull { it.id == selectedId }?.location ?: here
-                val zoom = maxOf(cameraPosition.zoom, FOCUS_ZOOM)
-                camera.move(CameraUpdate.scrollAndZoomTo(focus.toNaver(), zoom).animate(CameraAnimation.Easing))
+            onMyLocation = if (here == null && onMyLocation == null) null else {
+                {
+                    onMyLocation?.invoke()
+                    here?.let { camera.move(CameraUpdate.scrollAndZoomTo(it.toNaver(), maxOf(cameraPosition.zoom, FOCUS_ZOOM)).animate(CameraAnimation.Easing)) }
+                }
+            },
+            onSelected = spots.firstOrNull { it.id == selectedId }?.let { spot ->
+                { camera.move(CameraUpdate.scrollAndZoomTo(spot.location.toNaver(), maxOf(cameraPosition.zoom, FOCUS_ZOOM)).animate(CameraAnimation.Easing)) }
             },
         )
     }

@@ -2,6 +2,7 @@ package com.nangmanroad.vehicle.ui.detail
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
@@ -59,7 +60,6 @@ import com.nangmanroad.core.data.CarCamping
 import com.nangmanroad.core.data.rangeLabel
 import com.nangmanroad.core.data.formatKm
 import com.nangmanroad.core.data.Reach
-import com.nangmanroad.core.data.PlaceQuestion
 import com.nangmanroad.core.data.Regions
 import com.nangmanroad.core.data.carCampingCheckedLabel
 import com.nangmanroad.core.data.carCampingStale
@@ -75,7 +75,6 @@ import com.nangmanroad.vehicle.ui.map.distanceLabel
 import com.nangmanroad.vehicle.ui.theme.Dimens
 import com.nangmanroad.core.ui.Palette
 import com.nangmanroad.core.ui.OfficialPlaceSection
-import com.nangmanroad.core.ui.PlaceAssistantDialog
 import com.nangmanroad.core.ui.tabular
 
 private enum class DetailTab(val label: String) { TIPS("방문 꿀팁"), ITEMS("준비물"), COMMENTS("댓글") }
@@ -83,7 +82,6 @@ private enum class DetailTab(val label: String) { TIPS("방문 꿀팁"), ITEMS("
 @Composable
 fun SpotDetailScreen(spot: Spot, state: AppUiState, actions: AppViewModel) {
     var tab by rememberSaveable(spot.id) { mutableStateOf(DetailTab.TIPS) }
-    var assistantOpen by rememberSaveable(spot.id) { mutableStateOf(false) }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= 1100.dp
@@ -95,7 +93,7 @@ fun SpotDetailScreen(spot: Spot, state: AppUiState, actions: AppViewModel) {
                     contentPadding = PaddingValues(horizontal = 40.dp, vertical = 28.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
-                    detailBody(spot, state, actions, tab, onAssistant = { assistantOpen = true }) { tab = it }
+                    detailBody(spot, state, actions, tab) { tab = it }
                 }
             }
         } else {
@@ -105,18 +103,9 @@ fun SpotDetailScreen(spot: Spot, state: AppUiState, actions: AppViewModel) {
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
                 item { PhotoGallery(spot, onBack = actions::back, modifier = Modifier.fillMaxWidth().height(900.dp)) }
-                detailBody(spot, state, actions, tab, horizontalPadding = 28.dp, onAssistant = { assistantOpen = true }) { tab = it }
+                detailBody(spot, state, actions, tab, horizontalPadding = 28.dp) { tab = it }
             }
         }
-    }
-    if (assistantOpen && !state.showDrivingView) {
-        PlaceAssistantDialog(
-            spot.title,
-            PlaceQuestion.entries,
-            onAnswer = { actions.placeAnswer(spot, it) },
-            onDismiss = { assistantOpen = false },
-            targetHeight = Dimens.TouchTarget,
-        )
     }
 }
 
@@ -126,12 +115,10 @@ private fun LazyListScope.detailBody(
     actions: AppViewModel,
     tab: DetailTab,
     horizontalPadding: androidx.compose.ui.unit.Dp = 0.dp,
-    onAssistant: () -> Unit,
     onTab: (DetailTab) -> Unit,
 ) {
     val pad = Modifier.padding(horizontal = horizontalPadding)
     item { RouteRow(spot, state, actions, pad) }
-    item { ActionButton("장소 도우미", null, onAssistant, modifier = pad) }
     spot.officialPlace?.let { info -> item { OfficialPlaceSection(info, pad) } }
     item { AuthorRow(spot, state, actions, pad) }
     item {
@@ -206,10 +193,27 @@ private fun PhotoGallery(spot: Spot, onBack: () -> Unit, modifier: Modifier = Mo
             modifier = Modifier.padding(horizontal = 36.dp, vertical = 28.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("${spot.province} · ${spot.category.label}", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
+            // Where it is and what kind of place it is are two different facts, so two labels.
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                InfoLabel("지역", spot.region)
+                InfoLabel("테마", spot.category.label)
+            }
             Text(spot.title, style = MaterialTheme.typography.displaySmall, color = Palette.TextPrimary)
             Text("“${spot.story}”", style = MaterialTheme.typography.bodyLarge, color = Palette.TextSecondary)
         }
+    }
+}
+
+/** A small ruled label with its own caption, e.g. "지역 강원 강릉시". */
+@Composable
+private fun InfoLabel(caption: String, value: String) {
+    Row(
+        Modifier.border(1.dp, Palette.Rule, RoundedCornerShape(3.dp)).padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(caption, style = MaterialTheme.typography.labelMedium, color = Palette.TextTertiary)
+        Text(value, style = MaterialTheme.typography.labelLarge, color = Palette.TextPrimary)
     }
 }
 

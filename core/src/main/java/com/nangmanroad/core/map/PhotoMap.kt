@@ -23,9 +23,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MyLocation
+import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -84,6 +86,12 @@ data class PhotoMapStyle(
 )
 
 /**
+ * A request to move the camera, e.g. to a region the user just picked. A new [id] moves the map again
+ * even when the centre is the same, so "go to my location" works twice in a row.
+ */
+data class MapFocus(val center: LatLng, val zoom: Float = 2.5f, val id: Long = System.nanoTime())
+
+/**
  * The map that shows places as their own photos. Nearby photos merge into one marker with a count;
  * tapping a merged marker zooms in, tapping a single one selects it.
  *
@@ -94,7 +102,8 @@ data class PhotoMapStyle(
 fun PhotoMap(
     spots: List<Spot>,
     selectedId: String?,
-    here: LatLng,
+    /** The device's own position; null draws no dot and leaves "my location" to [onMyLocation]. */
+    here: LatLng?,
     onSelect: (Spot) -> Unit,
     onVisibleChange: (Set<String>) -> Unit,
     modifier: Modifier = Modifier,
@@ -105,13 +114,25 @@ fun PhotoMap(
     onMapTap: ((LatLng) -> Unit)? = null,
     /** Change this value to play the 파킷 pin drop at [here]; null shows the plain position dot. */
     herePulse: Long? = null,
+    /** Moves the camera whenever a new request arrives. */
+    focus: MapFocus? = null,
+    /**
+     * Called when the "my location" button is pressed. The map itself moves to [here] when it is
+     * known; the host uses this to ask for a fix or to say why there is none.
+     */
+    onMyLocation: (() -> Unit)? = null,
+    /**
+     * A location being chosen (the share flow's "where was it?"). Drawn as a pin above the photo
+     * markers and never merged into their clusters, so it cannot hide a place that is already there.
+     */
+    pin: LatLng? = null,
 ) {
     val mapConfig by produceState<MapConfig?>(initialValue = null) { value = loadMapConfig() }
     val resolvedConfig = mapConfig
     if (resolvedConfig != null && resolvedConfig.keyId.isNotBlank()) {
-        NaverPhotoMap(spots, selectedId, here, onSelect, onVisibleChange, modifier, style, markerTint, onMapTap, herePulse, resolvedConfig)
+        NaverPhotoMap(spots, selectedId, here, onSelect, onVisibleChange, modifier, style, markerTint, onMapTap, herePulse, resolvedConfig, focus, onMyLocation, pin)
     } else {
-        CanvasPhotoMap(spots, selectedId, here, onSelect, onVisibleChange, modifier, style, markerTint, onMapTap, herePulse)
+        CanvasPhotoMap(spots, selectedId, here, onSelect, onVisibleChange, modifier, style, markerTint, onMapTap, herePulse, focus, onMyLocation, pin)
     }
 }
 
@@ -119,7 +140,7 @@ fun PhotoMap(
 internal fun CanvasPhotoMap(
     spots: List<Spot>,
     selectedId: String?,
-    here: LatLng,
+    here: LatLng?,
     onSelect: (Spot) -> Unit,
     onVisibleChange: (Set<String>) -> Unit,
     modifier: Modifier,
@@ -127,8 +148,12 @@ internal fun CanvasPhotoMap(
     markerTint: (Spot) -> Color?,
     onMapTap: ((LatLng) -> Unit)?,
     herePulse: Long?,
+    focus: MapFocus?,
+    onMyLocation: (() -> Unit)?,
+    pin: LatLng?,
 ) {
     var camera by rememberSaveable(stateSaver = CameraSaver) { mutableStateOf(style.initialCamera) }
+    LaunchedEffect(focus?.id) { focus?.let { camera = MapCamera(it.center, it.zoom) } }
     var viewSize by remember { mutableStateOf(Size.Zero) }
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -171,7 +196,7 @@ internal fun CanvasPhotoMap(
             with(KoreaBaseMap) { drawBaseMap(camera, measurer) }
         }
 
-        val herePosition = if (viewSize != Size.Zero) camera.toScreen(here, viewSize) else null
+        val herePosition = if (viewSize != Size.Zero && here != null) camera.toScreen(here, viewSize) else null
         herePosition?.let { HereMarker(it) }
 
         clusters.forEach { cluster ->
@@ -195,14 +220,20 @@ internal fun CanvasPhotoMap(
         }
 
         herePosition?.let { HerePulse(it, herePulse) }
+        if (pin != null && viewSize != Size.Zero) PinMarker(camera.toScreen(pin, viewSize))
 
         MapControls(
             style = style,
             onZoomIn = { camera = camera.zoomBy(1.6f, Offset(viewSize.width / 2, viewSize.height / 2), viewSize) },
             onZoomOut = { camera = camera.zoomBy(1 / 1.6f, Offset(viewSize.width / 2, viewSize.height / 2), viewSize) },
-            onFocus = {
-                val focus = spots.firstOrNull { it.id == selectedId }?.location ?: here
-                camera = MapCamera(focus, camera.zoom.coerceAtLeast(2.4f))
+            onMyLocation = if (here == null && onMyLocation == null) null else {
+                {
+                    onMyLocation?.invoke()
+                    here?.let { camera = MapCamera(it, camera.zoom.coerceAtLeast(2.4f)) }
+                }
+            },
+            onSelected = spots.firstOrNull { it.id == selectedId }?.let { spot ->
+                { camera = MapCamera(spot.location, camera.zoom.coerceAtLeast(2.4f)) }
             },
         )
     }
@@ -275,6 +306,24 @@ internal fun HereMarker(position: Offset) {
     }
 }
 
+/** The location being chosen: a pin whose tip sits exactly on the point. */
+@Composable
+internal fun PinMarker(position: Offset) {
+    val size = 52.dp
+    val px = with(LocalDensity.current) { size.toPx() }
+    Box(
+        Modifier
+            .offset { IntOffset((position.x - px / 2).roundToInt(), (position.y - px * 0.94f).roundToInt()) }
+            .size(size)
+            .semantics { contentDescription = "고른 위치" },
+        contentAlignment = Alignment.Center,
+    ) {
+        // A white pin slightly larger underneath gives the accent pin an outline on any map colour.
+        Icon(Icons.Filled.Place, contentDescription = null, tint = Color.White, modifier = Modifier.fillMaxSize())
+        Icon(Icons.Filled.Place, contentDescription = null, tint = Palette.Accent, modifier = Modifier.size(size * 0.88f))
+    }
+}
+
 /**
  * The "파킷" moment, drawn above the markers: when [pulse] changes a pine pin drops onto the car's
  * position with a bounce and a ring spreads out from it, so the name is something you can see
@@ -318,9 +367,19 @@ internal fun HerePulse(position: Offset, pulse: Long?) {
     )
 }
 
-/** Zoom in, zoom out and "go to the selected place", stacked in the top-right corner. */
+/**
+ * Zoom in, zoom out, "my location" and, while a place is selected, "go to the selected place",
+ * stacked in the top-right corner. The crosshair always means the device's own position and the pin
+ * the selected place, so neither surprises with the other's destination.
+ */
 @Composable
-internal fun BoxScope.MapControls(style: PhotoMapStyle, onZoomIn: () -> Unit, onZoomOut: () -> Unit, onFocus: () -> Unit) {
+internal fun BoxScope.MapControls(
+    style: PhotoMapStyle,
+    onZoomIn: () -> Unit,
+    onZoomOut: () -> Unit,
+    onMyLocation: (() -> Unit)?,
+    onSelected: (() -> Unit)?,
+) {
     Column(
         modifier = Modifier
             .align(Alignment.TopEnd)
@@ -331,7 +390,8 @@ internal fun BoxScope.MapControls(style: PhotoMapStyle, onZoomIn: () -> Unit, on
     ) {
         MapButton(Icons.Outlined.Add, "확대", style.buttonSize, onZoomIn)
         MapButton(Icons.Outlined.Remove, "축소", style.buttonSize, onZoomOut)
-        MapButton(Icons.Outlined.MyLocation, "선택한 장소로 이동", style.buttonSize, onFocus)
+        if (onMyLocation != null) MapButton(Icons.Outlined.MyLocation, "내 위치로 이동", style.buttonSize, onMyLocation)
+        if (onSelected != null) MapButton(Icons.Outlined.Place, "선택한 장소로 이동", style.buttonSize, onSelected)
     }
 }
 
