@@ -104,7 +104,8 @@ enum class Visibility(val label: String) {
 @Serializable
 enum class CarCamping(val label: String) {
     ALLOWED("차박 가능"),
-    CHECK("현장 확인"),
+    /** Nobody has confirmed either way. Worded so it never reads as "checked on site, fine". */
+    CHECK("현장 확인 필요"),
     BANNED("차박 금지"),
 }
 
@@ -179,14 +180,19 @@ fun List<HoneyTip>.facilityStatus(kind: TipKind): TipStatus? =
     }
 
 /**
- * Whether visitors say the facility is there. A caveat ("준비하세요") still counts as present;
- * disagreeing reports or silence do not, so a filter never promises a toilet nobody confirmed.
+ * Whether visitors confirmed the facility is there and fine. "준비하세요" often means "there is none,
+ * bring your own", so it does not count; neither do disagreeing reports or silence. A filter then
+ * never promises a toilet nobody confirmed.
  */
-fun Spot.hasFacility(kind: TipKind): Boolean =
-    when (tips.facilityStatus(kind)) {
-        TipStatus.GOOD, TipStatus.PREPARE -> true
-        TipStatus.NEEDS_CHECK, null -> false
-    }
+fun Spot.hasFacility(kind: TipKind): Boolean = tips.facilityStatus(kind) == TipStatus.GOOD
+
+/** How a facility reads on a card: confirmed, bring-your-own, disputed, or nobody has said. */
+fun facilityStatusLabel(status: TipStatus?): String = when (status) {
+    TipStatus.GOOD -> "확인됨"
+    TipStatus.PREPARE -> "없거나 준비 필요"
+    TipStatus.NEEDS_CHECK -> "제보가 엇갈림"
+    null -> "정보 없음"
+}
 
 /** Problems first, then things to prepare, then the reassuring ones. */
 fun List<HoneyTip>.byImportance(): List<HoneyTip> = sortedWith(

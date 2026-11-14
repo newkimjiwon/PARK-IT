@@ -235,6 +235,40 @@ fun VisitConditionChips(
     }
 }
 
+/**
+ * Shown under the filter chips while any is on: how many conditions, how many places are left, and
+ * a way out. Also says what a facility chip means, since "no report" drops a place just as "none" does.
+ */
+@Composable
+fun FilterSummary(conditions: Int, matches: Int, onClear: () -> Unit, modifier: Modifier = Modifier) {
+    if (conditions == 0) return
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "조건 ${conditions}개 적용 · ${matches}곳",
+                style = MaterialTheme.typography.titleSmall.tabular(),
+                color = Palette.TextPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                "조건 지우기",
+                style = MaterialTheme.typography.labelLarge,
+                color = Palette.TextPrimary,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(3.dp))
+                    .border(1.dp, Palette.SurfaceHigh, RoundedCornerShape(3.dp))
+                    .clickable(role = Role.Button, onClick = onClear)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            )
+        }
+        Text(
+            if (matches == 0) "조건을 모두 확인한 장소가 없어요. 조건을 줄여 보세요." else "방문자가 '괜찮아요'로 확인한 곳만 보여요. 정보가 없거나 없다고 한 곳은 빠져요.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Palette.TextSecondary,
+        )
+    }
+}
+
 fun distanceFromHere(here: LatLng, spot: Spot, usesDeviceLocation: Boolean): String {
     val basis = if (usesDeviceLocation) "내 위치 기준" else "서울 기준"
     return "$basis ${formatKm(distanceKm(here, spot.location))}"

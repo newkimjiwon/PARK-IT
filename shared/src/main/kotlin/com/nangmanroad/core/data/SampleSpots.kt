@@ -17,6 +17,9 @@ object SampleSpots {
     private val tent = unsplash("1513781419235-2988ecacab83")
     private val village = unsplash("1542086043-08aee8fd3c21")
     private val road = unsplash("1696226549788-1a60cba184f1")
+    // Each place leads with its own photo: two places sharing one looked like a duplicate on the map.
+    private val starHill = unsplash("1419242902214-272b3f66ee7a")
+    private val river = unsplash("1437482078695-73f5ca6c96e2")
 
     private val hillNight = unsplash("1475274047050-1d0c0975c63e")
     private val riverside = unsplash("1501785888041-af3ef285b470")

@@ -2,6 +2,7 @@ package com.nangmanroad.vehicle.ui.detail
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
@@ -192,10 +193,27 @@ private fun PhotoGallery(spot: Spot, onBack: () -> Unit, modifier: Modifier = Mo
             modifier = Modifier.padding(horizontal = 36.dp, vertical = 28.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("${spot.province} · ${spot.category.label}", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
+            // Where it is and what kind of place it is are two different facts, so two labels.
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                InfoLabel("지역", spot.region)
+                InfoLabel("테마", spot.category.label)
+            }
             Text(spot.title, style = MaterialTheme.typography.displaySmall, color = Palette.TextPrimary)
             Text("“${spot.story}”", style = MaterialTheme.typography.bodyLarge, color = Palette.TextSecondary)
         }
+    }
+}
+
+/** A small ruled label with its own caption, e.g. "지역 강원 강릉시". */
+@Composable
+private fun InfoLabel(caption: String, value: String) {
+    Row(
+        Modifier.border(1.dp, Palette.Rule, RoundedCornerShape(3.dp)).padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(caption, style = MaterialTheme.typography.labelMedium, color = Palette.TextTertiary)
+        Text(value, style = MaterialTheme.typography.labelLarge, color = Palette.TextPrimary)
     }
 }
 
@@ -274,11 +292,11 @@ private fun RouteRow(spot: Spot, state: AppUiState, actions: AppViewModel, modif
                     if (charger != null) {
                         val area = if (verdict == Reach.SHORT) "출발지 주변" else "목적지 주변"
                         Text("$area · $charger", style = MaterialTheme.typography.bodyMedium, color = Palette.TextPrimary)
-                        Text("충전기 이용 가능 여부는 출발 전에 확인하세요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+                        Text("충전기를 쓸 수 있는지는 출발 전에 확인하세요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
                     }
                 }
             } else {
-                Text("배터리 또는 현재 위치를 확인하면 이동 가능 여부를 표시합니다.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+                Text("배터리와 현재 위치가 확인되면 갈 수 있는지 보여 드려요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
             }
             if (spot.bestTime.isNotBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

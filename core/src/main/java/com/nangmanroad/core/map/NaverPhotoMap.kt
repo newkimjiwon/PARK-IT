@@ -73,8 +73,8 @@ internal fun NaverPhotoMap(
     onMapTap: ((LatLng) -> Unit)?,
     herePulse: Long?,
     mapConfig: MapConfig,
-    cameraRequest: MapCamera?,
-    onLocationUnavailable: (() -> Unit)?,
+    focus: MapFocus?,
+    onMyLocation: (() -> Unit)?,
     droppedPin: LatLng?,
     markerMode: MapMarkerMode,
     savedIds: Set<String>,
@@ -102,13 +102,11 @@ internal fun NaverPhotoMap(
             style.naverOverviewZoom ?: naverZoomFor(style.initialCamera.zoom),
         )
     }
-    LaunchedEffect(cameraRequest) {
-        cameraRequest?.let {
-            camera.move(CameraUpdate.scrollAndZoomTo(it.center.toNaver(), naverZoomFor(it.zoom)))
-        }
-    }
     var viewSize by remember { mutableStateOf(IntSize.Zero) }
     val clusterRadius = with(LocalDensity.current) { style.clusterRadius.toPx() }
+    LaunchedEffect(focus?.id) {
+        focus?.let { camera.move(CameraUpdate.scrollAndZoomTo(it.center.toNaver(), naverZoomFor(it.zoom)).animate(CameraAnimation.Easing)) }
+    }
 
     // Reading the camera here re-runs the projection whenever the map moves.
     val cameraPosition = camera.position
@@ -196,9 +194,9 @@ internal fun NaverPhotoMap(
             style = style,
             onZoomIn = { camera.move(CameraUpdate.zoomIn().animate(CameraAnimation.Easing)) },
             onZoomOut = { camera.move(CameraUpdate.zoomOut().animate(CameraAnimation.Easing)) },
-            onHere = onLocationUnavailable ?: { if (here != null) focus(here) },
+            onHere = { onMyLocation?.invoke(); here?.let { focus(it) } },
             onFocus = (droppedPin ?: spots.firstOrNull { it.id == selectedId }?.location)?.let { point -> { focus(point) } },
-            showHere = onMapTap == null,
+            showHere = onMyLocation != null || (here != null && onMapTap == null),
             markerMode = markerMode,
             onMarkerModeChange = onMarkerModeChange,
         )

@@ -497,7 +497,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         else "${kind.toastObject} 담아 두었어요. 계정을 연결하면 휴대폰으로 보낼 수 있어요",
                     )
                 }
-                .onFailure { toast(it.message ?: "휴대폰으로 보내지 못했어요") }
+                .onFailure { toast("휴대폰으로 보내지 못했어요. ${it.message ?: "연결 상태를 확인해 주세요"} · 다시 눌러 주세요") }
         }
     }
 
@@ -518,7 +518,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             .minByOrNull { distanceKm(it.location, current.here) }
             ?.takeIf { distanceKm(it.location, current.here) <= NEAR_SPOT_KM }
             ?.id
-        _state.update { it.copy(parkit = ParkitSuggestion(current.here, System.currentTimeMillis(), near)) }
+        // The banner lives on the map, so an offer made on another screen brings the map forward.
+        leaveAccount { it.copy(parkit = ParkitSuggestion(current.here, System.currentTimeMillis(), near), screen = Screen.Map) }
         if (!manual) announce(parkitPrompt(current.spot(near)?.title, canTakeNote = current.voice.canListen))
     }
 
@@ -674,14 +675,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 batteryReadout(tripFacts())
             } else {
                 val verdict = current.tripReach(spot)
-                if (verdict == null) "차량의 배터리와 현재 위치를 확인하면 이동 가능 여부를 알 수 있어요."
+                if (verdict == null) "배터리와 현재 위치가 확인되면 갈 수 있는지 알려 드려요."
                 else {
                     val basis = if (current.remainingRouteKm(spot) != null) "남은 도로 경로" else "직선거리를 보정한 값"
                     "배터리 ${current.battery?.percent}% · ${verdict.label}. $basis 기준 추정이에요."
                 }
             }
             PlaceQuestion.ETA -> if (current.remainingRouteKm(spot) == null) {
-                "이 장소의 길 안내를 시작하면 도착 시간을 확인할 수 있어요."
+                "길 안내를 시작하면 도착 시간을 알려 드려요."
             } else etaReadout(tripFacts())
             else -> requireNotNull(answerAboutPlace(question, spot))
         }

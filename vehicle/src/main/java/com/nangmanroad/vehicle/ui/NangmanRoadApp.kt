@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.nangmanroad.vehicle.AppUiState
 import com.nangmanroad.vehicle.AppViewModel
@@ -46,6 +47,7 @@ import com.nangmanroad.vehicle.Screen
 import com.nangmanroad.core.data.AlbumTab
 import com.nangmanroad.vehicle.ui.account.AccountScreen
 import com.nangmanroad.vehicle.ui.album.AlbumScreen
+import com.nangmanroad.vehicle.ui.components.ActionButton
 import com.nangmanroad.vehicle.ui.detail.SpotDetailScreen
 import com.nangmanroad.vehicle.ui.driving.DrivingScreen
 import com.nangmanroad.vehicle.ui.map.MapHomeScreen
@@ -125,16 +127,17 @@ private fun SideRail(state: AppUiState, actions: AppViewModel) {
             selected = state.screen == Screen.Account,
             onClick = actions::openAccount,
         )
-        RailButton(Icons.Outlined.DirectionsCar, "주행 화면", false) { actions.setDrivingPreview(true) }
+        // Parked, this only previews what driving shows; the name says so.
+        RailButton(Icons.Outlined.DirectionsCar, "주행 화면\n미리보기", false, twoLines = true) { actions.setDrivingPreview(true) }
     }
 }
 
 @Composable
-private fun RailButton(icon: ImageVector, label: String, selected: Boolean, badge: Int = 0, onClick: () -> Unit) {
+private fun RailButton(icon: ImageVector, label: String, selected: Boolean, badge: Int = 0, twoLines: Boolean = false, onClick: () -> Unit) {
     Box {
         Column(
             modifier = Modifier
-                .size(width = 88.dp, height = 88.dp)
+                .size(width = 88.dp, height = if (twoLines) 104.dp else 88.dp)
                 .clip(RoundedCornerShape(Dimens.ControlRadius))
                 .background(if (selected) Palette.Surface else Palette.Background)
                 .clickable(role = Role.Tab, onClick = onClick),
@@ -142,7 +145,12 @@ private fun RailButton(icon: ImageVector, label: String, selected: Boolean, badg
             verticalArrangement = Arrangement.Center,
         ) {
             Icon(icon, contentDescription = null, tint = if (selected) Palette.TextPrimary else Palette.TextSecondary, modifier = Modifier.size(32.dp))
-            Text(label, style = MaterialTheme.typography.labelMedium, color = if (selected) Palette.TextPrimary else Palette.TextSecondary)
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (selected) Palette.TextPrimary else Palette.TextSecondary,
+                textAlign = TextAlign.Center,
+            )
         }
         if (badge > 0) {
             Text(

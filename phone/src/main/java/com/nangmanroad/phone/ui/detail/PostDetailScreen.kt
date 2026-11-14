@@ -2,10 +2,12 @@ package com.nangmanroad.phone.ui.detail
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.rounded.StarBorder
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DirectionsCar
@@ -78,6 +81,7 @@ import com.nangmanroad.core.ui.color
 import com.nangmanroad.core.ui.icon
 import com.nangmanroad.core.ui.openWebLink
 import com.nangmanroad.core.ui.label
+import com.nangmanroad.phone.PhoneTab
 import com.nangmanroad.phone.PhoneUiState
 import com.nangmanroad.phone.PhoneViewModel
 import com.nangmanroad.phone.ui.components.Chip
@@ -88,6 +92,8 @@ import com.nangmanroad.phone.ui.components.StatusLabel
 import com.nangmanroad.phone.ui.components.TabRow
 import com.nangmanroad.phone.ui.components.Tag
 import com.nangmanroad.phone.ui.components.TextTab
+import com.nangmanroad.phone.ui.components.TransferStage
+import com.nangmanroad.phone.ui.components.transferStatus
 import com.nangmanroad.phone.ui.components.distanceFromHere
 import com.nangmanroad.phone.ui.home.VisibilityTag
 import java.net.URLEncoder
@@ -96,12 +102,19 @@ import java.util.Locale
 
 private enum class DetailTab(val label: String) { TIPS("꿀팁"), ITEMS("준비물"), COMMENTS("댓글") }
 
+/**
+ * [startOnReviews] opens the comments tab: the share flow sends people here to review a place that
+ * already exists instead of posting it a second time.
+ */
 @Composable
-fun PostDetailScreen(spot: Spot, state: PhoneUiState, actions: PhoneViewModel, showReviews: Boolean = false) {
-    var tab by rememberSaveable { mutableStateOf(if (showReviews) DetailTab.COMMENTS else DetailTab.TIPS) }
+fun PostDetailScreen(spot: Spot, state: PhoneUiState, actions: PhoneViewModel, startOnReviews: Boolean = false) {
+    var tab by rememberSaveable { mutableStateOf(if (startOnReviews) DetailTab.COMMENTS else DetailTab.TIPS) }
     var replyTo by rememberSaveable { mutableStateOf<String?>(null) }
     var suggesting by rememberSaveable { mutableStateOf(false) }
     var reportingChange by rememberSaveable { mutableStateOf(false) }
+
+    // imePadding on the whole screen: the tip form sits at the bottom of the list and must stay
+    // reachable (and scrollable) while the keyboard is up, not only the comment box.
     Column(Modifier.fillMaxSize().imePadding()) {
         LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 24.dp)) {
             item { Gallery(spot, onBack = actions::back) }
@@ -145,7 +158,7 @@ fun PostDetailScreen(spot: Spot, state: PhoneUiState, actions: PhoneViewModel, s
                                 }, Modifier.fillMaxWidth())
                             }
                             Text(
-                                "차박·주차 허용 여부는 현장 안내문으로 다시 확인하세요.",
+                                "차박·주차가 되는지는 현장 안내문으로 다시 확인하세요.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Palette.TextTertiary,
                             )
@@ -161,7 +174,7 @@ fun PostDetailScreen(spot: Spot, state: PhoneUiState, actions: PhoneViewModel, s
                     }
                 }
                 DetailTab.COMMENTS -> {
-                    item { Meta("질문과 후기") }
+                    item { Meta(if (startOnReviews) "다녀온 이야기를 후기로 남겨 주세요. 아래 입력창에서 '후기'를 고르면 돼요." else "질문과 후기") }
                     if (spot.comments.isEmpty()) item { Empty("첫 질문이나 후기를 남겨 보세요.") }
                     items(spot.comments, key = { it.id }) { comment ->
                         CommentThread(comment, onReply = { replyTo = comment.id }, modifier = Modifier.padding(horizontal = 20.dp))
@@ -225,9 +238,10 @@ private fun Header(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
     val following = spot.author.id in state.following
     Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Tag(spot.province, Palette.TextSecondary)
-                Tag(spot.category.label, Palette.TextSecondary)
+            // Where it is and what kind of place it is are different facts: one label each.
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Tag("지역 · ${spot.region}", Palette.TextSecondary)
+                Tag("테마 · ${spot.category.label}", Palette.TextSecondary)
             }
             Text(spot.title, style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
             Text(
@@ -246,17 +260,19 @@ private fun Header(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
                     )
                 }
             }
-            spot.carCampingCheckedDaysAgo?.let { Meta(carCampingCheckedLabel(it)) }
-            Meta(if (state.account.session != null) "제출한 상태는 장소를 볼 수 있는 사용자에게 반영돼요." else "제출한 상태는 이 기기에 반영돼요.")
-            Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            spot.carCampingCheckedDaysAgo?.let {
                 Text(
-                    "차박 상태 제보",
+                    "방문자 제보 · ${carCampingCheckedLabel(it)}",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Palette.TextSecondary,
+                    color = if (spot.carCampingStale) Palette.Warning else Palette.TextSecondary,
                 )
-                CarCamping.entries.forEach { status ->
-                    Chip(status.label, spot.carCamping == status, { actions.reportCarCamping(spot.id, status) })
-                }
+            }
+            if (spot.carCamping == CarCamping.CHECK) {
+                Text(
+                    "차박이 허용된 곳이라는 뜻이 아니에요. 아직 확인된 정보가 없으니 현장 안내를 따라 주세요.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Palette.Warning,
+                )
             }
         }
         if (spot.story.isNotBlank()) Text("“${spot.story}”", style = MaterialTheme.typography.bodyLarge, color = Palette.TextPrimary)
@@ -274,11 +290,119 @@ private fun Header(spot: Spot, state: PhoneUiState, actions: PhoneViewModel) {
             SecondaryButton(state.saveCount(spot).toString(), { actions.toggleSave(spot.id) }, Modifier.weight(1f), if (saved) Icons.Rounded.Star else Icons.Rounded.StarBorder, active = saved)
             SecondaryButton(if (visited) "방문 기록됨" else "방문 기록", { actions.toggleVisited(spot.id) }, Modifier.weight(1.3f), Icons.Outlined.CheckCircle, active = visited)
         }
-        val queued = spot.id in state.carQueue
-        if (queued) {
-            SecondaryButton(if (state.account.session == null) "전송 대기 · 목록에서 빼기" else "차량 전송 목록에서 빼기", { actions.removeFromCar(spot.id) }, Modifier.fillMaxWidth().heightIn(min = 52.dp), Icons.Outlined.DirectionsCar, active = true)
-        } else {
+        val transfer = state.transferStatus(spot.id)
+        if (transfer == null) {
             PrimaryButton("차량으로 보내기", { actions.sendToCar(spot.id) }, Modifier.fillMaxWidth(), icon = Icons.Outlined.DirectionsCar)
+        } else {
+            // Waiting, sent and received are three different things; say which one this is.
+            Section("차량으로 보내기", "") {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Icon(Icons.Outlined.DirectionsCar, null, tint = Palette.TextSecondary)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        StatusLabel(
+                            transfer.label,
+                            when (transfer.stage) {
+                                TransferStage.DONE -> Palette.Success
+                                TransferStage.SENT -> Palette.TextSecondary
+                                TransferStage.WAITING -> Palette.Warning
+                            },
+                        )
+                        Text(transfer.detail, style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (transfer.needsCarLink) SecondaryButton("차량 연결하러 가기", { actions.selectTab(PhoneTab.CAR) }, Modifier.weight(1f))
+                    SecondaryButton(
+                        if (transfer.stage == TransferStage.DONE) "목록에서 빼기" else "보내기 취소",
+                        { actions.removeFromCar(spot.id) },
+                        Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+        // Two things that used to sit side by side and looked alike: a private note that I went,
+        // and a public report about the place. Each gets its own box and says who sees it.
+        Section("방문 기록", "나만 봐요") {
+            SecondaryButton(
+                if (visited) "다녀온 곳으로 기록됨 · 취소" else "다녀왔어요 기록하기",
+                { actions.toggleVisited(spot.id) },
+                Modifier.fillMaxWidth(),
+                Icons.Outlined.CheckCircle,
+                active = visited,
+            )
+            Text("마이 > 방문 완료에 모이는 개인 기록이에요. 다른 사람에게는 보이지 않아요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+        }
+        CarCampingReport(spot) { status -> actions.reportCarCamping(spot.id, status) }
+    }
+}
+
+/** A ruled box with a title and, beside it, who can see what is inside. */
+@Composable
+private fun Section(title: String, audience: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).border(1.dp, Palette.Hairline, RoundedCornerShape(4.dp)).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, color = Palette.TextPrimary)
+            if (audience.isNotEmpty()) Tag(audience, Palette.TextSecondary)
+        }
+        content()
+    }
+}
+
+/**
+ * The public report on whether the night can be spent here. Choosing a status no longer sends it:
+ * the form first says who will see it and when it takes effect, then a separate button submits, and
+ * the box keeps a receipt of what was sent.
+ */
+@Composable
+private fun CarCampingReport(spot: Spot, onSubmit: (CarCamping) -> Unit) {
+    var open by rememberSaveable(spot.id) { mutableStateOf(false) }
+    var choice by rememberSaveable(spot.id) { mutableStateOf<CarCamping?>(null) }
+    var submitted by rememberSaveable(spot.id) { mutableStateOf<CarCamping?>(null) }
+    Section("차박 상태 제보", "모두에게 보여요") {
+        submitted?.let {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(Icons.Outlined.CheckCircle, null, tint = Palette.Success, modifier = Modifier.size(18.dp))
+                Text("'${it.label}'(으)로 제보를 접수했어요 · 닉네임과 함께 전체 공개", style = MaterialTheme.typography.bodySmall, color = Palette.TextPrimary)
+            }
+        }
+        if (!open) {
+            SecondaryButton(
+                if (submitted == null) "차박 상태 제보하기" else "다시 제보하기",
+                {
+                    choice = null
+                    open = true
+                },
+                Modifier.fillMaxWidth(),
+                Icons.Outlined.Campaign,
+            )
+            Text("직접 다녀온 뒤에 알려 주세요. 이 장소를 보는 모든 사람의 차박 표시가 바뀌어요.", style = MaterialTheme.typography.bodySmall, color = Palette.TextSecondary)
+        } else {
+            Text(
+                "제보는 닉네임과 함께 모든 사용자에게 보이고, 제출하면 바로 반영돼요. '금지'를 '가능'으로 바꾸는 제보는 방문자 두 명이 확인해야 반영돼요.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Palette.TextSecondary,
+            )
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(CarCamping.entries) { status -> Chip(status.label, choice == status, { choice = status }) }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SecondaryButton("취소", { open = false }, Modifier.weight(1f))
+                PrimaryButton(
+                    "제보 제출",
+                    {
+                        choice?.let { status ->
+                            onSubmit(status)
+                            submitted = status
+                            open = false
+                        }
+                    },
+                    Modifier.weight(1f),
+                    enabled = choice != null,
+                )
+            }
         }
     }
 }
@@ -405,7 +529,6 @@ private fun CommentComposer(replyingTo: String?, onCancelReply: () -> Unit, onSe
         Modifier
             .fillMaxWidth()
             .background(Palette.Background)
-            .imePadding()
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -430,7 +553,7 @@ private fun CommentComposer(replyingTo: String?, onCancelReply: () -> Unit, onSe
             ) {
                 if (text.isEmpty()) {
                     Text(
-                        if (question && replyingTo == null) "이 장소에 대해 궁금한 점을 물어보세요" else "따뜻한 이야기를 남겨 주세요",
+                        if (question && replyingTo == null) "이 장소에서 궁금한 점을 물어보세요" else "따뜻한 이야기를 남겨 주세요",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Palette.TextTertiary,
                     )

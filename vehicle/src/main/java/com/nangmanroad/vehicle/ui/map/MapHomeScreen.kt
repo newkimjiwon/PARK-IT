@@ -167,7 +167,9 @@ fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
                     PhotoMap(
                         spots = matching,
                         selectedId = selected?.id,
-                        here = state.here,
+                        // Without a navigation fix "here" is only a default; draw no dot rather than a wrong one.
+                        here = state.here.takeIf { state.hereFromNavigation },
+
                         onSelect = { actions.selectSpot(it.id) },
                         onVisibleChange = actions::onVisibleSpotsChanged,
                         style = VehicleMapStyle,
@@ -177,7 +179,7 @@ fun MapHomeScreen(state: AppUiState, actions: AppViewModel) {
                         likedIds = state.liked,
                         onMarkerModeChange = { markerMode = it },
                         herePulse = state.parkitPulse,
-                        onLocationUnavailable = if (state.hereFromNavigation) null else actions::showLocationUnavailable,
+                        onMyLocation = if (state.hereFromNavigation) null else actions::showLocationUnavailable,
                         // A red ring warns off overnight stays before the card is even read.
                         markerTint = { if (it.carCamping == CarCamping.BANNED) Palette.Alert else null },
                         modifier = Modifier.fillMaxSize(),

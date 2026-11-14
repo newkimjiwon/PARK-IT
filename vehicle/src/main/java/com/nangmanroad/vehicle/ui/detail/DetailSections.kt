@@ -88,7 +88,7 @@ fun HoneyTipSection(
             horizontalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Text(
-                "차박·주차 허용 여부는 현장 안내문으로 다시 확인하세요.",
+                "차박·주차가 되는지는 현장 안내문으로 다시 확인하세요.",
                 style = MaterialTheme.typography.bodySmall,
                 color = Palette.TextTertiary,
                 modifier = Modifier.weight(1f),

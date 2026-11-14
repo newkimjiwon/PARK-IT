@@ -112,7 +112,7 @@ fun ProfileScreen(state: PhoneUiState, actions: PhoneViewModel) {
                 PhotoMap(
                     spots = onMap,
                     selectedId = null,
-                    here = LatLng(0.0, 0.0),
+                    here = null,
                     onSelect = { actions.openSpot(it.id) },
                     onVisibleChange = {},
                     style = PhoneMapStyle.copy(markerSize = 44.dp, clusterRadius = 48.dp, controlsPadding = PaddingValues(8.dp), initialCamera = MapCamera(LatLng(36.4, 127.9), 0.9f)),

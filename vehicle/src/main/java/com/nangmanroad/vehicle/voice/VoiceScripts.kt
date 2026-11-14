@@ -73,7 +73,7 @@ fun phoneSentAnnouncement(title: String): String = "휴대폰에서 장소를 �
 /** When the car stops after a drive and offers a 파킷. */
 fun parkitPrompt(nearSpotTitle: String?, canTakeNote: Boolean): String {
     val ask = if (nearSpotTitle != null) "${nearSpotTitle}에 왔어요. 방문 완료로 표시할까요?" else "여기, 파킷할까요?"
-    return if (canTakeNote) "$ask 말로 메모를 남길 수도 있어요." else ask
+    return if (canTakeNote) "$ask 음성 메모를 남길 수도 있어요." else ask
 }
 
 fun tipsReadout(spot: Spot?): String {
@@ -139,7 +139,7 @@ private fun carCampingLine(spot: Spot): String {
     val line = when (spot.carCamping) {
         CarCamping.ALLOWED -> "차박할 수 있는 곳이에요."
         CarCamping.BANNED -> "차박이 금지된 곳이에요."
-        CarCamping.CHECK -> "차박 가능 여부는 현장 안내문으로 확인하세요."
+        CarCamping.CHECK -> "차박이 되는지는 현장 안내문으로 확인하세요."
     }
     val note = spot.carCampingNote.trim().takeIf { it.isNotEmpty() && spot.carCamping != CarCamping.CHECK }
     val stale = if (spot.carCampingStale && spot.carCamping != CarCamping.CHECK) "확인한 지 오래된 정보예요." else null

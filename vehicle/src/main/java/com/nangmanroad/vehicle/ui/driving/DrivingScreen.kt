@@ -67,6 +67,7 @@ fun DrivingScreen(
     val destination = state.destination
     val routed = state.routedSpot
     val tips = routed?.arrivalTips().orEmpty()
+    val preview = state.drivingPreview && state.drivingState != DrivingState.DRIVING
 
     Box(
         Modifier
@@ -76,7 +77,7 @@ fun DrivingScreen(
     ) {
         Column(Modifier.widthIn(max = 1240.dp).fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("주행 중", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
+                Text(if (preview) "주행 화면 미리보기 · 정차 중" else "주행 중", style = MaterialTheme.typography.labelLarge, color = Palette.TextSecondary)
                 Spacer(Modifier.weight(1f))
                 VoiceControls(state.voice, onToggleBriefing, onListen)
             }
@@ -130,6 +131,27 @@ fun DrivingScreen(
                 } else {
                     Text("내비게이션 안내를 따라가세요", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
                 }
+            } else if (preview) {
+                // Nothing to show without a route, so say what will be here once there is one.
+                Text("길 안내를 시작하면 이 화면에 표시돼요", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
+                Spacer(Modifier.height(20.dp))
+                Rule(Palette.Rule)
+                listOf(
+                    "목적지와 남은 거리, 남은 시간, 도착 예정 시각",
+                    "도착 시 배터리와 일몰까지 남은 시간",
+                    "차박 상태와 도착 전 꿀팁 세 가지",
+                ).forEachIndexed { index, line ->
+                    Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text("${index + 1}", style = MaterialTheme.typography.titleLarge.tabular(), color = Palette.TextTertiary)
+                        Text(line, style = MaterialTheme.typography.titleLarge, color = Palette.TextPrimary)
+                    }
+                }
+                Spacer(Modifier.height(20.dp))
+                Text(
+                    "실제로 주행할 때는 지도와 사진을 가리고 이 화면만 보여요. 지도에서 장소를 고르고 '길 안내'를 누른 뒤 다시 열어 보세요.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Palette.TextSecondary,
+                )
             } else {
                 Text("정차하면 지도와 사진을 다시 볼 수 있어요", style = MaterialTheme.typography.headlineLarge, color = Palette.TextPrimary)
             }
@@ -177,9 +199,9 @@ fun DrivingScreen(
                 }
             }
 
-            if (state.drivingPreview && state.drivingState != DrivingState.DRIVING) {
+            if (preview) {
                 Spacer(Modifier.height(40.dp))
-                ActionButton("미리보기 끝내기", null, onExitPreview)
+                ActionButton("미리보기 닫기", null, onExitPreview)
             }
         }
     }

@@ -108,7 +108,7 @@ adb -s emulator-5554 emu avd name
 adb -s emulator-5556 emu kill
 ```
 
-`emu avd name`은 그 번호가 어느 가상 기기인지 알려 주고, `emu kill`은 해당 에뮬레이터를 종료합니다.
+`emu avd name`은 그 번호가 어느 가상 기기인지 알려 주고, `emu kill`은 그 에뮬레이터를 종료합니다.
 
 ## Virtual Console
 
