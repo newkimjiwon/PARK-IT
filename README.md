@@ -19,7 +19,7 @@
 
 <img src="docs/images/car-headunit.jpg" width="820" alt="Pleos 헤드유닛의 파킷 지도 홈과 왼쪽 차량 클러스터">
 
-<sub>Pleos Connect 에뮬레이터 실제 화면 · <a href="docs/parkit-demo.mp4">시연 영상</a></sub>
+<sub>Pleos Connect 에뮬레이터 실제 화면 · <a href="docs/parkit-showcase.mp4">시연 영상 (1분)</a></sub>
 
 </div>
 
@@ -34,7 +34,7 @@
 | **APK** | 차량 [`Carvers_PARK-IT_release.apk`](apk/Carvers_PARK-IT_release.apk) (35MB) · 휴대폰 [`Carvers_PARK-IT-phone_release.apk`](apk/Carvers_PARK-IT-phone_release.apk) (27MB) |
 | **테스트 환경** | Pleos Connect 에뮬레이터 v2.1.0 (Android API 34, x86_64, 2560 × 1440) |
 | **필요한 설정** | 차량 앱만 볼 때는 **없습니다.** 휴대폰과 차량을 연결하려면 PC에서 동기화 서버를 켭니다 ([아래](#휴대폰과-연결하기)) |
-| **시연 영상** | [차량·휴대폰 시연](docs/parkit-demo.mp4) · [장소 공유 시연](docs/parkit-share-demo.mp4) |
+| **시연 영상** | [PARK-IT 시연 영상 (1분)](docs/parkit-showcase.mp4) · 기능별: [차량·휴대폰 연동](docs/parkit-demo.mp4), [장소 공유](docs/parkit-share-demo.mp4) |
 
 ### 실행하기
 
