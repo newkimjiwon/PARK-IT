@@ -1,20 +1,110 @@
-# 현대자동차그룹 차량용 앱 개발 공모전
+<div align="center">
 
-<img src="docs/images/parkit-logo.png" alt="코랄색 지도 핀 안에 초승달과 별이 있는 파킷 로고" width="132">
+<img src="docs/images/parkit-logo.png" alt="코랄색 지도 핀 안에 초승달과 별이 있는 파킷 로고" width="120">
 
-Pleos Connect 차량용 앱을 만들기 위한 팀 저장소입니다. 차박, 드라이브 장소를 사진과 꿀팁으로 공유하는 차량 특화 SNS **PARK-IT(파킷)** 을 개발하고 있습니다. 슬로건은 "당신의 경험이 누군가의 목적지가 되는 곳"이며, 코드와 패키지 이름은 개발 초기 가칭인 낭만로드(`com.nangmanroad`)를 그대로 씁니다.
+# PARK-IT (파킷)
 
-<a name="실행-화면"></a>
+### 당신의 경험이 누군가의 목적지가 되는 곳
+
+차박·드라이브 장소를 사진과 꿀팁으로 나누는 차량 특화 SNS입니다.<br>
+휴대폰에서 고른 장소를 차량 화면에서 이어 보고, 그대로 길 안내를 받습니다.
+
+<br>
+
+![Contest](https://img.shields.io/badge/현대자동차그룹-차량용_앱_개발_공모전_2026-002C5F?style=for-the-badge)
+![Platform](https://img.shields.io/badge/Pleos_Connect-Android_Automotive-00AAD2?style=for-the-badge)
+![SDK](https://img.shields.io/badge/Pleos_SDK-4종_활용-2EA44F?style=for-the-badge)
+
+<br>
+
+<img src="docs/images/car-headunit.jpg" width="820" alt="Pleos 헤드유닛의 파킷 지도 홈과 왼쪽 차량 클러스터">
+
+<sub>Pleos Connect 에뮬레이터 실제 화면 · <a href="docs/parkit-demo.mp4">시연 영상</a></sub>
+
+</div>
+
+---
+
+## 심사위원 빠른 안내
+
+| | |
+|---|---|
+| **앱 이름** | PARK-IT (팀 Carvers) · 패키지 `com.nangmanroad.vehicle`(차량), `com.nangmanroad.phone`(휴대폰) |
+| **한 줄 소개** | 다른 사람이 다녀온 차박·드라이브 장소를 찾아 차량으로 보내고, 정차한 곳을 다시 공유하는 앱 |
+| **APK** | 차량 [`Carvers_PARK-IT_release.apk`](apk/Carvers_PARK-IT_release.apk) (35MB) · 휴대폰 [`Carvers_PARK-IT-phone_release.apk`](apk/Carvers_PARK-IT-phone_release.apk) (27MB) |
+| **테스트 환경** | Pleos Connect 에뮬레이터 v2.1.0 (Android API 34, x86_64, 2560 × 1440) |
+| **필요한 설정** | 차량 앱만 볼 때는 **없습니다.** 휴대폰과 차량을 연결하려면 PC에서 동기화 서버를 켭니다 ([아래](#휴대폰과-연결하기)) |
+| **시연 영상** | [차량·휴대폰 시연](docs/parkit-demo.mp4) · [장소 공유 시연](docs/parkit-share-demo.mp4) |
+
+### 실행하기
+
+```powershell
+adb install -r apk/Carvers_PARK-IT_release.apk
+adb install -r apk/Carvers_PARK-IT-phone_release.apk
+adb shell am start -n com.nangmanroad.vehicle/.MainActivity   # 또는 앱 목록에서 "PARK-IT"
+```
+
+### 5분 둘러보기
+
+1. **지도 홈**에서 사진 마커를 누릅니다 → 거리, 소요 시간, 차박 가능 여부, 도착했을 때 남는 배터리가 보입니다.
+2. **자세히 → 방문 꿀팁** → 주차·화장실 같은 정보와 제보가 엇갈리는 항목(확인 필요)을 봅니다.
+3. **길 안내**를 누르면 Pleos 내비게이션이 목적지로 안내를 시작합니다.
+4. Virtual Console에서 **기어를 D로** → 사진과 피드가 가려지고 남은 거리·시간, 도착 전 꿀팁만 크게 보이는 주행 화면으로 바뀝니다.
+5. **기어를 P로** → 지도 오른쪽 아래 **파킷** 버튼이 강조됩니다. 지금 있는 곳을 휴대폰으로 보내거나 방문 기록으로 남깁니다.
+6. 왼쪽 메뉴의 **저장**, **다녀온 곳**, **휴대폰**에서 보관한 장소와 방문 기록, 휴대폰에서 받은 장소를 봅니다.
+
+> **참고** · 음성 안내와 음성 검색(TTS·STT)은 Pleos의 기기 안 음성 모델이 있어야 동작합니다. 에뮬레이터 2.1.0에는 이 모델이 없어 음성 버튼이 숨겨집니다.
+> 장소와 후기는 시연용 예시 데이터입니다. 휴대폰 차량 탭의 배터리·차박 모드·원격 제어는 데모입니다.
+
+### 휴대폰과 연결하기
+
+1. PC에서 동기화 서버를 켭니다. 저장소 루트에서 `.\gradlew.bat :server:run` (macOS는 `sh gradlew :server:run`). 앱은 에뮬레이터에서 `10.0.2.2:8080`으로 PC의 서버를 찾습니다.
+2. 휴대폰 앱에서 로그인합니다. 시연 계정은 닉네임 `윤슬을따라`, 비밀번호 `parkit-demo`입니다.
+3. 차량 앱 왼쪽 **계정 연결**의 6자리 번호를 휴대폰 **차량** 탭에 입력합니다.
+4. 휴대폰 장소 상세에서 **차량으로 보내기** → 차량 **휴대폰** 메뉴에 도착합니다. 차량에서 보낸 파킷은 휴대폰 **알림 → 파킷리스트**에 들어옵니다.
+
+Windows에서는 저장소 루트의 `run-parkit.cmd`가 서버와 두 앱을 빌드해 한 에뮬레이터 창의 왼쪽에 차량, 오른쪽에 휴대폰을 엽니다.
+
+<br>
+
+## 언제, 무엇을 해 주나
+
+### 떠나기 전 <sub>(휴대폰)</sub>
+- **장소 찾기** — 추천·팔로잉·가까운 곳 피드와 사진 지도에서 찾고, 화장실·전기·충전 같은 조건으로 거릅니다.
+- **차량으로 보내기** — 고른 장소를 차량으로 보내고, 보냄 · 차량 수신 · 길 안내 시작 중 어디까지 갔는지 확인합니다.
+
+### 차에 타서 <sub>(차량 화면)</sub>
+- **이어 보기** — 휴대폰에서 보낸 장소가 차량 화면에 쌓이고, 바로 길 안내를 시작합니다.
+- **배터리 판정** — 지금 배터리로 목적지까지 갔을 때 몇 퍼센트 남는지, 충전이 필요한지 알려 줍니다.
+
+### 운전 중
+- **주행 화면** — 기어가 D이면 사진과 피드를 가리고 남은 거리·시간, 도착 전 꿀팁만 보여 줍니다.
+- **음성 안내** — 출발할 때 경로·배터리·일몰 시각과 꿀팁을 읽어 주고, 도착 직전에 한 번 더 알려 줍니다.
+
+### 도착해서 · 정차 중
+- **파킷** — 기어가 P가 되면 지금 있는 곳을 휴대폰으로 보내 새 장소로 공유하거나 방문 기록으로 남깁니다.
+- **공유와 후기** — 휴대폰에서 위치·사진·경험을 올리고 공개 범위를 고릅니다. 이미 있는 장소에는 후기를 남깁니다.
+
+<br>
+
+## Pleos SDK 활용
+
+| SDK · API | 어디에 쓰나 |
+|---|---|
+| **Vehicle** | 기어(Gear)로 주행 화면과 정차 시 파킷을 전환, 배터리(EvBattery) 잔량과 용량으로 도착 예상 배터리 계산 |
+| **NaviHelper** | 고른 장소로 순정 내비 길 안내 요청, 현재 위치·남은 거리·시간 조회, 도착 감지 |
+| **TextToSpeech** | 출발 브리핑, 도착 알림, 꿀팁 읽기 (기기 안 음성) |
+| **SpeechToText** | 음성 검색과 "배터리 얼마나 남았어" 같은 질문, 파킷 음성 메모 (기기 안 음성) |
+| **AAOS** | 주행 중 화면 제한을 위한 `distractionOptimized` 선언 |
+
+<br>
 
 ## 화면
 
-2026년 11월 14일 Windows 빌드를 Pleos Connect Emulator 2.1에서 실행해 캡처했습니다. 차량은 Pleos 헤드유닛(2560×1440), 휴대폰은 같은 에뮬레이터의 세로 화면(800×1440)에서 확인했습니다. 각 사진을 누르면 크게 볼 수 있습니다.
+<details>
+<summary><b>차량용 앱과 스마트폰 앱 화면 전체 보기</b></summary>
 
 ### 차량용 앱
-
-<img src="docs/images/car-headunit.jpg" alt="Pleos 헤드유닛의 파킷 지도 홈과 왼쪽 차량 클러스터" width="100%">
-
-전체 화면 아래에는 앱 영역을 잘라 담았습니다.
 
 <table>
   <tr>
@@ -178,7 +268,12 @@ Pleos Connect 차량용 앱을 만들기 위한 팀 저장소입니다. 차박, 
 
 <img src="docs/images/phone-share-audience.jpg" alt="장소 공유에서 전체 공개, 팔로워 공개, 나만 보기를 선택하는 화면" width="250">
 
-## 차량용 앱 화면 안내
+</details>
+
+<details>
+<summary><b>화면별 안내</b></summary>
+
+### 차량용 앱
 
 | 화면 | 들어가는 곳 | 할 수 있는 일 |
 | --- | --- | --- |
@@ -194,7 +289,7 @@ Pleos Connect 차량용 앱을 만들기 위한 팀 저장소입니다. 차박, 
 | 계정 연결과 설정 | 왼쪽 **계정 연결** 또는 **계정** | 차량의 6자리 번호를 휴대폰 차량 탭에 입력합니다. 코드는 10분 동안 유효합니다. 연결 뒤에는 음성 안내를 켜고 끄거나 파킷 위치를 시·군까지만 보낼 수 있습니다. |
 | 주행 화면 | 주행 시작 또는 왼쪽 **주행 화면** 미리보기 | 주행 중 사진과 피드를 가리고, 경로가 있을 때 목적지, 남은 거리·시간, 도착 전 꿀팁을 보여줍니다. 음성 안내는 Pleos의 음성 모델이 있는 환경에서 동작합니다. |
 
-## 휴대폰 앱 화면 안내
+### 휴대폰 앱
 
 | 화면 | 들어가는 곳 | 할 수 있는 일 |
 | --- | --- | --- |
@@ -215,24 +310,48 @@ Pleos Connect 차량용 앱을 만들기 위한 팀 저장소입니다. 차박, 
 
 **장소 보내기와 파킷 보내기** 휴대폰에서 차량으로 보내면 기존 장소가 차량의 **휴대폰** 메뉴로 갑니다. 차량에서 파킷을 보내면 정차 위치와 함께 남긴 메모가 휴대폰의 **알림 → 파킷리스트**에 들어옵니다.
 
-화면이 바뀌면 스크린샷도 같이 바꿉니다. 같은 화면을 띄운 뒤 `scripts/capture-screenshot.sh <기기> <파일 이름> <car|car-full|phone>`을 실행하면 `docs/images/`의 같은 이름 파일이 바뀝니다. 차량 앱 창 자르기와 크기 조절까지 스크립트가 하고, macOS에서만 동작합니다.
+</details>
 
-## 시작하기
+---
 
-**Windows에서 한 번에 실행** Android SDK와 Pleos 에뮬레이터를 설정한 뒤 저장소 루트의 `run-parkit.cmd`를 실행합니다. 서버와 두 앱을 빌드하고, 한 에뮬레이터 창의 왼쪽에는 차량, 오른쪽에는 휴대폰을 엽니다.
+<details>
+<summary><b>개발자용: 소스에서 빌드하기</b></summary>
 
-휴대폰에 로그인한 뒤 **장소 공유 → 공유하기**를 누르면 같은 CMD가 실행한 PC의 로컬 서버에 등록됩니다. 둘러보기로 시작했다면 장소를 이 휴대폰에 저장합니다.
+```powershell
+git clone https://github.com/newkimjiwon/PARK-IT.git
+cd PARK-IT
+.\gradlew.bat :vehicle:assembleRelease :phone:assembleRelease   # 제출용 APK
+.\gradlew.bat :server:run                                        # 동기화 서버
+```
 
-[개발 환경 설치 및 샘플 실행 안내](docs/development-setup.md)를 따라 Android Studio, JDK 17, Android SDK, Pleos 전용 에뮬레이터와 휴대폰 에뮬레이터를 설치합니다.
+- 필요한 것: JDK 17, Android SDK 35, Pleos Connect 에뮬레이터. 자세히: [개발 환경 설치 및 샘플 실행 안내](docs/development-setup.md)
+- 네이버 지도 키는 서버의 지도 설정에서 받고, 없으면 `local.properties`의 `naver.ncpKeyId`, 그것도 없으면 앱이 직접 그린 지도를 씁니다.
+- 실제 기기에서 시험할 때는 PC의 LAN 주소로 빌드합니다: `-Pnangmanroad.syncUrl=http://<PC 주소>:8080`
+- 스크린샷 교체: `scripts/capture-screenshot.sh <기기> <파일 이름> <car|car-full|phone>` (macOS)
 
-- [차량용 앱](docs/vehicle-app.md): `vehicle/` 모듈의 빌드, 실행 방법, 기능, Pleos SDK 연동, 아직 없는 기능
-- [스마트폰 앱](docs/phone-app.md): `phone/` 모듈의 빌드, 실행 방법, 장소 공유, 커뮤니티, 차량 콘셉트 화면, 아직 없는 기능
-- [동기화 서버](docs/sync-server.md): `server/` 모듈. 휴대폰 로그인, 6자리 코드로 차량 연결, 저장, 게시물, 보낸 장소 동기화
-- 공용 코드: `shared/` 모듈(데이터 모델, 샘플 장소, API 계약)은 서버와 두 앱이, `core/` 모듈(서버 연결, 사진 지도, 공용 UI)은 두 앱이 함께 씁니다.
-- [경쟁 서비스 비교](docs/competitor-comparison.md): 캠핑 예약 앱, 차박 지도, 범용 지도, 커뮤니티와 PARK-IT의 차이
+| 폴더 | 내용 |
+|---|---|
+| `vehicle/` | 차량 앱 (Pleos SDK 연동, 주행 화면, 음성) · [안내](docs/vehicle-app.md) |
+| `phone/` | 스마트폰 앱 (피드, 지도, 장소 공유, 차량 연결) · [안내](docs/phone-app.md) |
+| `core/` | 두 앱이 함께 쓰는 서버 연결, 사진 지도, 공용 UI |
+| `shared/` | 서버와 두 앱이 함께 쓰는 데이터 모델, 샘플 장소, API 계약 |
+| `server/` | 동기화 서버 (Ktor, SQLite) · [안내](docs/sync-server.md) |
+| `apk/` | 제출용 APK |
+| `docs/` | 모듈 안내, [경쟁 서비스 비교](docs/competitor-comparison.md), 스크린샷, 시연 영상 |
 
-## 참고 링크
+</details>
 
-- [공모전 참가 가이드](https://appdevchallenge.auto-hmg.io/guide)
-- [Pleos Connect 개발자 가이드](https://document.pleos.ai/)
-- [공식 Vehicle SDK 샘플](https://github.com/Pleos-Playground/pleos-sample-vehicle-app)
+<details>
+<summary><b>데이터 출처</b></summary>
+
+| 데이터 | 출처 | 쓰는 곳 |
+|---|---|---|
+| 공식 야영장 사진·정보 | 한국관광공사 [고캠핑 정보 조회 서비스](https://www.data.go.kr/data/15101933/openapi.do) ([사진 목록](core/src/main/assets/place_photos/sources.json)) | 공식 장소 상세 |
+| 지도 | NAVER Maps | 차량·휴대폰 지도 |
+
+</details>
+
+<div align="center">
+<br>
+<sub>현대자동차그룹 차량용 앱 개발 공모전 2026 출품작 · <a href="https://appdevchallenge.auto-hmg.io/">공모전 사이트</a> · <a href="https://document.pleos.ai/">Pleos Connect 개발자 가이드</a></sub>
+</div>
