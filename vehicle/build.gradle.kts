@@ -18,8 +18,14 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            // Shrink code and resources and ship only the 64-bit ABIs (car head units and current
+            // emulators) so the APK is small enough to hand in.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), rootProject.file("proguard-rules.pro"))
+            ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
+            // No release keystore yet: sign with the local debug key so the APK installs for demos and review.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -37,6 +43,8 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        // Compress native libraries inside the APK (the NAVER map engine alone is ~24MB per ABI).
+        jniLibs { useLegacyPackaging = true }
     }
 }
 
