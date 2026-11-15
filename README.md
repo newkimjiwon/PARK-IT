@@ -161,6 +161,23 @@ Pleos Connect 차량용 앱을 만들기 위한 팀 저장소입니다. 차박, 
   </tr>
 </table>
 
+### 장소 등록 세부 화면
+
+<table>
+  <tr>
+    <td width="25%"><img src="docs/images/phone-share-tips.jpg" alt="장소 공유에서 주차 꿀팁 작성"></td>
+    <td width="25%"><img src="docs/images/phone-share-items.jpg" alt="장소 공유에서 랜턴 준비물 추천"></td>
+    <td width="25%"><img src="docs/images/phone-published-tips.jpg" alt="등록한 장소의 주차 꿀팁"></td>
+    <td width="25%"><img src="docs/images/phone-published-items.jpg" alt="등록한 장소의 준비물"></td>
+  </tr>
+  <tr>
+    <td><b>방문 꿀팁</b> / 주차 등 다음 방문자에게 전할 정보</td>
+    <td><b>준비물</b> / 이름과 써 본 이유, 가격을 선택 입력</td>
+    <td><b>게시 후 꿀팁</b> / 공유된 주차 정보 확인</td>
+    <td><b>게시 후 준비물</b> / 추천한 랜턴 확인</td>
+  </tr>
+</table>
+
 ## 차량용 앱 화면 안내
 
 | 화면 | 들어가는 곳 | 할 수 있는 일 |
