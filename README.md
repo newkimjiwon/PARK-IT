@@ -89,7 +89,7 @@ Pleos Connect 차량용 앱을 만들기 위한 팀 저장소입니다. 차박, 
 
 ### 스마트폰 앱
 
-[차량·휴대폰 시연 영상 (MP4)](docs/parkit-demo.mp4) · 차량 지도와 상세, 휴대폰 장소 등록과 댓글 작성 과정을 볼 수 있습니다.
+[차량·휴대폰 시연 영상 (MP4)](docs/parkit-demo.mp4) · 차량 지도와 상세, 휴대폰에서 차량으로 장소 보내기와 차량 수신, 장소 등록과 댓글 작성 과정을 볼 수 있습니다.
 
 [![한국어 시연용 게시물의 등록 결과](docs/images/phone-published.jpg)](docs/images/phone-published.jpg)
 
