@@ -1,6 +1,6 @@
 # 차량용 앱 — PARK-IT(파킷)
 
-[Figma 프로토타입](figma-prototype-review.md)의 차량 디스플레이 화면을 Pleos Connect용 Android Automotive 앱으로 옮긴 것입니다. 코드는 `vehicle/` 모듈에 있고, 데이터 모델과 사진 지도는 [스마트폰 앱](phone-app.md)과 함께 쓰는 `core/` 모듈에 있습니다. 휴대폰 계정과의 동기화는 [동기화 서버](sync-server.md)를 씁니다.
+PARK-IT의 Pleos Connect용 Android Automotive 차량 앱입니다. 코드는 `vehicle/` 모듈에 있고, 데이터 모델과 사진 지도는 [스마트폰 앱](phone-app.md)과 함께 쓰는 `core/` 모듈에 있습니다. 휴대폰 계정과의 동기화는 [동기화 서버](sync-server.md)를 씁니다.
 
 > 확인 범위: 2026-11-05 Apple Silicon Mac의 Pleos Connect Emulator 2.1.0(2560×1440, 앱 창 2:1)에서 빌드·설치·실행했습니다. 지도, 장소 상세, 앨범 화면을 확인했습니다. NaviHelper 길 안내와 Virtual Console의 P↔D 전환에 따른 주행 화면도 직접 확인했습니다. 세로 창과 1:1 창 배치, 실제 차량은 확인하지 않았습니다. 같은 날 공용 코드를 `core/`로 옮긴 뒤에는 빌드만 확인했고, Pleos 에뮬레이터에서 다시 실행하지는 않았습니다. 2026-11-10에는 같은 에뮬레이터에서 음성 기능을 확인했습니다. 버튼, 설정, SDK 연결과 요청은 동작했지만, 에뮬레이터에 음성 모델이 없어 소리와 인식 결과는 확인하지 못했습니다([음성](#음성-texttospeech-speechtotext) 참고).
 

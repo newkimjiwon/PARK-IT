@@ -29,7 +29,7 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
 "$JAVA_HOME/bin/java" -version
 ```
 
-위 명령은 시스템에 등록된 JDK에만 적용됩니다. 외장 SSD에 압축을 풀어 둔 JDK처럼 등록되지 않은 경우에는 직접 경로를 지정합니다. 도구를 모두 외장 SSD에 둔 개발용 Mac의 구성은 [외장 SSD 개발 환경](local-environment-mac.md)에 따로 정리했습니다.
+위 명령은 시스템에 등록된 JDK에만 적용됩니다. 외장 SSD에 압축을 풀어 둔 JDK처럼 등록되지 않은 경우에는 직접 경로를 지정합니다.
 
 Windows PowerShell 예시 — 경로는 본인이 설치한 실제 JDK 폴더로 바꿉니다:
 
