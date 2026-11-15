@@ -93,7 +93,7 @@ fun NangmanRoadApp(state: AppUiState, actions: AppViewModel) {
             }
         }
 
-        if (!state.showDrivingView) Toast(state, actions, Modifier.align(Alignment.BottomCenter).padding(bottom = 40.dp))
+        if (!state.showDrivingView) Toast(state, actions, Modifier.align(Alignment.TopCenter).padding(start = 120.dp, end = 24.dp, top = 24.dp))
     }
 }
 
@@ -187,7 +187,7 @@ private fun Toast(state: AppUiState, actions: AppViewModel, modifier: Modifier =
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = Palette.Success, modifier = Modifier.size(30.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(toast?.text.orEmpty(), style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
                 toast?.supporting?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Palette.TextSecondary) }
             }
