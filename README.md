@@ -144,6 +144,23 @@ Pleos Connect 차량용 앱을 만들기 위한 팀 저장소입니다. 차박, 
   </tr>
 </table>
 
+### 장소 탐색과 공유 자세히 보기
+
+<table>
+  <tr>
+    <td width="25%"><img src="docs/images/car-detail-tips.jpg" alt="차량 장소 상세의 방문 정보"></td>
+    <td width="25%"><img src="docs/images/phone-send-status.jpg" alt="휴대폰에서 차량으로 장소를 보낸 상태"></td>
+    <td width="25%"><img src="docs/images/car-received-detail.jpg" alt="차량에서 받은 장소의 상세"></td>
+    <td width="25%"><img src="docs/images/phone-comment-write.jpg" alt="한국어 방문 후기 작성"></td>
+  </tr>
+  <tr>
+    <td><b>장소 확인</b> / 사진과 차박 상태, 방문 꿀팁 확인</td>
+    <td><b>차량으로 보내기</b> / 전송 성공과 차량 수신 상태 확인</td>
+    <td><b>차량에서 열기</b> / 받은 장소의 상세와 길 안내</td>
+    <td><b>댓글</b> / 후기나 질문을 작성해 전송</td>
+  </tr>
+</table>
+
 ## 차량용 앱 화면 안내
 
 | 화면 | 들어가는 곳 | 할 수 있는 일 |
